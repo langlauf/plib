@@ -1,0 +1,116 @@
+
+Portability Libraries.
+======================
+             by Steve Baker.
+             <sjbaker1@airmail.net>
+             http://www.woodsoup.org/~sbaker
+
+All the documentation and installation instructions
+are now in doc/index.html - or online at:
+
+  http://www.woodsoup.org/projs/plib
+
+LICENSING:
+
+These libraries are offered as OpenSource freeware
+under the provisions of the GNU Library Public
+License (LGPL). Those terms and conditions are
+detailed in the file 'LICENSE' in this directory.
+
+REQUIREMENTS:
+
+In addition to the libraries that I provide, you
+will also need OpenGL (OpenGL 1.1 or later -
+Mesa 3.0 or later) and GLUT (The OpenGL utilities
+toolkit - version 3.7 or later) and a hardware 3D
+graphics accellerator that supports OpenGL.
+
+WHAT DO YOU GET?
+
+The following libraries are provided:
+
+JS  -- A Joystick interface.
+PUI -- A simple GUI built on top of OpenGL.
+SG  -- Some Standard Geometry functions (vector and
+       matrix math, spheres, boxes, frustra, etc)
+SL  -- A Games-oriented Sound Library.
+SSG -- A Simple Scene Graph API built on top of OpenGL.
+
+
+DIRECTORY STRUCTURE:
+
+PLIB expects to be installed in one standard place:
+
+   /usr/local/plib
+
+or 
+
+   C:\USR\LOCAL\PLIB
+
+
+PORTABILITY:
+
+Although all these libraries are designed to be easily
+portable (and more importantly so that programs using
+them can be UTTERLY portable), some of them have not
+yet been ported to all operating systems.
+
+JS  -- Currently Linux-only (although a Windows
+       version is under development).
+
+PUI -- Requires GLUT and OpenGL. (Although a
+       GLUT-less version does also exist for
+       Windows - it is deprecated)
+
+SG  -- Totally portable.
+
+SSG -- Requires OpenGL.
+
+SL  -- This has now been ported onto:
+
+         Linux
+         FreeBSD
+         OpenBSD
+         M$ Windows (NT,95,98 - so far)
+         SGI IRIX
+         Sun Solaris
+         Any operating system that supports OSS (The
+              Open Sound System).
+
+       NOTE: SL has a subsidiary library 'SM' that
+       can be used to control the audio mixer - but
+       that is not portable beyond Linux.  You might
+       get it to work under OSS-based sound systems
+       too. Don't use SM if you want to write portable
+       code.
+
+STABILITY AND RELIABILITY:
+
+SG, SL, JS and PUI have all been in use for a long time
+in a huge number of applications - so they are reliable
+and unlikely to change much in the future.
+
+SSG is still fairly new though - and it's by far the
+most complex and ambitious of the libraries. Whilst
+it seems to work well and to be stable for the couple
+of applications I have, it will certainly need more
+work in the future.
+
+COMPILING/LINKING WITH PLIB
+
+  Add '-I/usr/local/plib/include' to compile lines.
+
+  In your source code, add any combination of:
+
+     #include <js.h>
+     #include <pu.h>
+     #include <sg.h>
+     #include <ssg.h>
+     #include <sl.h>
+
+  Add '-L/usr/local/plib/lib' and any of:
+  "-lssg -lsl -lpu -lsg" to your link line.
+
+  Under UNIX/Linux, you'll also need:
+  -lglut -lGLU -lGL -L/usr/X11/lib -lX11 -lXext -lXmu -lm
+ 
