@@ -1424,8 +1424,11 @@ public:    /* Yuk!  Need to hide some of this public stuff! */
 
 void ssgInit () ;
 
-void ssgSetFOV      ( float w, float h ) ;
-void ssgSetNearFar  ( float n, float f ) ;
+void ssgSetOrtho    ( float  w, float  h ) ;
+void ssgGetOrtho    ( float *w, float *h ) ;
+
+void ssgSetFOV      ( float  w, float  h ) ;
+void ssgSetNearFar  ( float  n, float  f ) ;
 
 void ssgGetFOV      ( float *w, float *h ) ;
 void ssgGetNearFar  ( float *n, float *f ) ;

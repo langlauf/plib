@@ -16,6 +16,7 @@
 extern void (*__ssgEnableTable[64])() ;
 extern void (*__ssgDisableTable[64])() ;
 
+extern int    _ssgOrthographic ;
 extern sgMat4 _ssgOpenGLAxisSwapMatrix ;
 extern int    _ssgCurrentCullFace ;
 extern int    _ssgOverrideTexture  ;

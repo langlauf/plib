@@ -14,6 +14,7 @@ sgVec4 _ssgColourWhite = { 1.0f, 1.0f, 1.0f, 1.0f } ;
 sgVec3 _ssgNormalUp    = { 0.0f, 0.0f, 1.0f } ;
 sgVec2 _ssgTexCoord00  = { 0.0f, 0.0f } ;
 
+int        _ssgOrthographic     = FALSE ;
 sgFrustum *_ssgCurrentFrustum   = NULL ;
 sgMat4     _ssgCurrentCameraMatrix ;
 int        _ssgCurrentCullFace  = TRUE ;
@@ -114,8 +115,29 @@ void ssgSetNearFar ( float n, float f )
 }
 
 
+void ssgGetOrtho ( float *w, float *h )
+{
+  if ( w != NULL )
+    *w = _ssgCurrentFrustum -> getRight() - _ssgCurrentFrustum -> getLeft() ;
+
+  if ( h != NULL )
+    *h = _ssgCurrentFrustum -> getTop() - _ssgCurrentFrustum -> getBot() ;
+}
+
+
+void ssgSetOrtho ( float w, float h )
+{
+  _ssgOrthographic = TRUE ;
+  _ssgCurrentFrustum -> setFrustum ( -w/2, w/2, -h/2, h/2, 
+     _ssgCurrentFrustum -> getNear (),
+     _ssgCurrentFrustum -> getFar  () ) ;
+}
+
+
+
 void ssgSetFOV ( float w, float h )
 {
+  _ssgOrthographic = FALSE ;
   _ssgCurrentFrustum -> setFOV ( w, h ) ;
 }
 
@@ -149,18 +171,47 @@ void ssgLoadProjectionMatrix ()
   ssgLoadProjectionMatrix ( _ssgCurrentFrustum ) ;
 }
 
+static void pushProjectionMatrix ( sgFrustum *f )
+{
+  if ( _ssgOrthographic )
+    glOrtho   ( f -> getLeft() , f -> getRight(),
+		f -> getBot () , f -> getTop  (),
+		f -> getNear() , f -> getFar  () ) ;
+  else
+    glFrustum ( f -> getLeft() , f -> getRight(),
+		f -> getBot () , f -> getTop  (),
+		f -> getNear() , f -> getFar  () ) ;
+}
+
 void ssgLoadProjectionMatrix ( sgFrustum *f )
 {
   glLoadIdentity () ;
-  glFrustum ( f -> getLeft() , f -> getRight(),
-              f -> getBot () , f -> getTop  (),
-              f -> getNear() , f -> getFar  () ) ;
+  pushProjectionMatrix ( f ) ;
 }
 
 
 void ssgGetProjectionMatrix ( sgMat4 dst )
 {
-  _ssgCurrentFrustum -> getMat4 ( dst ) ;
+  if ( _ssgOrthographic )
+  {
+    float l =  _ssgCurrentFrustum -> getLeft  () ;
+    float r =  _ssgCurrentFrustum -> getRight () ;
+    float b =  _ssgCurrentFrustum -> getBot   () ;
+    float t =  _ssgCurrentFrustum -> getTop   () ;
+    float n =  _ssgCurrentFrustum -> getNear  () ;
+    float f =  _ssgCurrentFrustum -> getFar   () ;
+
+    sgMakeIdentMat4 ( dst ) ;
+    dst[0][0] =  2.0f / ( r - l ) ;
+    dst[1][1] =  2.0f / ( t - b ) ;
+    dst[2][2] = -2.0f / ( f - n ) ;
+
+    dst[3][0] = - ( r + l ) / ( r - l ) ;
+    dst[3][1] = - ( t + b ) / ( t - b ) ;
+    dst[3][2] = - ( f + n ) / ( f - n ) ;
+  }
+  else
+    _ssgCurrentFrustum -> getMat4 ( dst ) ;
 }
 
 
@@ -202,12 +253,7 @@ void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
   glMatrixMode ( GL_PROJECTION ) ;
   glLoadIdentity () ;
   gluPickMatrix ( x, y, w, h, viewport ) ;
-  glFrustum ( _ssgCurrentFrustum -> getLeft  (),
-              _ssgCurrentFrustum -> getRight (),
-              _ssgCurrentFrustum -> getBot   (),
-              _ssgCurrentFrustum -> getTop   (),
-              _ssgCurrentFrustum -> getNear  (),
-              _ssgCurrentFrustum -> getFar   () ) ;
+  pushProjectionMatrix ( _ssgCurrentFrustum ) ;
 
   glMatrixMode ( GL_MODELVIEW ) ;
   glLoadIdentity () ;

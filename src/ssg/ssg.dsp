@@ -186,6 +186,10 @@ SOURCE=.\ssgSelector.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\ssgSimpleList.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\ssgSimpleState.cxx
 # End Source File
 # Begin Source File
@@ -219,6 +223,10 @@ SOURCE=.\ssgTransform.cxx
 # Begin Source File
 
 SOURCE=.\ssgVTable.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgVtxTable.cxx
 # End Source File
 # End Target
 # End Project

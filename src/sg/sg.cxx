@@ -661,9 +661,9 @@ void sgSetCoord ( sgCoord *dst, const sgMat4 src )
 
 void sgMakeNormal(sgVec3 dst, const sgVec3 a, const sgVec3 b, const sgVec3 c )
 {
-  sgVec3 ab ; sgSubVec3 ( ab, b, a ) ; sgNormaliseVec3 ( ab ) ;
-  sgVec3 ac ; sgSubVec3 ( ac, c, a ) ; sgNormaliseVec3 ( ac ) ;
-  sgVectorProductVec3 ( dst, ab,ac ) ; sgNormaliseVec3 ( dst ) ; /* XXX DO WE REALLY NEED THIS? */
+  sgVec3 ab ; sgSubVec3 ( ab, b, a ) ;
+  sgVec3 ac ; sgSubVec3 ( ac, c, a ) ;
+  sgVectorProductVec3 ( dst, ab,ac ) ; sgNormaliseVec3 ( dst ) ;
 }
 
 

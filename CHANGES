@@ -2,6 +2,12 @@
 PLIB Change Log.
 ================
 
+PLIB v1.1.5  (Dec ??rd 1999)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Optimised sgMakeNormal (thanks to Klaus Hartmann!)
+  * Added 'Orthographic' rendering modes to SSG...this
+    is a work in progress - so no documentation yet - sorry!
+
 PLIB v1.1.4  (Dec 3rd 1999)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * Moved pre- and post-draw callbacks from ssgLeaf
