@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVTable.cxx,v 1.16 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgVTable.cxx,v 1.20 2004/02/02 01:35:15 sjbaker Exp $
 */
 
 
@@ -289,7 +289,11 @@ void ssgVTable::draw ()
   if ( ! preDraw () )
     return ;
 
-  if ( hasState () ) getState () -> apply () ;
+  if ( _ssgCurrentContext-> stateOverridden () )
+     _ssgCurrentContext -> overriddenState () -> apply () ;
+  else
+  if ( hasState () )
+    getState () -> apply () ;
 
   stats_num_leaves++ ;
   stats_num_vertices += num_vertices ;
@@ -366,6 +370,9 @@ void ssgVTable::pick ( int baseName )
 
 void ssgVTable::draw_geometry ()
 {
+  _ssgCurrStatistics . bumpVertexCount ( num_vertices ) ;
+  _ssgCurrStatistics . bumpLeafCount   ( 1 ) ;
+
   if ( indexed )
   {
     glBegin ( gltype ) ;

@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgIsect.cxx,v 1.5 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgIsect.cxx,v 1.6 2002/10/26 19:00:55 sjbaker Exp $
 */
 
 
@@ -69,7 +69,7 @@ void _ssgAddHit ( ssgLeaf *l, int trinum, sgMat4 mat, sgVec4 pl )
 }
 
 
-int ssgIsect ( ssgRoot *root, sgSphere *s, sgMat4 mat, ssgHit **results )
+int ssgIsect ( ssgBranch *root, sgSphere *s, sgMat4 mat, ssgHit **results )
 {
   _ssgIsHotTest = FALSE ;
   _ssgIsLosTest = FALSE ;
@@ -81,7 +81,7 @@ int ssgIsect ( ssgRoot *root, sgSphere *s, sgMat4 mat, ssgHit **results )
 }
 
 
-int ssgHOT ( ssgRoot *root, sgVec3 s, sgMat4 mat, ssgHit **results )
+int ssgHOT ( ssgBranch *root, sgVec3 s, sgMat4 mat, ssgHit **results )
 {
   _ssgIsHotTest = TRUE ;
   _ssgIsLosTest = FALSE ;
@@ -93,7 +93,7 @@ int ssgHOT ( ssgRoot *root, sgVec3 s, sgMat4 mat, ssgHit **results )
 }
 
 
-int ssgLOS ( ssgRoot *root, sgVec3 s, sgMat4 mat, ssgHit **results )
+int ssgLOS ( ssgBranch *root, sgVec3 s, sgMat4 mat, ssgHit **results )
 {
   _ssgIsHotTest = FALSE ;
   _ssgIsLosTest = TRUE ;

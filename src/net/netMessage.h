@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netMessage.h,v 1.8 2002/09/02 06:05:44 sjbaker Exp $
+     $Id: netMessage.h,v 1.10 2003/11/11 22:54:48 stromberg Exp $
 */
 
 /****
@@ -42,8 +42,12 @@
 
 #include "netBuffer.h"
 
-#if defined(__CYGWIN__) || !defined (WIN32)
+#ifndef UL_MSVC
 #include <netinet/in.h> // ntohs() etc prototypes
+#endif
+
+#ifdef __FreeBSD__
+#include <arpa/inet.h>
 #endif
 
 

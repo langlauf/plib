@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLocal.h,v 1.21 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLocal.h,v 1.23 2004/02/02 01:35:15 sjbaker Exp $
 */
 
 
@@ -117,6 +117,8 @@ int _ssgWriteError   ( void ) ;
 
 float _ssgGetCurrentTweenState () ;
 void  _ssgSetCurrentTweenState ( float tweenstate ) ;
+int   _ssgGetCurrentTweenMode  () ;
+void  _ssgSetCurrentTweenMode  ( int   tweenmode  ) ;
 
 /*
   Routines for storing arbitrary ssgBase derived objects within SSG files.
@@ -126,3 +128,7 @@ void  _ssgSetCurrentTweenState ( float tweenstate ) ;
 */
 int _ssgSaveObject ( FILE * , ssgBase * ) ;
 int _ssgLoadObject ( FILE * , ssgBase ** , int type_mask = 0 ) ;
+
+extern ssgStatistics _ssgCurrStatistics ;
+
+

@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puFileSelector.cxx,v 1.27 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puFileSelector.cxx,v 1.34 2004/01/21 02:32:40 puggles Exp $
 */
 
 /****
@@ -46,13 +46,14 @@
 UL_RTTI_DEF1(puFileSelector,puDialogBox)
 
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
 #define DOTDOTSLASH "..\\"
 #define SLASH       "\\"
 #else
 #define DOTDOTSLASH "../"
 #define SLASH       "/"
 #endif
+#define SLASH_LEN     1
 
 static void puFileSelectorHandleSlider ( puObject * slider )
 {
@@ -82,7 +83,7 @@ static void puFileSelectorHandleArrow ( puObject *arrow )
   int num_items = list_box->getNumItems () - 1 ;
   if ( num_items > 0 )
   {
-    int idx = int ( num_items * val + 0.5 ) + inc ;
+    int idx = int ( num_items * val + 0.5f ) + inc ;
     if ( idx > num_items ) idx = num_items ;
     if ( idx < 0 ) idx = 0 ;
 
@@ -94,7 +95,7 @@ static void puFileSelectorHandleArrow ( puObject *arrow )
 
 static bool is_slash ( char ch )
 {
-#if defined(WIN32)
+#ifdef UL_WIN32
   /* win32 can use back or forward slash */
   return ch == '\\' || ch == '/' ;
 #else
@@ -204,31 +205,39 @@ void puFileSelector::handle_select ( puObject* l_box )
     {
       /* If this is a directory - then descend into it and refresh */
 
-      if ( strlen ( dst ) + strlen ( src ) + 2 >= PUSTRING_MAX )
-      {
-	ulSetError ( UL_WARNING,
-          "PUI: puFileSelector - path is too long, max is %d.", PUSTRING_MAX ) ;
-	return ;
-      }
+      src++ ; /* Remove leading '[' */
 
-      strcat ( dst, &src[1] ) ;  /* Remove leading '[' */
-      dst [ strlen ( dst ) - 1 ] = SLASH[0] ;  /* Replace trailing ']' with slash */
+      int dst_len = strlen ( dst ) ;
+      int src_len = strlen ( src ) ;
+      char *new_dst = new char [ dst_len + src_len + 1 ] ;
+
+      memcpy ( new_dst, dst, dst_len ) ;
+      memcpy ( new_dst + dst_len, src, src_len + 1 ) ; /* Copy trailing '\0' */
+
+      /* Replace trailing ']' with slash */
+      new_dst [ dst_len + src_len - 1 ] = SLASH[0] ;
+
+      file_selector -> __getInput() -> setValue ( new_dst ) ;
+      file_selector -> setValue ( new_dst ) ;
+
+      delete [] new_dst ;
       file_selector -> find_files () ;
-      file_selector -> __getInput() -> setValue ( dst ) ;
       return ;
     }
 
     /* If this is a regular file - then just append it to the string */
 
-    if ( strlen ( dst ) + strlen ( src ) + 2 >= PUSTRING_MAX )
-    {
-      ulSetError ( UL_WARNING, 
-        "PUI: puFileSelector - path is too long, max is %d.", PUSTRING_MAX ) ;
-      return ;
-    }
+    int dst_len = strlen ( dst ) ;
+    int src_len = strlen ( src ) ;
+    char *new_dst = new char [ dst_len + src_len + 1 ] ;
 
-    strcat ( dst, src ) ;
-    file_selector -> __getInput() -> setValue ( dst ) ;
+    memcpy ( new_dst, dst, dst_len ) ;
+    memcpy ( new_dst + dst_len, src, src_len + 1 ) ; /* Copy trailing '\0' */
+
+    file_selector -> __getInput() -> setValue ( new_dst ) ;
+    file_selector -> setValue ( new_dst ) ;
+
+    delete [] new_dst ;
   }
   else
   {
@@ -264,23 +273,23 @@ void puFileSelector::setSize ( int w, int h )
 
   // Resize and position the slider
   slider->setPosition ( w-30, 40+20*arrow_count ) ;
-  slider->setSize ( 20, h-70-40*arrow_count ) ;
+  slider->setSize ( 20, h-60-40*arrow_count ) ;
 
   // Position the arrow buttons
   if ( up_arrow )
   {
-    up_arrow->setPosition ( w-30, h-30-20*arrow_count ) ;
+    up_arrow->setPosition ( w-30, h-20-20*arrow_count ) ;
     down_arrow->setPosition ( w-30, 20+20*arrow_count ) ;
   }
 
   if ( fastup_arrow )
   {
-    fastup_arrow->setPosition ( w-30, h-50 ) ;
+    fastup_arrow->setPosition ( w-30, h-40 ) ;
     fastdown_arrow->setPosition ( w-30, 40 ) ;
   }
 
   // Resize the list box
-  list_box->setSize ( w-40, h-70 ) ;
+  list_box->setSize ( w-40, h-80 ) ;
 
   // Resoze and position the buttons
   cancel_button->setSize ( (w<170)?(w/2-15):70, 20 ) ;
@@ -313,44 +322,59 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
   dflag = NULL ;
   num_files = 0 ;
 
+  /* Character string lengths for efficiency in string processing */
+  int start_dir_len ;
+  int dir_len       = strlen ( dir ) ;
+
   if ( ulIsAbsolutePathName ( dir ) )
   {
     /* Include space for trailing slash in case it is necessary */
-    startDir = new char [ strlen ( dir ) + strlen ( SLASH ) + 1 ] ;
+    startDir = new char [ dir_len + SLASH_LEN + 1 ] ;
 
-    strcpy ( startDir, dir ) ;
+    memcpy ( startDir, dir, dir_len ) ;
+    start_dir_len = dir_len ;
   }
   else
   {
-    startDir = new char [ UL_NAME_MAX + 1 ] ;
-    if ( ulGetCWD ( startDir, UL_NAME_MAX + 1 ) == NULL )
+    char *cwd = new char [ UL_NAME_MAX + 1 ] ;
+    if ( ulGetCWD ( cwd, UL_NAME_MAX + 1 ) == NULL )
     {
       ulSetError ( UL_WARNING,
                    "PUI: puFileSelector - can't find current directory" ) ;
       setValue ( "" ) ;
       invokeCallback () ;
+      delete [] cwd ;
       return ;
     }
 
     /* Include space for slashes in case they are necessary */
-    char *s = new char [   strlen ( startDir )
-                         + 2 * strlen ( SLASH )
-                         + strlen ( dir ) + 1 ] ;
+    int cwd_len = strlen ( cwd ) ;
+    startDir = new char [   cwd_len
+                          + 2 * SLASH_LEN
+                          + dir_len + 1 ] ;
 
-    strcpy ( s, startDir ) ;
+    memcpy ( startDir, cwd, cwd_len ) ;
+    start_dir_len = cwd_len ;
 
-    if ( ! is_slash ( startDir[strlen(startDir)-1] ) )
-      strcat ( s, SLASH ) ;
+    if ( ! is_slash ( cwd[cwd_len-1] ) )
+    {
+      memcpy ( startDir + cwd_len, SLASH, SLASH_LEN ) ;
+      start_dir_len += SLASH_LEN ;
+    }
 
-    strcat ( s, dir ) ;
+    memcpy ( startDir + start_dir_len, dir, dir_len ) ;
+    start_dir_len += dir_len ;
 
-    delete [] startDir ;
-    startDir = s ;
+    delete [] cwd ;
   }
 
-  if ( ! is_slash ( startDir[strlen(startDir)-1] ) )
-    strcat ( startDir, SLASH ) ;
+  if ( ! is_slash ( startDir[start_dir_len-1] ) )
+  {
+    memcpy ( startDir + start_dir_len, SLASH, SLASH_LEN ) ;
+    start_dir_len += SLASH_LEN ;
+  }
 
+  startDir [ start_dir_len ] = '\0' ;
   setValue ( startDir ) ;
 
   if ( arrows > 2 ) arrows = 2 ;
@@ -359,12 +383,12 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
 
   frame = new puFrame ( 0, 0, w, h );
 
-  slider = new puSlider (w-30,40+20*arrows,h-70-40*arrows,TRUE,20);
+  slider = new puSlider (w-30,40+20*arrows,h-60-40*arrows,TRUE,20);
   slider->setValue(1.0f);
   slider->setSliderFraction (0.2f) ;
   slider->setCBMode( PUSLIDER_DELTA );
   
-  list_box = new puListBox ( 10, 60, w-40, h-30 ) ;
+  list_box = new puListBox ( 10, 60, w-40, h-20 ) ;
   list_box -> setLabel ( title );
   list_box -> setLabelPlace ( PUPLACE_TOP_LEFT ) ;
   list_box -> setStyle ( -PUSTYLE_SMALL_SHADED ) ;
@@ -404,7 +428,7 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
     down_arrow->setUserData ( slider ) ;
     down_arrow->setCallback ( puFileSelectorHandleArrow ) ;
 
-    up_arrow = new puArrowButton ( w-30, h-30-20*arrows, w-10, h-10-20*arrows, PUARROW_UP ) ;
+    up_arrow = new puArrowButton ( w-30, h-20-20*arrows, w-10, h-20*arrows, PUARROW_UP ) ;
     up_arrow->setUserData ( slider ) ;
     up_arrow->setCallback ( puFileSelectorHandleArrow ) ;
   }
@@ -415,7 +439,7 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
     fastdown_arrow->setUserData ( slider ) ;
     fastdown_arrow->setCallback ( puFileSelectorHandleArrow ) ;
 
-    fastup_arrow = new puArrowButton ( w-30, h-50, w-10, h-30, PUARROW_FASTUP ) ;
+    fastup_arrow = new puArrowButton ( w-30, h-40, w-10, h-20, PUARROW_FASTUP ) ;
     fastup_arrow->setUserData ( slider ) ;
     fastup_arrow->setCallback ( puFileSelectorHandleArrow ) ;
   }
@@ -460,7 +484,7 @@ static int puFileSelectorStringCompare ( const char *s1, const char *s2,
       listing.
     */
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
     if ( c1 >= 'a' && c1 <= 'z' )
       c1 = c1 - ('a'-'A') ;
     
@@ -488,7 +512,15 @@ void puFileSelector::setInitialValue ( const char *s )
   }
   else
   {
-    strcat ( input -> getStringValue (), s ) ;
+    int str_val_len = strlen ( input->getStringValue () ) ;
+    int s_len = strlen ( s ) ;
+    char *s_new = new char [ str_val_len + s_len + 1 ] ;
+
+    memcpy ( s_new, input->getStringValue (), str_val_len ) ;
+    memcpy ( s_new + str_val_len, s, s_len + 1 ) ;  /* Plus one to get the final '\0' */
+
+    input->setValue ( s_new ) ;
+    delete [] s_new ;
     input -> invokeCallback () ;
   }
 }
@@ -558,15 +590,22 @@ void puFileSelector::find_files ( void )
 
   num_files = 0 ;
 
-  char dir [ PUSTRING_MAX * 2 ] ;
+  int str_val_len = strlen ( getStringValue () ) ;
 
-  strcpy ( dir, getStringValue() ) ;
+  if ( ! is_slash ( getStringValue () [ str_val_len - 1 ] ) )
+  /* Someone forgot a trailing '/' */
+  {
+    char *new_dir = new char [ str_val_len + SLASH_LEN + 1 ] ;
 
-  if ( ! is_slash ( dir [ strlen ( dir ) - 1 ] ) )  /* Someone forgot a trailing '/' */
-    strcat ( dir, SLASH ) ;
+    memcpy ( new_dir, getStringValue (), str_val_len ) ;
+    memcpy ( new_dir + str_val_len, SLASH, SLASH_LEN + 1 ) ;  /* Plus one to include the trailing '\0' */
+    setValue ( new_dir ) ;
+    delete [] new_dir ;
+  }
 
   int ifile = 0 ;
 
+  char     *dir  = getStringValue () ;
   ulDir    *dirp = ulOpenDir ( dir ) ;
   ulDirEnt *dp ;
 
@@ -623,17 +662,19 @@ void puFileSelector::find_files ( void )
     {
       dflag[ ifile ] = dp->d_isdir ;
 
+      int name_len = strlen ( dp->d_name ) ;
       if ( dflag[ ifile ] )
       {
-        files[ ifile ] = new char[ strlen(dp->d_name)+4 ] ;
-        strcpy ( files [ ifile ], "[" ) ;
-        strcat ( files [ ifile ], dp->d_name ) ;
-        strcat ( files [ ifile ], "]" ) ;
+        files[ ifile ] = new char[ name_len + 3 ] ;
+
+        files [ ifile ] [ 0 ] = '[' ;
+        memcpy ( files [ ifile ] + 1, dp->d_name, name_len ) ;
+        strcpy ( files [ ifile ] + 1 + name_len, "]" ) ;
       }
       else
       {
-        files[ ifile ] = new char[ strlen(dp->d_name)+1 ] ;
-        strcpy ( files [ ifile ], dp->d_name ) ;
+        files[ ifile ] = new char[ name_len + 1 ] ;
+        memcpy ( files [ ifile ], dp->d_name, name_len + 1 ) ;  /* Plus one to include the final '\0' */
       }
 
       ifile++ ;

@@ -2,7 +2,7 @@ if BUILD_PUI
 
 lib_LIBRARIES = libplibpu.a
 
-include_HEADERS = pu.h
+include_HEADERS = pu.h puGLUT.h puFLTK.h puSDL.h puNative.h puPW.h
 
 libplibpu_a_SOURCES = \
         pu.cxx            puBox.cxx       puButton.cxx puButtonBox.cxx    \
@@ -13,13 +13,11 @@ libplibpu_a_SOURCES = \
         puValue.cxx       puFont.cxx      puBiSlider.cxx  puTriSlider.cxx \
         puDial.cxx        puVerticalMenu.cxx  puLargeInput.cxx            \
         puFileSelector.cxx puComboBox.cxx puSelectBox.cxx puRange.cxx	  \
-        puSpinBox.cxx     puScrollBar.cxx
+        puSpinBox.cxx     puScrollBar.cxx puInputBase.cxx
 
-INCLUDES = -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt
-INCLUDES += -I$(top_srcdir)/src/util
+AM_CPPFLAGS = -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt
+AM_CPPFLAGS += -I$(top_srcdir)/src/util -DPU_USE_NONE
 
 endif
 
 EXTRA_DIST = pui.dsp
-
-

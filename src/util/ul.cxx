@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ul.cxx,v 1.29 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ul.cxx,v 1.33 2003/12/16 22:32:43 wolfram_kuss Exp $
 */
 
 
@@ -27,14 +27,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if defined(__CYGWIN__) || !defined(WIN32)
-#include <dirent.h>
-#elif defined(WIN32)
+#ifdef UL_MSVC
 #include <direct.h>
+#else
+#include <dirent.h>
 #endif
 
-
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
 #define SLASH "\\"
 #else
 #define SLASH "/"
@@ -46,13 +45,13 @@ struct _ulDir
   char dirname [ UL_NAME_MAX+1 ];
   ulDirEnt curr ;
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
   WIN32_FIND_DATA data ;
   HANDLE hFind ;
   bool first ;
   bool done ;
 #else
-  DIR* dirp ;
+  DIR *dirp ;
 #endif
 } ;
 
@@ -68,7 +67,8 @@ ulDir* ulOpenDir ( const char* dirname )
   if ( dir != NULL )
   {
     strcpy( dir->dirname, dirname ) ;
-#if defined(WIN32) && !defined(__CYGWIN__)
+
+#ifdef UL_MSVC
     char search[_MAX_PATH];
     strcpy(search,dirname);
     
@@ -105,7 +105,7 @@ ulDir* ulOpenDir ( const char* dirname )
 ulDirEnt* ulReadDir ( ulDir* dir )
 {
   //read the next entry from the directory
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
   //update state
   if ( dir->first )
     dir->first = false ;
@@ -127,7 +127,7 @@ ulDirEnt* ulReadDir ( ulDir* dir )
   sprintf( path, "%s/%s", dir->dirname, dir->curr.d_name );
 
   //determine if this entry is a directory
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
   struct _stat buf;
   int result = _stat(path,&buf);
   if ( result == 0 )
@@ -151,7 +151,7 @@ void ulCloseDir ( ulDir* dir )
 {
   if ( dir != NULL )
   {
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
     FindClose(dir->hFind);
 #else
     closedir ( dir->dirp ) ;
@@ -162,16 +162,19 @@ void ulCloseDir ( ulDir* dir )
 
 bool ulFileExists ( const char *fileName )
 {
+#ifdef UL_MSVC
+  struct _stat buf ;
+
+  if ( _stat ( fileName, &buf ) < 0 )
+    return false ;
+
+  return ((S_IFREG & buf.st_mode ) !=0) ;
+#else
   struct stat buf ;
 
   if ( stat ( fileName, &buf ) < 0 )
     return false ;
 
-// wk: _MSC_VER is predefined by Microsoft (Visual) C++
-// MSVC doesnt know S_ISREG
-#ifdef _MSC_VER
-  return ((S_IFREG & buf.st_mode ) !=0) ;
-#else
   return ((S_ISREG ( buf.st_mode )) != 0) ;
 #endif
 }
@@ -180,7 +183,7 @@ char* ulMakePath( char* path, const char* dir, const char* fname )
 {
   if ( fname )
   {
-    if ( fname [ 0 ] != '\0' && fname [ 0 ] != '/' &&
+    if ( !ulIsAbsolutePathName (fname) &&
        dir != NULL && dir[0] != '\0' )
     {
       strcpy ( path, dir ) ;
@@ -197,35 +200,39 @@ char* ulMakePath( char* path, const char* dir, const char* fname )
 
 
 static int recursiveFindFileInSubDirs ( char * filenameOutput, 
-												const char * tPath,  const char * tfnameInput ) 
-// recursively calls itself
-// returns true on success
-{ int bFound = FALSE;
+						const char * tPath,  const char * tfnameInput ) 
+{
+  int bFound = FALSE;
   char tempString [ 1024 ];
 
 	ulMakePath ( filenameOutput, tPath, tfnameInput ) ;
-	if ( ulFileExists ( filenameOutput ))
-		return TRUE; // success
+
+	if ( ulFileExists ( filenameOutput ) )
+		return TRUE;
 
 	ulDir* dirp = ulOpenDir(tPath);
+
 	if ( dirp != NULL )
 	{
 		ulDirEnt* dp;
+
 		while ( ! bFound && ((dp = ulReadDir(dirp)) != NULL ) )
 		{
-			if ( dp->d_isdir )
-			  // I am doing recursive ulOpenDir/ulReadDirs here.
-				// I know this works under Windo$.
-				if ( ( 0 != strcmp( dp->d_name, ".")) && ( 0 != strcmp( dp->d_name, "..")) )
-				{
-					
-					ulMakePath ( tempString, tPath, dp->d_name) ;
-				  bFound = recursiveFindFileInSubDirs ( filenameOutput, tempString, tfnameInput );
-				}
-			
+      // I am doing recursive ulOpenDir/ulReadDirs here.
+      // I know this works under Windo$.
+      if ( dp->d_isdir &&
+           strcmp( dp->d_name, ".") != 0 &&
+           strcmp( dp->d_name, "..") != 0 )
+      {
+        ulMakePath ( tempString, tPath, dp->d_name) ;
+        bFound = recursiveFindFileInSubDirs ( filenameOutput,
+                                              tempString, tfnameInput );
+      }
+      
 		}
-		ulCloseDir(dirp);
+		ulCloseDir ( dirp ) ;
 	}
+
 	return bFound;
 }
     
@@ -233,128 +240,161 @@ static int recursiveFindFileInSubDirs ( char * filenameOutput,
 
 void ulFindFile( char *filenameOutput, const char *path, 
 											  const char * tfnameInput, const char *sAPOM ) 
-// adds tfnameInput to the path and puts this into the buffer filenameOutput.
-// sAPOM is used iff path contains "$(APOM)"
+/*
+  adds tfnameInput to the path and puts this into the buffer filenameOutput.
+  sAPOM is used iff path contains "$(APOM)"
 
-// handles special chars in path:
-// ";;" is replaced by ";"
-// "$$" is replaced by "$"
-// "$(APOM)" is replaced by sAPOM
-// If there are ";" in path, the path-variable is interpreted as several paths "segments",
-// delimited by ";". The first file found by this function is returned.
-// It looks from left to right.
-// A segment may end in $(...). ulFindFile will then look in in this path and recursively in all the sub-paths
-//
-// Some examples:
-//
-// for loading *.MDl-models, it is very nice to set the texture path to
-// $(APOM);$(APOM)/texture;$(APOM)/../texture
-// This consits of three segments and tells ulFindFile to look in the 
-// path of the model, in a subpath texture and in a path texture "besides" the path of the model
-// Some *.mdl-models are shipped in a directory which conatins a "texture"-directory, a 
-// "Model"-directory and others. In this case you find the texture in $(APOM)/../texture
-//
-// Another example: You have all your textures in a directory-structure under /roomplan.
-// For example brick is under /roomplan/bricks, wood is under /roomplan/wood, oak is 
-// under /roomplan/wood/oak. Then you should use the following texture path:
-// "/roomplan/$(...)"
-//
-// If you dont want all of the bells and whistles, just call:
-// _ssgMakePath ( filenameOutput, path, tfnameInput ) ;
-	 
+  handles special chars in path:
 
+  ";;" is replaced by ";"
+  "$$" is replaced by "$"
+  "$(APOM)" is replaced by sAPOM
 
+  If there are ";" in path, the path-variable is interpreted as several
+  paths "segments", delimited by ";". The first file found by this function
+  is returned.
+
+  It looks from left to right.
+
+  A segment may end in $(...). ulFindFile will then look in in this
+  path and recursively in all the sub-paths
+ 
+  Some examples:
+ 
+  for loading *.MDl-models, it is very nice to set the texture path to
+
+  $(APOM);$(APOM)/texture;$(APOM)/../texture
+
+  This consits of three segments and tells ulFindFile to look in the 
+  path of the model, in a subpath texture and in a path texture "besides"
+  the path of the model. Some *.mdl-models are shipped in a directory which
+  conatins a "texture"-directory, a "Model"-directory and others. In this
+  case you find the texture in $(APOM)/../texture
+ 
+  Another example: You have all your textures in a directory-structure
+  under /roomplan.  For example brick is under /roomplan/bricks, wood is
+  under /roomplan/wood, oak is under /roomplan/wood/oak. Then you should
+  use the following texture path:
+
+  "/roomplan/$(...)"
+ 
+  If you dont want all of the bells and whistles, just call:
+  _ssgMakePath ( filenameOutput, path, tfnameInput ) ;
+*/ 
+ 
 {
   
-	char temp_texture_path[1024], *s_ptr, *s_ptr1, *current_path;
-	
-	strncpy(temp_texture_path, path, 1024);
-	current_path = temp_texture_path;
-	s_ptr = temp_texture_path;
-	while ( *s_ptr != 0 )
-	{ if ( *s_ptr == ';' )
-		{ if ( s_ptr [ 1 ] == ';' )
-			{ // replace ";;" with ";"
-		    s_ptr1 = ++s_ptr; // both pointers on second ";"
-				while ( *s_ptr1 != 0)
-				{	s_ptr1 [ 0 ] = s_ptr1 [ 1 ];
-				  s_ptr1++;
-				}
-			}
-			else
-			{ // found a single ';'. This delimits paths
-				*s_ptr++ = 0;
-				ulMakePath ( filenameOutput, current_path, tfnameInput ) ;
-				if ( ulFileExists ( filenameOutput ) )
-					return; // success!
-				// this path doesnt hold the texture. Try next one
-				current_path = s_ptr;
-			}
-		}
-		else if ( *s_ptr == '$' )
-		{ 
-			if ( s_ptr [ 1 ] == '$' )
-			{ // replace "$$" with "$"
-		    s_ptr1 = ++s_ptr; // both pointers on second "$"
-				while ( *s_ptr1 != 0)
-				{	s_ptr1 [ 0 ] = s_ptr1 [ 1 ];
-				  s_ptr1++;
-				}
-			}
-			else if ( 0 == strncmp( s_ptr, "$(APOM)", strlen("$(APOM)" ) ) )
-			{ // replace "$(APOM)" by sAPOM
-				char temp_buffer[1024];
-				* s_ptr = 0;
-				s_ptr += strlen ( "$(APOM)" );
-				strcpy ( temp_buffer, s_ptr );
-				strcat ( current_path, sAPOM);
-				s_ptr = & current_path [ strlen(current_path) ] ; // onto the 0
-				strcat ( current_path, temp_buffer );
-			}
-			else if ( 0 == strncmp( s_ptr, "$(...)", strlen("$(...)" ) ) )
-			{	
-				//strcpy(temp_texture_path_for_recursion, current_path);
+  char temp_texture_path[1024], *s_ptr, *s_ptr1, *current_path;
+  
+  strncpy(temp_texture_path, path, 1024);
+  current_path = temp_texture_path;
+  s_ptr = temp_texture_path;
 
-				char * nextPath=s_ptr;
-				nextPath += strlen("$(...)" );
+  while ( *s_ptr != 0 )
+  {
+    if ( *s_ptr == ';' )
+    {
+    if ( s_ptr [ 1 ] == ';' )
+      {
+    // replace ";;" with ";"
+        s_ptr1 = ++s_ptr; // both pointers on second ";"
 
-				while (*nextPath != 0 )
-				{ if ( *nextPath == ';' )
-					{ if ( nextPath[1] == ';' )
-							nextPath++; // so its "add 2 " togehter with the ++ further down
-						else
-						{
-							*nextPath = 0;
-							break; // breaks the while
-						}
-					}
-					nextPath++;
-				}
-				// This segment of the path ends with a 0 now
-				// *****
-				char tPath [ 1024 ];
-				strcpy ( tPath, current_path ) ;
-				tPath [ (long) (s_ptr - current_path) ] = 0;
-				
-				// So, lets recurse into the sub-dirs:
-				// Here I just assume that the "$(...)" is the last thing in this segment
-				if ( recursiveFindFileInSubDirs ( filenameOutput, tPath,  tfnameInput ) )
-					return ; // success
+        while ( *s_ptr1 != 0)
+        {  s_ptr1 [ 0 ] = s_ptr1 [ 1 ];
+          s_ptr1++;
+        }
+      }
+      else
+      {
+    // found a single ';'. This delimits paths
+        *s_ptr++ = 0;
+        ulMakePath ( filenameOutput, current_path, tfnameInput ) ;
 
-				// *****
-				// we handled the path-segment current_path containing the $(...) and 
-				// didnt find the file, so go on to the nect segment
-				current_path = nextPath; // points to a 0 if this was the last segment
-				s_ptr = current_path;
-			}	
-			else
-				s_ptr++;
-		}
-		else // neither ';' nor '$'
-			s_ptr++;
-	}
+        if ( ulFileExists ( filenameOutput ) )
+          return; // success!
+
+        // this path doesnt hold the texture. Try next one
+        current_path = s_ptr;
+      }
+    }
+    else if ( *s_ptr == '$' )
+    { 
+      if ( s_ptr [ 1 ] == '$' )
+      {
+        // replace "$$" with "$"
+        s_ptr1 = ++s_ptr; // both pointers on second "$"
+
+        while ( *s_ptr1 != 0)
+        {
+          s_ptr1 [ 0 ] = s_ptr1 [ 1 ];
+          s_ptr1++;
+        }
+      }
+      else
+      if ( 0 == strncmp( s_ptr, "$(APOM)", strlen("$(APOM)" ) ) )
+      {
+         // replace "$(APOM)" by sAPOM
+        char temp_buffer[1024];
+        * s_ptr = 0;
+        s_ptr += strlen ( "$(APOM)" );
+        strcpy ( temp_buffer, s_ptr );
+        strcat ( current_path, sAPOM);
+        s_ptr = & current_path [ strlen(current_path) ] ; // onto the 0
+        strcat ( current_path, temp_buffer );
+      }
+      else
+      if ( 0 == strncmp( s_ptr, "$(...)", strlen("$(...)" ) ) )
+      {  
+        //strcpy(temp_texture_path_for_recursion, current_path);
+
+        char * nextPath=s_ptr;
+        nextPath += strlen("$(...)" );
+
+        while (*nextPath != 0 )
+        {
+          if ( *nextPath == ';' )
+          {
+            if ( nextPath[1] == ';' )
+              nextPath++; // so its "add 2 " togehter with the ++ further down
+            else
+            {
+              *nextPath = 0;
+              break; // breaks the while
+            }
+          }
+          nextPath++;
+        }
+
+        // This segment of the path ends with a 0 now
+        // *****
+
+        char tPath [ 1024 ];
+        strcpy ( tPath, current_path ) ;
+        tPath [ (long) (s_ptr - current_path) ] = 0;
+        
+        // So, lets recurse into the sub-dirs:
+        // Here I just assume that the "$(...)" is the last thing in
+        // this segment
+
+        if ( recursiveFindFileInSubDirs ( filenameOutput,
+                                          tPath, tfnameInput ) )
+          return ; // success
+
+        // *****
+        // we handled the path-segment current_path containing the $(...) and 
+        // didnt find the file, so go on to the nect segment
+
+        current_path = nextPath; // points to a 0 if this was the last segment
+        s_ptr = current_path;
+      }  
+      else
+        s_ptr++;
+    }
+    else // neither ';' nor '$'
+      s_ptr++;
+  }
+
   ulMakePath ( filenameOutput, current_path, tfnameInput ) ; // pfusch? kludge?
-
 }
 
 ///////////////////// string handling ///////////////////////////////
@@ -436,13 +476,13 @@ int ulStrEqual ( const char *s1, const char *s2 )
      continue ;
 
     if ( c1 >= 'a' && c1 <= 'z' )
-      c1 = c1 - ('a'-'A') ;
+      c1 -= ('a'-'A') ;
 
     if ( c2 >= 'a' && c2 <= 'z' )
-      c2 = c2 - ('a'-'A') ;
+      c2 -= ('a'-'A') ;
 
     if ( c1 != c2 )
-     return FALSE ;
+      return FALSE ;
   }
 
   return TRUE ;
@@ -455,10 +495,10 @@ int ulIsAbsolutePathName ( const char *pathname )
     Is this an absolute pathname or a relative one?
   */
  
-	if ( (pathname == NULL) || (pathname [0] == 0) )
-		return FALSE;
+  if ( (pathname == NULL) || (pathname [0] == 0) )
+    return FALSE;
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
  
   /*
     Under WinDOS, it's an absolute path if it starts
@@ -475,9 +515,9 @@ int ulIsAbsolutePathName ( const char *pathname )
            pathname[1] == ':' &&
            ( pathname[2] == SLASH[0] || pathname[2] == '/' )
          ) ;
-#elif defined(macintosh)
+#elif defined(UL_MACINTOSH)
   return (pathname [0] != ':' && strchr( pathname, ':') != NULL );
-#else 
+#else
   return pathname [0] == SLASH[0] ;
 #endif
 }
@@ -490,7 +530,7 @@ char *ulGetCWD ( char *result, int maxlength )
     has enough space for 'maxlength-1' characters and a '\0'.
   */
 
-#if defined(_MSC_VER) || defined(__MINGW__)
+#ifdef UL_MSVC
   return _getcwd ( result, maxlength ) ;
 #else
   return getcwd ( result, maxlength ) ;

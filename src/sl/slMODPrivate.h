@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slMODPrivate.h,v 1.6 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: slMODPrivate.h,v 1.7 2002/11/30 00:41:49 sjbaker Exp $
 */
 
 
@@ -29,7 +29,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#if defined( WIN32 ) && !defined( __CYGWIN32__ )
+#ifdef UL_MSVC
 #include <windows.h>
 #include <io.h>
 #else

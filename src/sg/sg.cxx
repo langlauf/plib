@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sg.cxx,v 1.37 2002/09/02 06:05:46 sjbaker Exp $
+     $Id: sg.cxx,v 1.42 2004/03/18 19:14:43 sjbaker Exp $
 */
 
 
@@ -156,10 +156,12 @@ void sgMakeLookAtMat4 ( sgMat4 dst, const sgVec3 eye,
 }
 
 // -dw- inconsistent linkage!
+
 float sgTriArea( sgVec3 p0, sgVec3 p1, sgVec3 p2 )
 {
   /* 
     From comp.graph.algorithms FAQ
+
 	2A(P) = abs(N.(sum_{i=0}^{n-1}(v_i x v_{i+1})))
 	This is an optimized version for a triangle
 	but easily extended for planar polygon's with more sides
@@ -170,26 +172,29 @@ float sgTriArea( sgVec3 p0, sgVec3 p1, sgVec3 p2 )
 	for( int i=0; i<n; i++ )
   */
 
-	sgVec3 sum;
-	sgZeroVec3( sum );
+  sgVec3 sum;
+  sgZeroVec3( sum );
 
-	sgVec3 norm;
-	sgMakeNormal( norm, p0, p1, p2 );
+  sgVec3 norm;
+  sgMakeNormal( norm, p0, p1, p2 );
 
-	float *vv[3];
-	vv[0] = p0;
-	vv[1] = p1;
-	vv[2] = p2;
+  float *vv[3];
+  vv[0] = p0;
+  vv[1] = p1;
+  vv[2] = p2;
 
-	for( int i=0; i<3; i++ ) {
-		int ii = (i+1) % 3;
-		sum[0] += (vv[i][1] * vv[ii][2] - vv[i][2] * vv[ii][1]) ;
-		sum[1] += (vv[i][2] * vv[ii][0] - vv[i][0] * vv[ii][2]) ;
-		sum[2] += (vv[i][0] * vv[ii][1] - vv[i][1] * vv[ii][0]) ;
-	}
+  for( int i=0; i<3; i++ )
+  {
+    int ii = (i+1) % 3;
 
-	float area = sgAbs(sgScalarProductVec3( norm, sum ));
-	return( area / 2.0f );
+    sum[0] += (vv[i][1] * vv[ii][2] - vv[i][2] * vv[ii][1]) ;
+    sum[1] += (vv[i][2] * vv[ii][0] - vv[i][0] * vv[ii][2]) ;
+    sum[2] += (vv[i][0] * vv[ii][1] - vv[i][1] * vv[ii][0]) ;
+  }
+
+  float area = sgAbs ( sgScalarProductVec3 ( norm, sum ) ) ;
+
+  return area / 2.0f ;
 }
 
 /***************************************************\
@@ -205,55 +210,46 @@ SGfloat sgAngleBetweenVec3 ( sgVec3 v1, sgVec3 v2 )
   return sgAngleBetweenNormalizedVec3 ( nv1, nv2 ) ;
 }
 
-SGfloat sgAngleBetweenNormalizedVec3 (sgVec3 first, sgVec3 second, sgVec3 normal) { 
- // result is in the range  0..2*pi
+SGfloat sgAngleBetweenNormalizedVec3 (sgVec3 first, sgVec3 second, sgVec3 normal)
+{ 
+ // result is in the range  0..360 degrees
+ //
  // Attention: first and second have to be normalized
- // the normal is needed to decide between for example 0.123 looking "from one side"
- // and -0.123 looking fomr the other
+ // the normal is needed to decide between for example 0.123
+ // looking "from one side" and -0.123 looking fomr the other
 
   SGfloat myCos, abs1, abs2, SProduct, deltaAngle, myNorm;
 
-#ifdef _DEBUG
-	SGfloat tfA,tfB;
+  if((normal[0]==0) && (normal[1]==0) && (normal[2]==0))
+  {	
+    ulSetError ( UL_WARNING, "sgGetAngleBetweenVectors: Normal is zero.");
+    return 0.0 ;
+  }
 
-	tfA = sgScalarProductVec3 (first, first);
-	tfB = sgScalarProductVec3 (second, second);
-	assert(tfA>0.99);
-	assert(tfA<1.01);
-	assert(tfB>0.99);
-	assert(tfB<1.01);
-#endif
-  
-	if((normal[0]==0) && (normal[1]==0) && (normal[2]==0))
-	{	
-		ulSetError ( UL_WARNING, "sgGetAngleBetweenVectors: Normal is zero.");
-		return 0.0;
-	}
-	sgVec3 temp;
+  sgVec3 temp;
+
   sgVectorProductVec3( temp, first, second);
-  myNorm = sgLengthVec3 ( temp );
-  if ( (sgScalarProductVec3(temp, normal))<0 ) {
-    myNorm = -myNorm;
-  }
 
-  if ( myNorm < -0.99999 ) {
+  myNorm = sgLengthVec3 ( temp );
+
+  if ( (sgScalarProductVec3(temp, normal))<0 )
+    myNorm = -myNorm;
+
+  if ( myNorm < -0.99999 )
     deltaAngle = -SG_PI*0.5;
-  }
   else
-  {   if ( myNorm > 0.99999 ) {
-         deltaAngle = SG_PI*0.5;
-      }
-      else
-      {   deltaAngle = (SGfloat)asin((double)myNorm);
-      }
-  }
-	// deltaAngle is in the range -SG_PI*0.5 to +SG_PI*0.5 here
-	// However, the correct result could also be 
-	// deltaAngleS := pi - deltaAngle
-	// Please note that:
-	// cos(deltaAngleS)=cos(pi-deltaAngle)=-cos(deltaAngle)
-	// So, the question is whether + or - cos(deltaAngle)
-	// is sgScalarProductVec3(first, second)
+  if ( myNorm > 0.99999 )
+    deltaAngle = SG_PI*0.5;
+  else
+    deltaAngle = (SGfloat)asin((double)myNorm);
+
+  // deltaAngle is in the range -SG_PI*0.5 to +SG_PI*0.5 here
+  // However, the correct result could also be 
+  // deltaAngleS := pi - deltaAngle
+  // Please note that:
+  // cos(deltaAngleS)=cos(pi-deltaAngle)=-cos(deltaAngle)
+  // So, the question is whether + or - cos(deltaAngle)
+  // is sgScalarProductVec3(first, second)
   
   if ( deltaAngle < 0 ) 
     deltaAngle = deltaAngle + 2*SG_PI; // unnessecary?
@@ -261,30 +257,34 @@ SGfloat sgAngleBetweenNormalizedVec3 (sgVec3 first, sgVec3 second, sgVec3 normal
   SProduct = sgScalarProductVec3(first, second);
   myCos = (SGfloat) cos(deltaAngle);
   
-	abs1 = SProduct - myCos;
-  if ( abs1 < 0 ) 
-		abs1 = -abs1;
+  abs1 = SProduct - myCos;
+  abs2 = SProduct + myCos;
+
+  if ( abs1 < 0 ) abs1 = -abs1 ;
+  if ( abs2 < 0 ) abs2 = -abs2 ;
   
-	abs2 = SProduct + myCos;
-  if ( abs2 < 0 ) 
-    abs2 = -abs2;
-  
-	assert( (abs1 < 0.1) || (abs2 < 0.1) );
-  if ( abs2 < abs1 ) { // deltaAngleS is the correct result
-    if ( deltaAngle <= SG_PI ) {
-      deltaAngle = SG_PI - deltaAngle;
-    }else {
-      deltaAngle = 3*SG_PI - deltaAngle;
-    }
+  assert( (abs1 < 0.1) || (abs2 < 0.1) ) ;
+
+  if ( abs2 < abs1 )
+  {
+    // deltaAngleS is the correct result
+
+    if ( deltaAngle <= SG_PI )
+      deltaAngle = SG_PI - deltaAngle ;
+    else
+      deltaAngle = 3*SG_PI - deltaAngle ;
   }
-	assert(deltaAngle >= 0.0);
-	assert(deltaAngle <= 2.0*SG_PI);
-  return deltaAngle;
+
+  assert ( deltaAngle >= 0.0 ) ;
+  assert ( deltaAngle <= 2.0*SG_PI ) ;
+
+  return deltaAngle * SG_RADIANS_TO_DEGREES ;
 }
 
+
 SGfloat sgAngleBetweenVec3 ( sgVec3 v1, sgVec3 v2, sgVec3 normal )
-// nornmal has to be normalized.
 {
+  // nornmal has to be normalized.
   sgVec3 nv1, nv2 ;
 
   sgNormalizeVec3 ( nv1, v1 ) ;
@@ -565,95 +565,126 @@ void sgFrustum::update ()
   {
     if ( fabs ( hfov ) < 0.1 || fabs ( vfov ) < 0.1 )
     {
-      ulSetError ( UL_WARNING, "sgFrustum: Can't support fields of view narrower than 0.1 degrees.");
+      ulSetError ( UL_WARNING, ortho ? 
+		   "sgFrustum: Can't support width or height <0.1 units." : 
+		   "sgFrustum: Can't support fields of view narrower than 0.1 degrees." ) ;
       return ;
     }
 
-    /* Corners of screen relative to eye... */
-  
-    right = nnear * (SGfloat) tan ( hfov * SG_DEGREES_TO_RADIANS / SG_TWO ) ;
-    top   = nnear * (SGfloat) tan ( vfov * SG_DEGREES_TO_RADIANS / SG_TWO ) ;
+    if ( ortho )
+    {
+      right = SG_HALF * hfov ;
+      top   = SG_HALF * vfov ;
+    }
+    else
+    {
+      right = nnear * (SGfloat) tan ( hfov * SG_DEGREES_TO_RADIANS / SG_TWO ) ;
+      top   = nnear * (SGfloat) tan ( vfov * SG_DEGREES_TO_RADIANS / SG_TWO ) ;
+    }
+
     left  = -right ;
     bot   = -top   ;
   }
 
+
+  /* Compute the projection matrix */
+
+  SGfloat width  = right - left  ;
+  SGfloat height = top   - bot   ;
+  SGfloat depth  = ffar  - nnear ;
+
+  if ( ortho )
+  {
+    /* orthographic */
+
+    mat[0][0] =  SG_TWO / width ;
+    mat[0][1] =  SG_ZERO ;
+    mat[0][2] =  SG_ZERO ;
+    mat[0][3] =  SG_ZERO ;
+
+    mat[1][0] =  SG_ZERO ;
+    mat[1][1] =  SG_TWO / height ;
+    mat[1][2] =  SG_ZERO ;
+    mat[1][3] =  SG_ZERO ;
+
+    mat[2][0] =  SG_ZERO ;
+    mat[2][1] =  SG_ZERO ;
+    mat[2][2] = -SG_TWO / depth ;
+    mat[2][3] =  SG_ZERO ;
+
+    mat[3][0] = -( left  + right ) / width ;
+    mat[3][1] = -( bot   + top   ) / height ;
+    mat[3][2] = -( nnear + ffar  ) / depth ;
+    mat[3][3] =  SG_ONE ;
+  }
+  else
+  {
+    /* perspective */
+
+    mat[0][0] =  SG_TWO * nnear / width ;
+    mat[0][1] =  SG_ZERO ;
+    mat[0][2] =  SG_ZERO ;
+    mat[0][3] =  SG_ZERO ;
+    
+    mat[1][0] =  SG_ZERO ;
+    mat[1][1] =  SG_TWO * nnear / height ;
+    mat[1][2] =  SG_ZERO ;
+    mat[1][3] =  SG_ZERO ;
+    
+    mat[2][0] =  ( right + left ) / width ;
+    mat[2][1] =  ( top   + bot  ) / height ;
+    mat[2][2] = -( ffar  + nnear ) / depth ;
+    mat[2][3] = -SG_ONE ;
+    
+    mat[3][0] =  SG_ZERO ;
+    mat[3][1] =  SG_ZERO ;
+    mat[3][2] = -SG_TWO * nnear * ffar / depth ;
+    mat[3][3] =  SG_ZERO ;
+  }
+
+
   /*
-    Compute plane equations for the four sloping faces of the frustum.
+   * The clip planes are derived from the projection matrix.
+   *
+   * After projection (in clip coordinates), the clip planes are simply:
+   * 
+   *  left:    (  1,  0,  0,  1 )
+   *  right:   ( -1,  0,  0,  1 )
+   *  bottom:  (  0,  1,  0,  1 )
+   *  top:     (  0, -1,  0,  1 )
+   *  near:    (  0,  0,  1,  1 )
+   *  far:     (  0,  0, -1,  1 )
+   *
+   * These can easily be transformed *backwards* by 
+   * multiplying by the transposed projection matrix, i.e:
+   *
+   *  ( A )            ( A')
+   *  ( B )  =  mat^T  ( B')
+   *  ( C )            ( C')
+   *  ( D )            ( D')
+   *
+   * where (A',B',C',D') represents a plane in clip coordinates,
+   * and (A,B,C,D) is the same plane expressed in eye coordinates.
+   */
 
-    These are useful for FrustContains(sphere) tests.
+  sgSetVec4( plane[ SG_LEFT_PLANE  ],   SG_ONE,  SG_ZERO,  SG_ZERO,  SG_ONE );
+  sgSetVec4( plane[ SG_RIGHT_PLANE ],  -SG_ONE,  SG_ZERO,  SG_ZERO,  SG_ONE );
+  sgSetVec4( plane[ SG_BOT_PLANE   ],  SG_ZERO,   SG_ONE,  SG_ZERO,  SG_ONE );
+  sgSetVec4( plane[ SG_TOP_PLANE   ],  SG_ZERO,  -SG_ONE,  SG_ZERO,  SG_ONE );
+  sgSetVec4( plane[ SG_NEAR_PLANE  ],  SG_ZERO,  SG_ZERO,   SG_ONE,  SG_ONE );
+  sgSetVec4( plane[ SG_FAR_PLANE   ],  SG_ZERO,  SG_ZERO,  -SG_ONE,  SG_ONE );
 
-    Noting that those planes always go through the origin, their 'D'
-    components will always be zero - so the plane equation is really
-    just the normal - which is the cross-product of two edges of each face,
-    and since we can pick two edges that go through the origin, the
-    vectors for the edges are just the normalised corners of the near plane.
-  */
+  for ( int i = 0 ; i < 6 ; i++ )
+  {
+    sgVec4 tmp ;
 
-  sgVec3 v1, v2, v3, v4 ;
+    for ( int j = 0 ; j < 4 ; j++ )
+      tmp[j] = sgScalarProductVec4 ( plane[i], mat[j] ) ;
 
-  sgSetVec3 ( v1, left , top, -nnear ) ;
-  sgSetVec3 ( v2, right, top, -nnear ) ;
-  sgSetVec3 ( v3, left , bot, -nnear ) ;
-  sgSetVec3 ( v4, right, bot, -nnear ) ;
-
-  sgNormaliseVec3 ( v1 ) ;
-  sgNormaliseVec3 ( v2 ) ;
-  sgNormaliseVec3 ( v3 ) ;
-  sgNormaliseVec3 ( v4 ) ;
-
-  /*
-    Take care of the order of the parameters so that all the planes
-    are oriented facing inwards...
-  */
-
-  sgVectorProductVec3 (   top_plane, v1, v2 ) ;
-  sgVectorProductVec3 ( right_plane, v2, v4 ) ;
-  sgVectorProductVec3 (   bot_plane, v4, v3 ) ;
-  sgVectorProductVec3 (  left_plane, v3, v1 ) ;
-
-  /* 
-    At this point, you could call
-
-      glMatrixMode ( GL_PROJECTION ) ;
-      glLoadIdentity () ;
-      glFrustum      ( left, right, bot, top, nnear, ffar ) ;
-
-    Or...
-
-      pfMakePerspFrust ( frust, left, right, bot, top ) ;
-      pfFrustNearFar   ( frust, nnear, ffar ) ;
-
-    Or...
-
-      just use the matrix we generate below:
-  */
-
-  /* Width, height, depth */
-
-  SGfloat w = right - left ;
-  SGfloat h = top   - bot  ;
-  SGfloat d = ffar  - nnear ;
-
-  mat[0][0] =  SG_TWO * nnear / w ;
-  mat[0][1] =  SG_ZERO ;
-  mat[0][2] =  SG_ZERO ;
-  mat[0][3] =  SG_ZERO ;
-
-  mat[1][0] =  SG_ZERO ;
-  mat[1][1] =  SG_TWO * nnear / h ;
-  mat[1][2] =  SG_ZERO ;
-  mat[1][3] =  SG_ZERO ;
-
-  mat[2][0] =  ( right + left ) / w ;
-  mat[2][1] =  ( top   + bot  ) / h ;
-  mat[2][2] = -( ffar  + nnear ) / d ;
-  mat[2][3] = -SG_ONE ;
-
-  mat[3][0] =  SG_ZERO ;
-  mat[3][1] =  SG_ZERO ;
-  mat[3][2] = -SG_TWO * nnear * ffar/ d ;
-  mat[3][3] =  SG_ZERO ;
+    sgScaleVec4 ( plane[i], tmp, SG_ONE / sgLengthVec3 ( tmp ) ) ;
+  }
 }
+
 
 
 #define OC_LEFT_SHIFT   0
@@ -683,7 +714,7 @@ int sgFrustum::getOutcode ( const sgVec3 pt ) const
   /*
     No need to divide by the 'w' component since we are only checking for
     results in the range 0..1
-  */
+  */  
 
   return (( tmp[0] <=  tmp[3] ) << OC_RIGHT_SHIFT ) |
          (( tmp[0] >= -tmp[3] ) << OC_LEFT_SHIFT  ) |
@@ -701,14 +732,17 @@ int sgFrustum::contains ( const sgVec3 pt ) const
 
 int sgFrustum::contains ( const sgSphere *s ) const 
 {
+
+  const SGfloat *center = s->getCenter() ;
+  const SGfloat  radius = s->getRadius() ;
+  
   /*
     Lop off half the database (roughly) with a quick near-plane test - and
     lop off a lot more with a quick far-plane test
   */
 
-  if ( -s->getCenter() [ 2 ] + s->getRadius() < nnear ||
-       -s->getCenter() [ 2 ] - s->getRadius() > ffar )
-    return SG_OUTSIDE ;
+  if ( -center[2] + radius < nnear || -center[2] - radius > ffar )
+    return SG_OUTSIDE ;  
 
   /*
     OK, so the sphere lies between near and far.
@@ -722,13 +756,52 @@ int sgFrustum::contains ( const sgSphere *s ) const
     whole task using only 12 multiplies and 8 adds.
   */
 
-  SGfloat sp1 = sgScalarProductVec3 (  left_plane, s->getCenter() ) ;
-  SGfloat sp2 = sgScalarProductVec3 ( right_plane, s->getCenter() ) ;
-  SGfloat sp3 = sgScalarProductVec3 (   bot_plane, s->getCenter() ) ;
-  SGfloat sp4 = sgScalarProductVec3 (   top_plane, s->getCenter() ) ;
+  /*
+    A few operations are saved by observing that certain values in the plane 
+    equations are zero or one. These are specific to orthographic and perspective 
+    projections respectively.
+  */
 
-  if ( -sp1 >= s->getRadius() || -sp2 >= s->getRadius() ||
-       -sp3 >= s->getRadius() || -sp4 >= s->getRadius() )
+  SGfloat sp1, sp2, sp3, sp4 ;
+  
+  if ( ortho )
+  {
+    /*
+      left:    (  1,  0,  0,  x  )
+      right:   ( -1,  0,  0,  x  )
+      bottom:  (  0,  1,  0,  x  )
+      top:     (  0, -1,  0,  x  )
+    */
+    sp1 = plane[ SG_LEFT_PLANE  ][3] + center[0] ;
+    sp2 = plane[ SG_RIGHT_PLANE ][3] - center[0] ;
+    sp3 = plane[ SG_BOT_PLANE   ][3] + center[1] ;
+    sp4 = plane[ SG_TOP_PLANE   ][3] - center[1] ;
+  }
+  else
+  {
+    /*
+      left:    (  x,  0,  x,  0  )
+      right:   (  x,  0,  x,  0  )
+      bottom:  (  0,  x,  x,  0  )
+      top:     (  0,  x,  x,  0  )
+    */
+    sp1 = plane[ SG_LEFT_PLANE  ][0] * center[0] + plane[ SG_LEFT_PLANE  ][2] * center[2] ;
+    sp2 = plane[ SG_RIGHT_PLANE ][0] * center[0] + plane[ SG_RIGHT_PLANE ][2] * center[2] ;
+    sp3 = plane[ SG_BOT_PLANE   ][1] * center[1] + plane[ SG_BOT_PLANE   ][2] * center[2] ;
+    sp4 = plane[ SG_TOP_PLANE   ][1] * center[1] + plane[ SG_TOP_PLANE   ][2] * center[2] ;
+  }
+
+  /* 
+     Note: in the general case, we would have to do:
+
+     sp1 = sgScalarProductVec3 (  left_plane, center ) +  left_plane[3] ;
+     sp2 = sgScalarProductVec3 ( right_plane, center ) + right_plane[3] ;
+     ...
+     sp6 = sgScalarProductVec3 (   far_plane, center ) +   far_plane[3] ;
+  */
+  
+
+  if ( -sp1 > radius || -sp2 > radius || -sp3 > radius || -sp4 > radius )
     return SG_OUTSIDE ;
   
   /*
@@ -736,13 +809,38 @@ int sgFrustum::contains ( const sgSphere *s ) const
     and we can save time elsewhere if we know that for sure.
   */
 
-  if ( -s->getCenter() [ 2 ] - s->getRadius() > nnear &&
-       -s->getCenter() [ 2 ] + s->getRadius() < ffar &&
-       sp1 >= s->getRadius() && sp2 >= s->getRadius() &&
-       sp3 >= s->getRadius() && sp4 >= s->getRadius() )
+  if ( sp1 >= radius && sp2 >= radius && sp3 >= radius && sp4 >= radius
+       && -center[2] - radius >= nnear && -center[2] + radius <= ffar )
     return SG_INSIDE ;
 
   return SG_STRADDLE ;
+}
+
+
+int sgFrustum::contains ( const sgBox *b ) const 
+{
+  sgVec3 p[8] = {
+    { b->getMin()[0], b->getMin()[1], b->getMin()[2] },
+    { b->getMax()[0], b->getMin()[1], b->getMin()[2] },
+    { b->getMin()[0], b->getMax()[1], b->getMin()[2] },
+    { b->getMax()[0], b->getMax()[1], b->getMin()[2] },
+    { b->getMin()[0], b->getMin()[1], b->getMax()[2] },
+    { b->getMax()[0], b->getMin()[1], b->getMax()[2] },
+    { b->getMin()[0], b->getMax()[1], b->getMax()[2] },
+    { b->getMax()[0], b->getMax()[1], b->getMax()[2] },
+  } ;
+
+  int all = -1 ;
+  int one =  0 ;
+  
+  for (int i = 0 ; i < 8 ; i++ ) 
+  {
+    int tmp = ~ getOutcode ( p[i] ) ;
+    all &= tmp ;
+    one |= tmp ;
+  }
+  
+  return ( all ? SG_OUTSIDE : one ? SG_STRADDLE : SG_INSIDE ) ;
 }
 
 
@@ -750,9 +848,11 @@ int sgFrustum::contains ( const sgSphere *s ) const
 SGfloat sgDistSquaredToLineVec3 ( const sgLine3 line, const sgVec3 pnt )
 {
   sgVec3 r ; sgSubVec3 ( r, pnt, line.point_on_line ) ;
+
+  float projectedDistance = sgScalarProductVec3(r,line.direction_vector);
  
   return sgScalarProductVec3 ( r, r ) -
-         sgScalarProductVec3 ( r, line.direction_vector ) ;
+         projectedDistance * projectedDistance; 
 }
 
 
@@ -920,6 +1020,14 @@ void sgSetCoord ( sgCoord *dst, const sgMat4 src )
 
     dst->hpr[2] = sgATan2 ( sr, cr ) ;
   }
+}
+
+
+void sgMakeNormal(sgVec2 dst, const sgVec2 a, const sgVec2 b )
+{
+  sgSubVec2 ( dst, b, a ) ;
+  float tmp = dst [ 0 ] ; dst [ 0 ] = -dst [ 1 ] ; dst [ 1 ] = tmp ;
+  sgNormaliseVec2 ( dst ) ;
 }
 
 
@@ -1176,6 +1284,7 @@ void sgHPRfromVec3 ( sgVec3 hpr, const sgVec3 src )
   Kevin B. Thompson <kevinbthompson@yahoo.com>
   Modified by Sylvan W. Clebsch <sylvan@stanford.edu>
   Largely rewritten by "Negative0" <negative0@earthlink.net>
+  More added by John Fay.
 */
 
 
@@ -1569,6 +1678,102 @@ void sgSlerpQuat( sgQuat dst, const sgQuat from, const sgQuat to, const SGfloat 
   dst[SG_Y] = scale0 * from[SG_Y] + scale1 * to[SG_Y] ;
   dst[SG_Z] = scale0 * from[SG_Z] + scale1 * to[SG_Z] ;
   dst[SG_W] = scale0 * from[SG_W] + scale1 * to[SG_W] ;
+}
+
+
+
+/* Function to rotate a vector through a given quaternion using the formula
+ * R = Q r Q-1 -- this gives the components of a ROTATED vector in a STATIONARY
+ * coordinate system.  We assume that Q is a unit quaternion.
+ */
+void sgRotateVecQuat ( sgVec3 vec, sgQuat q )
+{
+  sgVec3 rot ;
+  sgFloat qwqw = q[SG_W] * q[SG_W] ;
+  sgFloat qwqx = q[SG_W] * q[SG_X] ;
+  sgFloat qwqy = q[SG_W] * q[SG_Y] ;
+  sgFloat qwqz = q[SG_W] * q[SG_Z] ;
+  sgFloat qxqx = q[SG_X] * q[SG_X] ;
+  sgFloat qxqy = q[SG_X] * q[SG_Y] ;
+  sgFloat qxqz = q[SG_X] * q[SG_Z] ;
+  sgFloat qyqy = q[SG_Y] * q[SG_Y] ;
+  sgFloat qyqz = q[SG_Y] * q[SG_Z] ;
+  sgFloat qzqz = q[SG_Z] * q[SG_Z] ;
+  rot[SG_X] = ( qwqw + qxqx - qyqy - qzqz ) * vec[SG_X] + 2.0f * ( qxqy - qwqz ) * vec[SG_Y] + 2.0f * ( qxqz + qwqy ) * vec[SG_Z] ;
+  rot[SG_Y] = ( qwqw - qxqx + qyqy - qzqz ) * vec[SG_Y] + 2.0f * ( qyqz - qwqx ) * vec[SG_Z] + 2.0f * ( qxqy + qwqz ) * vec[SG_X] ;
+  rot[SG_Z] = ( qwqw - qxqx - qyqy + qzqz ) * vec[SG_Z] + 2.0f * ( qxqz - qwqy ) * vec[SG_X] + 2.0f * ( qyqz + qwqx ) * vec[SG_Y] ;
+  sgCopyVec3 ( vec, rot ) ;
+}
+
+/* Function to rotate a vector through a given quaternion using the formula
+ * R = Q-1 r Q -- this gives the components of a STATIONARY vector in a ROTATED
+ * coordinate system.  We assume that Q is a unit quaternion.
+ */
+void sgRotateCoordQuat ( sgVec3 vec, sgQuat q )
+{
+  sgVec3 rot ;
+  sgFloat qwqw = q[SG_W] * q[SG_W] ;
+  sgFloat qwqx = q[SG_W] * q[SG_X] ;
+  sgFloat qwqy = q[SG_W] * q[SG_Y] ;
+  sgFloat qwqz = q[SG_W] * q[SG_Z] ;
+  sgFloat qxqx = q[SG_X] * q[SG_X] ;
+  sgFloat qxqy = q[SG_X] * q[SG_Y] ;
+  sgFloat qxqz = q[SG_X] * q[SG_Z] ;
+  sgFloat qyqy = q[SG_Y] * q[SG_Y] ;
+  sgFloat qyqz = q[SG_Y] * q[SG_Z] ;
+  sgFloat qzqz = q[SG_Z] * q[SG_Z] ;
+  rot[SG_X] = ( qwqw + qxqx - qyqy - qzqz ) * vec[SG_X] + 2.0f * ( qxqy + qwqz ) * vec[SG_Y] + 2.0f * ( qxqz - qwqy ) * vec[SG_Z] ;
+  rot[SG_Y] = ( qwqw - qxqx + qyqy - qzqz ) * vec[SG_Y] + 2.0f * ( qyqz + qwqx ) * vec[SG_Z] + 2.0f * ( qxqy - qwqz ) * vec[SG_X] ;
+  rot[SG_Z] = ( qwqw - qxqx - qyqy + qzqz ) * vec[SG_Z] + 2.0f * ( qxqz + qwqy ) * vec[SG_X] + 2.0f * ( qyqz - qwqx ) * vec[SG_Y] ;
+  sgCopyVec3 ( vec, rot ) ;
+}
+
+
+sgFloat sgDistSquaredToLineLineSegment ( const sgLineSegment3 seg, const sgLine3 line )
+{
+  /* Convert the line segment to a line.  We will deal with the segment limits later. */
+  sgLine3 line2 ;
+  sgLineSegment3ToLine3 ( &line2, seg ) ;
+
+  /* Get the dot product of the two direction vectors */
+  sgFloat t1_dot_t2 = sgScalarProductVec3 ( line.direction_vector, line2.direction_vector ) ;
+
+  /* If the lines are parallel, distance is just the distance from a point to the other line */
+  if ( fabs ( t1_dot_t2 ) >= 1.0 )
+    return sgDistSquaredToLineVec3 ( line, seg.a ) ;
+
+  /* Get the parametric coordinates of the closest points on the two lines.  The first line
+   * is parameterized by r = r1 + t1 u while the second is parameterized by r = r2 + t2 v.
+   * The square of the distance between them is [ ( r1 + t1 u ) - ( r2 + t2 v ) ] dot
+   * [ ( r1 + t1 u ) - ( r2 + t2 v ) ].  Differentiating this dot product with respect to
+   * u and v and setting the derivatives to zero gives a matrix equation:
+   * [ 1         -(t1 dot t2) ] [ u ] = [  ( r1 - r2 ) dot t1 ]
+   * [ -(t1 dot t2)         1 ] [ v ]   [ -( r1 - r2 ) dot t2 ]
+   * We invert the matrix to get the equations below.
+   */
+  sgVec3 r1_minus_r2 ;
+  sgSubVec3 ( r1_minus_r2, line.point_on_line, line2.point_on_line ) ;
+
+  /* t1_t2_t2_minus_t1 = ( t1 dot t2 ) t2 - t1
+   * t2_minus_t1_t2_t1 = t2 - ( t1 dot t2 ) t1
+   */
+  sgVec3 t1_t2_t2_minus_t1, t2_minus_t1_t2_t1 ;
+  sgAddScaledVec3 ( t1_t2_t2_minus_t1, line.direction_vector, line2.direction_vector, -t1_dot_t2 ) ;
+  sgNegateVec3 ( t1_t2_t2_minus_t1 ) ;
+  sgAddScaledVec3 ( t2_minus_t1_t2_t1, line2.direction_vector, line.direction_vector, -t1_dot_t2 ) ;
+
+  sgFloat u = sgScalarProductVec3 ( r1_minus_r2, t1_t2_t2_minus_t1 ) / ( 1.0f - t1_dot_t2 * t1_dot_t2 ) ;
+  sgFloat v = sgScalarProductVec3 ( r1_minus_r2, t2_minus_t1_t2_t1 ) / ( 1.0f - t1_dot_t2 * t1_dot_t2 ) ;
+
+  /* Since line 2 is a line segment, we limit "v" to between 0 and the distance between the points. */
+  sgFloat length = sgDistanceVec3 ( seg.a, seg.b ) ;
+  if ( v < 0.0 ) v = 0.0 ;
+  if ( v > length ) v = length ;
+
+  sgVec3 point1, point2 ;
+  sgAddScaledVec3 ( point1, line.point_on_line, line.direction_vector, u ) ;
+  sgAddScaledVec3 ( point2, line2.point_on_line, line2.direction_vector, v ) ;
+  return sgDistanceSquaredVec3 ( point1, point2 ) ;
 }
 
 

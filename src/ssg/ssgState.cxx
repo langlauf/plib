@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgState.cxx,v 1.10 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgState.cxx,v 1.12 2003/11/20 14:01:05 stromberg Exp $
 */
 
 
@@ -69,6 +69,10 @@ void ssgState::copy_from ( ssgState *src, int clone_flags )
     setTranslucent () ;
   else
     setOpaque () ;
+
+  setStateCallback( SSG_CALLBACK_PREDRAW,  src->getStateCallback( SSG_CALLBACK_PREDRAW  ) );
+  setStateCallback( SSG_CALLBACK_POSTDRAW, src->getStateCallback( SSG_CALLBACK_POSTDRAW ) );
+  setStateCallback( SSG_CALLBACK_PREAPPLY, src->getStateCallback( SSG_CALLBACK_PREAPPLY ) );
 }
 
 

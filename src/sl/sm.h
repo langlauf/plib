@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sm.h,v 1.5 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: sm.h,v 1.6 2002/11/30 00:41:49 sjbaker Exp $
 */
 
 
@@ -29,7 +29,7 @@
 
 #ifdef SL_USING_OSS_AUDIO
 #define SMMIXER_DEFAULT_DEVICE "/dev/mixer"
-#elif defined(WIN32)
+#elif defined(UL_WIN32)
 #define SMMIXER_DEFAULT_DEVICE "mixer"
 #else
 #endif

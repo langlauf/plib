@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgAux.h,v 1.17 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgAux.h,v 1.18 2003/06/27 08:15:15 sjbaker Exp $
 */
 
 
@@ -31,6 +31,7 @@
 #include "ssgaFire.h"
 #include "ssgaWaveSystem.h"
 #include "ssgaLensFlare.h"
+#include "ssgaScreenDump.h"
 
 
 #define _SSGA_TYPE_SHAPE          0x00008000

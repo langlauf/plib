@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: fnt.cxx,v 1.11 2002/09/02 06:05:43 sjbaker Exp $
+     $Id: fnt.cxx,v 1.12 2002/10/26 14:24:59 sjbaker Exp $
 */
 
 #include "fntLocal.h"
@@ -243,4 +243,10 @@ void fntTexFont::puts ( sgVec3 curpos, float pointsize, float italic, const char
     s++ ;
   }
 }
+
+void fntInit ()
+{
+  /* Empty right now */
+}
+
 

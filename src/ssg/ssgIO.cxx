@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgIO.cxx,v 1.37 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgIO.cxx,v 1.38 2002/09/15 01:29:11 ude Exp $
 */
 
 
@@ -217,10 +217,7 @@ void _ssgReadString ( FILE *fd, char **var )
   if ( s[0] == '\0' )
     *var = NULL ;
   else
-  {
-    *var = new char [ strlen(s)+1 ] ;
-    strcpy ( *var, s ) ;
-  }
+    *var = ulStrDup ( s ) ;
 }
 
 

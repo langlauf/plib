@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puSelectBox.cxx,v 1.8 2002/09/02 06:05:46 sjbaker Exp $
+     $Id: puSelectBox.cxx,v 1.9 2004/02/23 04:16:52 sjbaker Exp $
 */
 
 
@@ -114,7 +114,7 @@ void puSelectBox::draw ( int dx, int dy )
 
 int puSelectBox::checkKey ( int key, int updown )
 {
-  if ( ! input -> isAcceptingInput () || ! isVisible () || ! isActive () || ( window != puGetWindow () ) )
+  if ( updown == PU_UP || ! input -> isAcceptingInput () || ! isVisible () || ! isActive () || ( window != puGetWindow () ) )
     return FALSE ;
 
   switch ( key )

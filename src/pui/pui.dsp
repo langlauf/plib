@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /Zi /O2 /I "..\fnt" /I "..\sg" /I "..\util" /I "../../../glut/include" /I "../../glut/include" /I ".." /I "../glut/include" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GLUT_IS_PRESENT" /FD /c
+# ADD CPP /nologo /MT /W3 /GX /Zi /O2 /I "..\fnt" /I "..\sg" /I "..\util" /I ".." /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "PU_USE_NONE" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -54,7 +54,7 @@ LIB32=link.exe -lib
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Copy Library to plib directory
-PostBuild_Cmds=copy release\*.lib ..\..\*.*	copy pu.h ..\..\pu.h
+PostBuild_Cmds=copy  release\*.lib  ..\..\*.* 	copy  pu.h  ..\..\pu.h 	copy  puGLUT.h  "..\..\" 	copy  puFLTK.h  "..\..\" 	copy  puSDL.h  "..\..\" 	copy  puNative.h  "..\..\" 	copy  puPW.h  ..\..\ 
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "pui - Win32 Debug"
@@ -70,7 +70,7 @@ PostBuild_Cmds=copy release\*.lib ..\..\*.*	copy pu.h ..\..\pu.h
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /GX /Zi /Od /I "..\fnt" /I "..\sg" /I "..\util" /I "../../../glut/include" /I "../../glut/include" /I ".." /I "../glut/include" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GLUT_IS_PRESENT" /FR /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /GX /Zi /Od /I "..\fnt" /I "..\sg" /I "..\util" /I ".." /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "PU_USE_NONE" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -83,7 +83,7 @@ LIB32=link.exe -lib
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Copy Library to plib directory
-PostBuild_Cmds=copy debug\*.lib ..\..\*.*	copy pu.h ..\..\pu.h
+PostBuild_Cmds=copy  debug\*.lib  ..\..\*.* 	copy  pu.h  ..\..\pu.h 	copy  puGLUT.h  "..\..\" 	copy  puFLTK.h  "..\..\" 	copy  puSDL.h  "..\..\" 	copy  puNative.h  "..\..\" 	copy  puPW.h  ..\..\ 
 # End Special Build Tool
 
 !ENDIF 
@@ -142,6 +142,10 @@ SOURCE=.\puFileSelector.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\puFLTK.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\puFont.cxx
 # End Source File
 # Begin Source File
@@ -150,11 +154,19 @@ SOURCE=.\puFrame.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\puGLUT.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\puGroup.cxx
 # End Source File
 # Begin Source File
 
 SOURCE=.\puInput.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\puInputBase.cxx
 # End Source File
 # Begin Source File
 
@@ -178,6 +190,10 @@ SOURCE=.\puMenuBar.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\puNative.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\puObject.cxx
 # End Source File
 # Begin Source File
@@ -194,11 +210,19 @@ SOURCE=.\puPopupMenu.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\puPW.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\puRange.cxx
 # End Source File
 # Begin Source File
 
 SOURCE=.\puScrollBar.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\puSDL.h
 # End Source File
 # Begin Source File
 

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slMODfile.cxx,v 1.8 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: slMODfile.cxx,v 1.9 2003/06/02 23:49:44 puggles Exp $
 */
 
 
@@ -134,7 +134,7 @@ static void convolute ( int mag, char *dp )
 		    if (sis.loopBeg) sp = sis.loopBeg;
 		    else break;
 		}		
-		sum += *hp * (char)(*sp ^ sis.x_or);
+		sum += *hp * (signed char)(*sp ^ sis.x_or);
 	    }
 	    sum /= 256;
 	    if (sum > 127) sum = 127;

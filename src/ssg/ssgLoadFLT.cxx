@@ -18,11 +18,11 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadFLT.cxx,v 1.33 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLoadFLT.cxx,v 1.39 2003/04/17 13:10:12 stromberg Exp $
 */
 
 //
-//  $Id: ssgLoadFLT.cxx,v 1.33 2002/09/02 06:05:48 sjbaker Exp $
+//  $Id: ssgLoadFLT.cxx,v 1.39 2003/04/17 13:10:12 stromberg Exp $
 //
 //
 //    OpenFlight loader for SSG
@@ -90,26 +90,21 @@
 /*#define NO_COLORS*/
 
 /* Try to figure out how to do mmap. */
-#ifdef _WIN32
+#ifdef UL_WIN32
 # define USE_WIN32_MMAP
-#elif defined(__sgi) || defined(__GNUC__) /* OK? Any Unix dialect should work. */
+#else
 # include <unistd.h>
 # ifdef _POSIX_MAPPED_FILES
 #  define USE_POSIX_MMAP
 # endif
 #endif
 
-#define USE_ALLOCA
-
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <stdio.h>
-#ifdef __sgi
+#ifdef UL_IRIX
 # include <sys/endian.h>
-# ifdef USE_ALLOCA
-#  include <alloca.h>
-# endif
 #endif
 #ifdef USE_POSIX_MMAP
 # include <time.h>
@@ -117,29 +112,8 @@
 # include <sys/stat.h>
 # include <sys/mman.h>
 #endif
-#ifdef _MSC_VER
+#ifdef UL_MSVC
 # include <io.h>
-# ifdef USE_ALLOCA
-#  include <malloc.h>
-# endif
-#endif
-
-#ifdef __MWERKS__
-#  ifdef USE_ALLOCA
-#    include <alloca.h>
-#  endif
-#endif
-
-#ifdef __BORLANDC__
-# ifdef USE_ALLOCA
-#  include <malloc.h>
-# endif
-#endif
-
-#if defined(__MINGW32__)
-# ifdef USE_ALLOCA
-#  include <libiberty.h>
-# endif
 #endif
 
 
@@ -168,7 +142,7 @@
 
 typedef unsigned char ubyte;
 
-#ifdef _WIN32
+#ifdef UL_WIN32
 typedef unsigned short ushort;
 typedef unsigned int uint;
 #endif
@@ -183,7 +157,7 @@ typedef unsigned int uint;
 /* XXX what about PDP_ENDIAN? */
 
 /* Help! Is this correct? */
-#if (!defined(BYTE_ORDER) && defined(WIN32) && !defined(NOT_INTEL_BYTE_ORDER))
+#if (!defined(BYTE_ORDER) && defined(UL_WIN32) && !defined(NOT_INTEL_BYTE_ORDER))
 # define LITTLE_ENDIAN  1234
 # define BIG_ENDIAN     4321
 # define BYTE_ORDER     LITTLE_ENDIAN
@@ -193,7 +167,7 @@ typedef unsigned int uint;
 
 #if !defined(BYTE_ORDER) || BYTE_ORDER != BIG_ENDIAN
 
-#ifdef PROBE_ENDIAN
+#if !defined(BYTE_ORDER)
 static void _swab16(const void *src, void *dst, int n)
 {
    ushort *s = (ushort *)src;
@@ -612,8 +586,13 @@ struct fltState {
 struct fltNodeAttr {   
 
    /* allocated using new/delete for convenience */
-   fltNodeAttr() { memset(this, 0, sizeof(*this)); }
-   ~fltNodeAttr() { if (name) /*free(name);*/ delete name; }
+   fltNodeAttr() {
+      memset(this, 0, sizeof(*this)); 
+   }
+   ~fltNodeAttr() { 
+      if (name) delete name; 
+      if (mask_words) delete mask_words; 
+   }
 
    /* properies that are not applied immediately */
 
@@ -626,6 +605,12 @@ struct fltNodeAttr {
    sgMat4 mat;
    sgVec2 range;
    sgVec3 center;
+
+   /* switch record info */
+   int num_masks;
+   int num_words;
+   uint *mask_words;
+   int current_mask;
 
 };
 
@@ -859,13 +844,8 @@ static ssgEntity *Build(fltState *state)
     */
    qsort(arr, num, sizeof(fltTriangle), tricmp);
 
-#ifdef USE_ALLOCA
-   int *index = (int *)alloca(sizeof(index[0]) * state->vnum);
-   int *vertex = (int *)alloca(sizeof(vertex[0]) * 32768);
-#else
-   int index[state->vnum];
-   int vertex[32768];
-#endif
+   int *index = new int [ state->vnum ];
+   int *vertex = new int [ 32768 ];
    
    for (i = 0; i < num; ) {
 
@@ -1085,6 +1065,9 @@ static ssgEntity *Build(fltState *state)
       i = j;
    }
 
+   delete [] vertex;
+   delete [] index;
+
    if (((leaf != 0) + (bboard1 != 0) + (bboard2 != 0)) > 1 && !grp) //lint !e514 Lint warning "unusual use of a boolean"
       grp = new ssgBranch;
 
@@ -1128,14 +1111,13 @@ static void AddTri(fltState *state, int v0, int v1, int v2)
 
 static void Triangulate(int *w, int n, fltState *state)
 {
-#ifdef USE_ALLOCA
-   int *tris = (int *) alloca(sizeof(int) * 3 * (n - 2));
-#else
-   int tris[3 * (n - 2)];
-#endif
+   int buf[3 * (16 - 2)];
+   int *tris = (n > 16) ? new int [ 3 * (n - 2) ] : buf;
    int num_tris = _ssgTriangulate(state->coord, w, n, tris);
    for (int i = 0; i < num_tris; i++)
       AddTri(state, tris[3*i + 0], tris[3*i + 1], tris[3*i + 2]);
+   if (tris != buf)
+     delete [] tris;
 }
 
 static int ObsoleteFlag;
@@ -1774,7 +1756,7 @@ static ssgEntity *PostClean(ssgEntity *node, fltNodeAttr *attr)
 
    /* set limits on animated nodes */
    if (node && node->isA(ssgTypeTimedSelector())) {
-      ssgTimedSelector *sw = (ssgTimedSelector *)node;
+      ssgTimedSelector *sw = (ssgTimedSelector *) node;
       if (sw->getNumKids() > 1) {
 	 sw->setDuration(30.0f);
 	 sw->setLimits(0, sw->getNumKids() - 1);			  
@@ -1846,7 +1828,31 @@ static ssgEntity *PostClean(ssgEntity *node, fltNodeAttr *attr)
 	       lod->addKid(node);
 	       node = lod;
 	    }
-	 }	 
+	 }
+      }
+
+      /* setup switch records */
+      if (attr->num_masks > 0) {
+	ssgTimedSelector *sw = new ssgTimedSelector;
+	int n = ((ssgBranch *) node) -> getNumKids();
+	if (n > 32 * attr->num_words) n = 32 * attr->num_words;
+	for (int i = 0; i < attr->num_masks; i++) {
+	  ssgBranch *br = new ssgBranch;
+	  for (int j = 0; j < n; j++) {
+	    if (attr->mask_words[j / 32] & (1u << (j % 32)))
+	      br -> addKid(((ssgBranch *) node) -> getKid(j));
+	  }
+	  sw -> addKid(br);
+	}
+	if (node->getRef() == 0) {
+	  ((ssgBranch *) node) -> removeAllKids();
+	  delete node;
+	}
+	sw->setMode(SSG_ANIM_SHUTTLE);
+	sw->setDuration(30.0f);
+	sw->setLimits(0, attr->num_masks - 1);	
+	sw->control(SSG_ANIM_START);
+	node = sw;
       }
    }
 
@@ -1859,7 +1865,8 @@ static ssgEntity *PostClean(ssgEntity *node, fltNodeAttr *attr)
 }
 
 /* link nodes while removing crap (post traversal) */
-static void PostLink(ssgEntity **stack, fltNodeAttr **attr)
+static void PostLink(ssgEntity **stack, fltNodeAttr **attr, 
+		     int instance, fltState *state)
 {
 #if 0
    ulSetError(UL_DEBUG, "PostLink: %s %s <-- %s %s",
@@ -1875,14 +1882,28 @@ static void PostLink(ssgEntity **stack, fltNodeAttr **attr)
       return;
    }
    assert(!stack[1]->isA(0xDeadBeef));
+
+   stack[1] = PostClean(stack[1], attr[1]);
+   
+   if (stack[1] && instance >= 0) {
+       state->refs = sinsert(state->refs, (void *)instance, 0, ptrcmp);
+       if (state->refs->data != (void *)-1) {
+	   ulSetError(UL_WARNING, "[flt] Instance %d redefined.", instance);
+	   ssgDeRefDelete((ssgEntity *) state->refs->data);
+       }
+       state->refs->data = stack[1];
+       stack[1]->ref();
+   }
    
    if (stack[0] == 0) {
-      stack[0] = stack[1]; /* delay further processing */
-      attr[0] = attr[1];
+      stack[0] = stack[1];
+      if (attr[0]) {
+	  delete attr[0];
+	  attr[0] = 0;
+      }
    }
    else {
       assert(!stack[0]->isA(0xDeadBeef));
-      stack[1] = PostClean(stack[1], attr[1]);
       if (stack[1]) {
          if (stack[0]->isAKindOf(ssgTypeBranch())) {
 	    ((ssgBranch *)stack[0])->addKid(stack[1]);
@@ -1895,6 +1916,7 @@ static void PostLink(ssgEntity **stack, fltNodeAttr **attr)
          }
       }
    }
+
    stack[1] = 0;
    attr[1] = 0;
 }
@@ -2022,13 +2044,16 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 {
    ssgEntity *stack[MAXDEPTH + 1];
    fltNodeAttr *attr[MAXDEPTH + 1];
+   int instance[MAXDEPTH + 1];
    int sp, op, len, k;
 
    stack[0] = new ssgBranch;
    stack[0]->setName("reserved");
    attr[0] = 0;
+   instance[0] = -1;
    stack[1] = 0;
    attr[1] = 0;
+   instance[1] = -1;
    sp = 1;
 
    for (;;) {
@@ -2041,6 +2066,12 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
       len = get16u(ptr + 2);
       if (len < 4 || (len & 3) != 0 || ptr + len > end)
          break;
+
+#if 0
+      for (int i = 0; i < sp; i++)
+	  putchar('\t');
+      printf("op %d\n", op);
+#endif
       
       switch (op) {
 
@@ -2048,7 +2079,8 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
          if (stack[sp] && !stack[sp]->isAKindOf(ssgTypeBranch())) {
             /* shouldn't happen */
             ulSetError(UL_DEBUG, "[flt] Objects are not allowed to contain other objects or groups.");
-            PostLink(stack + sp - 1, attr + sp - 1);
+            PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+	    instance[sp] = -1;
          }
 	 if (sp >= MAXDEPTH) {
 	    ulSetError(UL_WARNING, "[flt] Stack overflow.");
@@ -2057,6 +2089,7 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 	    sp++;
 	    stack[sp] = 0;
 	    attr[sp] = 0;
+	    instance[sp] = -1;
 	 }
 	 ptr += len;
          break;
@@ -2065,8 +2098,8 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
          if (sp == 1) 
             ulSetError(UL_WARNING, "[flt] Stack underflow.");
          else {
-            PostLink(stack + sp - 1, attr + sp - 1);
-            sp--;            
+            PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+            sp--;
          }
          ptr += len;
          break;
@@ -2100,7 +2133,8 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 
 	 int flags = get32i(ptr + 12);
 	 int trans = get16u(ptr + 18);
-         PostLink(stack + sp - 1, attr + sp - 1);
+         PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+	 instance[sp] = -1;
          ptr += len;
          ptr += AttrChunks(ptr, end, &attr[sp]);
 	 state->parent_name = (char *)ptr + 4; /* OK?? */
@@ -2114,7 +2148,8 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
       case 5: /* Face */
          /* polygons are not allowed to be outside objects, but this rule is not always respected */
 	 //ulSetError(UL_DEBUG, "[flt] Implicit object.");
-         PostLink(stack + sp - 1, attr + sp - 1);
+         PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+	 instance[sp] = -1;
          ptr += GeomChunks(ptr, end, state, &stack[sp], 0, 0);
          break;
 
@@ -2124,20 +2159,33 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
       case 96: /* Switch */
       case 98: /* Clip Region */
 
-         PostLink(stack + sp - 1, attr + sp - 1);
+         PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+	 instance[sp] = -1;
 
 	 switch (op) {
-	 case 14: 
-	    stack[sp] = new ssgTransform; 
-	    break;
-#if 1
-	 case 96: {
-	    ssgTimedSelector *sw = new ssgTimedSelector; 
-	    stack[sp] = sw;
+
+	 case 2: { /* Group */
+#if 0 /* group animation - seems wrong... */
+	    int flags = (len >= 20) ? get32i(ptr + 16) : 0;
+	    if ((flags & 3) != 0) {
+	       ssgTimedSelector *sw = new ssgTimedSelector;
+	       sw->setMode((flags & 2) ? SSG_ANIM_SWING : SSG_ANIM_SHUTTLE);
+	       stack[sp] = sw;
+	    }
+	    else 
+#endif
+            {
+	       stack[sp] = new ssgBranch;
+	    }
 	    break;
 	 }
-#endif
-	 case 73: {
+
+	 case 14: { /* Degree of Freedom */
+	    stack[sp] = new ssgTransform; 
+	    break;
+	 }
+
+	 case 73: { /* Level of Detail */
 	    fltNodeAttr *a;
 	    double v[3];
 	    attr[sp] = a = new fltNodeAttr;
@@ -2149,32 +2197,60 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
             stack[sp] = new ssgBranch;
 	    break;
 	 }
-	 default: //lint !e616
-            stack[sp] = new ssgBranch;
+
+	 case 96: { /* Switch */
+	    int num_words = (len > 28) ? get32i(ptr + 20) : -1;
+	    int num_masks = (len > 28) ? get32i(ptr + 24) : -1;
+	    if (num_words <= 0 || num_masks <= 0 || len < 28 + 4 * num_words * num_masks) {
+ 	       ulSetError(UL_DEBUG, "[flt] Incomplete switch record.");
+	    }
+	    else {
+ 	       fltNodeAttr *a = new fltNodeAttr;
+	       a->current_mask = get32i(ptr + 16);
+	       a->num_masks = num_masks;
+	       a->num_words = num_words;
+	       a->mask_words = new uint [ num_masks * num_words ];
+	       get32v(ptr + 28, a->mask_words, num_masks * num_words);
+	       attr[sp] = a;
+	    }
+	    stack[sp] = new ssgBranch;
 	    break;
+	 }
+
+	 default: { /* Others (i.e. 98 Clip Region) */
+	    stack[sp] = new ssgBranch;
+	    break;
+	 }
+
          }
+
 	 if (ptr[4])
 	    stack[sp]->setName((char *)ptr + 4);
+
          ptr += len;
          ptr += AttrChunks(ptr, end, &attr[sp]);
+
          break;
 
       case 61: /* Instance Reference */
          k = get16u(ptr + 6);
-         /*ulSetError(UL_DEBUG, "[flt] instance reference %d", k);*/
-         PostLink(stack + sp - 1, attr + sp - 1);	 
-         if (state->refs) {
-	    state->refs = splay(state->refs, (void *)k, ptrcmp);
-	    if (state->refs->key == (void *)k)
-	       stack[sp] = (ssgEntity *)state->refs->data;
+	 if (k != instance[sp]) { // current instance inserted by default
+	     PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+	     instance[sp] = -1;
+	     if (state->refs) {
+		 state->refs = splay(state->refs, (void *)k, ptrcmp);
+		 if (state->refs->key == (void *)k) {
+		     stack[sp] = (ssgEntity *)state->refs->data;
+		 }
+	     }
 	 }
-         ptr += len;
+	 ptr += len;
          ptr += AttrChunks(ptr, end, &attr[sp]);
          break;
 
       case 62: /* Instance Definition */
          k = get16u(ptr + 6);
-         /*ulSetError(UL_DEBUG, "[flt] instance definition %d", k);*/
+#if 0	 
          if (stack[sp]) {
 	    state->refs = sinsert(state->refs, (void *)k, 0, ptrcmp);
 	    if (state->refs->data == (void *)-1) {
@@ -2182,12 +2258,20 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 	       stack[sp]->ref();
 	    }
 	 }
+	 else 
+	 {
+	     ulSetError(UL_DEBUG, "[flt] yeah, but the node is empty!");
+	 }
+#else	 
+	 instance[sp] = k;
+#endif
          ptr += len;
          break;
 
       case 63: /* External Reference */
          /*ulSetError(UL_DEBUG, "external reference %s", ptr + 4);*/
-         PostLink(stack + sp - 1, attr + sp - 1);
+         PostLink(stack + sp - 1, attr + sp - 1, instance[sp], state);
+	 instance[sp] = -1;
          if (!NoExternals) {
             char *file = (char *)ptr + 4, *p;
 	    if ((p = strrchr(file, '/')))
@@ -2231,7 +2315,7 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 
    /* pop stack (expected one iteration but may be more for incomplete databases) */
    while (sp-- > 0)
-      PostLink(stack + sp, attr + sp);
+      PostLink(stack + sp, attr + sp, -1, 0);
    
    if (stack[0])
       stack[0] = PostClean(stack[0], attr[0]);
@@ -2631,7 +2715,27 @@ static const char *FindFile(const char *file)
 
 static struct snode *FltCache;
 
-#define win32_perror(s) perror(s) /* no idea if this is appropriate.. */
+#ifdef UL_WIN32
+
+static void win32_perror(const char *s)
+{
+   LPVOID lpMsgBuf;
+   FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        GetLastError(),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) &lpMsgBuf,
+        0,
+        NULL
+    );
+    fprintf(stderr, "%s: %s\n", s, lpMsgBuf);
+    LocalFree( lpMsgBuf );
+}
+
+#endif
 
 static ssgEntity *LoadFLT(const char *file)
 {
@@ -2671,7 +2775,7 @@ static ssgEntity *LoadFLT(const char *file)
 
 #ifdef USE_WIN32_MMAP
 	 
-	 fd = CreateFile(path, GENERIC_READ, 0, NULL, OPEN_EXISTING, 
+	 fd = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 
 			 FILE_ATTRIBUTE_NORMAL, 0);
 	 if (fd == INVALID_HANDLE_VALUE) {
 	    win32_perror(path);
@@ -2835,11 +2939,7 @@ static ssgEntity *Flatten(ssgEntity *node, float (*mat)[4])
 	    ssgBranch *grp = (ssgBranch *)node;
 	    int i, n = grp->getNumKids();
 	    if (n > 0) {
-#ifdef USE_ALLOCA
-	       ssgEntity **kids = (ssgEntity **)alloca(sizeof(ssgEntity *) * n);
-#else
-	       ssgEntity *kids[n];
-#endif
+	       ssgEntity *kids[32];
 	       for (i = n; i--;) {
 		  kids[i] = grp->getKid(i);
 		  kids[i]->ref(); grp->removeKid(i); kids[i]->deRef();
@@ -2914,11 +3014,7 @@ static ssgEntity *Flatten(ssgEntity *node, float (*mat)[4])
 	 return Flatten(kid, mat);
       }
       else {
-#ifdef USE_ALLOCA
-	 ssgEntity **kids = (ssgEntity **)alloca(sizeof(ssgEntity *) * n);
-#else
-	 ssgEntity *kids[n];
-#endif
+	 ssgEntity *kids[32];
 	 for (i = n; i--;) {
 	    kids[i] = grp->getKid(i);
 	    kids[i]->ref(); grp->removeKid(i); kids[i]->deRef();

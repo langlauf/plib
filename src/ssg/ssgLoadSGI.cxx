@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadSGI.cxx,v 1.15 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLoadSGI.cxx,v 1.17 2004/03/14 11:26:56 wolfram_kuss Exp $
 */
 
 
@@ -191,12 +191,13 @@ void ssgSGIHeader::getRow ( unsigned char *buf, int y, int z )
   {
     unsigned char *tmpp = rle_temp ;
     unsigned char *bufp = buf ;
+    int length = leng [ z * ysize + y ];
 
-    fread ( rle_temp, 1, leng [ z * ysize + y ], image_fd ) ;
+    fread ( rle_temp, 1, length, image_fd ) ;
 
     unsigned char pixel, count ;
 
-    while ( TRUE )
+    while ( tmpp < rle_temp + length )
     {
       pixel = *tmpp++ ;
 
@@ -351,7 +352,7 @@ ssgSGIHeader::ssgSGIHeader ( const char *fname, ssgTextureInfo* info )
     info -> width = sgihdr->xsize ;
     info -> height = sgihdr->ysize ;
     info -> depth = sgihdr->zsize ;
-    info -> alpha = ( sgihdr->zsize == 4 ) ;
+    info -> alpha =  ( sgihdr->zsize == 2 || sgihdr->zsize == 4 )  ;
   }
 
   bool result =

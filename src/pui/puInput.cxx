@@ -18,74 +18,56 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puInput.cxx,v 1.28 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puInput.cxx,v 1.34 2004/02/23 04:16:52 sjbaker Exp $
 */
 
 
 #include "puLocal.h"
 
-UL_RTTI_DEF1(puInput,puObject)
+UL_RTTI_DEF2(puInput,puInputBase,puObject)
 
 
-void puInput::normalize_cursors ( void )
+static char *chop_to_width ( puFont fnt, const char *s, int width, int cursor_position, int *ncut )
 {
-  int sl = strlen ( getStringValue () ) ;
-
-  /* Clamp the positions to the limits of the text.  */
-
-  if ( cursor_position       <  0 ) cursor_position       =  0 ;
-  if ( select_start_position <  0 ) select_start_position =  0 ;
-  if ( select_end_position   <  0 ) select_end_position   =  0 ;
-  if ( cursor_position       > sl ) cursor_position       = sl ;
-  if ( select_start_position > sl ) select_start_position = sl ;
-  if ( select_end_position   > sl ) select_end_position   = sl ;
-
-  /* Swap the ends of the select window if they get crossed over */
-
-  if ( select_end_position < select_start_position )
-  {
-    int tmp = select_end_position ;     
-    select_end_position = select_start_position ;     
-    select_start_position = tmp ;
-  }
-}
-
-void puInput::removeSelectRegion ( void )
-{
-  char *p = new char [   strlen ( getStringValue () )
-                       + select_start_position - select_end_position
-                       + 1 ] ;
-  strncpy ( p, getStringValue (), select_start_position ) ;
-  strcpy ( p + select_start_position,
-           getStringValue () + select_end_position ) ;
-  setValue ( p ) ;
-  delete [] p ;
-  
-  cursor_position = select_end_position = select_start_position ;
-}
-
-
-static char *chop_to_width ( puFont fnt, const char *s, int width, int *ncut )
-{
-  char *res = new char [ strlen ( s ) + 1 ] ;
+  int new_len = strlen ( s ) ;
+  char *res = new char [ new_len + 1 ] ;
   int n = 0 ;
   int w ;
 
-  do
+  if ( new_len == 0 )
   {
-    strcpy ( res, & s[n] ) ;
-    n++ ;
-    w = fnt.getStringWidth ( res ) + 2 * PUSTR_RGAP + PUSTR_LGAP ;
-  } while ( w >= width ) ;
+    *res = '\0' ;
+    if ( ncut != NULL ) *ncut = 0 ;
+  }
+  else
+  {
+    do
+    {
+      memcpy ( res, s + n, new_len + 1 ) ;
+      n++ ;
+      new_len -- ;
+      w = fnt.getStringWidth ( res ) + 2 * PUSTR_RGAP + PUSTR_LGAP ;
+    } while ( ( w >= width ) && ( n < cursor_position - 1 ) ) ;
 
-  if ( ncut != NULL ) *ncut = n-1 ;
+    if ( ncut != NULL ) *ncut = n - 1 ;
+
+    n = 0 ;
+
+    while ( w >= width )
+    {
+      res[new_len] = '\0' ;
+      n++ ;
+      new_len -- ;
+      w = fnt.getStringWidth ( res ) + 2 * PUSTR_RGAP + PUSTR_LGAP ;
+    }
+  }
 
   return res ;
 }
 
 void puInput::draw ( int dx, int dy )
 {
-  normalize_cursors () ;
+  normalizeCursors () ;
 
   if ( !visible || ( window != puGetWindow () ) ) return ;
 
@@ -112,7 +94,7 @@ void puInput::draw ( int dx, int dy )
       if ( select_end_position > 0 &&
            select_end_position != select_start_position )    
       {
-        s2 = chop_to_width ( legendFont, getStringValue(), abox.max[0]-abox.min[0], &ncut ) ;
+        s2 = chop_to_width ( legendFont, getStringValue(), abox.max[0]-abox.min[0], getCursor (), &ncut ) ;
 
         int sep = select_end_position   - ncut ;
         int ssp = select_start_position - ncut ;
@@ -153,7 +135,7 @@ void puInput::draw ( int dx, int dy )
                   colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transp */
 
     s2 = chop_to_width ( legendFont, getStringValue(),
-                         abox.max[0]-abox.min[0], &ncut ) ;
+                         abox.max[0]-abox.min[0], getCursor (), &ncut ) ;
 
     legendFont.drawString ( s2,
                   dx + abox.min[0] + xx,
@@ -216,7 +198,7 @@ void puInput::doHit ( int button, int updown, int x, int y )
 
     int ncut ;
     char *s2 = chop_to_width ( legendFont, getStringValue(),
-                         abox.max[0]-abox.min[0], &ncut ) ;
+                         abox.max[0]-abox.min[0], getCursor (), &ncut ) ;
     int i = strlen ( s2 ) ;
 
     int length, prev_length ;
@@ -246,7 +228,7 @@ void puInput::doHit ( int button, int updown, int x, int y )
 
       accepting = TRUE ;
       cursor_position = i ;
-      normalize_cursors () ;
+      normalizeCursors () ;
       puSetActiveWidget ( this, x, y ) ;
       invokeCallback () ;
     }
@@ -287,12 +269,9 @@ void puInput::doHit ( int button, int updown, int x, int y )
 }
 
 
-int puInput::checkKey ( int key, int /* updown */ )
+int puInput::checkKey ( int key, int updown )
 {
-  extern void puSetPasteBuffer  ( char *ch ) ;
-  extern char *puGetPasteBuffer ( void ) ;
-
-  if ( ! isAcceptingInput() || ! isActive () || ! isVisible () || ( window != puGetWindow () ) )
+  if ( updown == PU_UP || ! isAcceptingInput() || ! isActive () || ! isVisible () || ( window != puGetWindow () ) )
     return FALSE ;
 
   if ( puActiveWidget() && ( this != puActiveWidget() ) )
@@ -303,7 +282,7 @@ int puInput::checkKey ( int key, int /* updown */ )
     puDeactivateWidget () ;
   }
 
-  normalize_cursors () ;
+  normalizeCursors () ;
 
   char *p = NULL ;
 
@@ -322,7 +301,7 @@ int puInput::checkKey ( int key, int /* updown */ )
     case '\r' :
     case '\n' : /* Carriage return/Line Feed/TAB  -- End of input */
       rejectInput () ;
-      normalize_cursors () ;
+      normalizeCursors () ;
       invokeCallback () ;
       puDeactivateWidget () ;
       break ;
@@ -392,16 +371,18 @@ int puInput::checkKey ( int key, int /* updown */ )
         break ;
 
       case 0x16 /* ^V */ : /* Paste buffer into text */
-        if ( select_start_position != select_end_position )
-          removeSelectRegion () ;
+        {
+          if ( select_start_position != select_end_position )
+            removeSelectRegion () ;
 
-        p = new char [  strlen ( getStringValue () )
-                      + strlen ( puGetPasteBuffer () )
-                      + 1 ] ;
-        strncpy ( p, getStringValue (), cursor_position ) ;
-        strcpy ( p + cursor_position, puGetPasteBuffer () ) ;
-        strcat ( p, getStringValue () + cursor_position ) ;
-        cursor_position += strlen ( puGetPasteBuffer () ) ;
+          int str_val_len = strlen ( getStringValue () ) ;
+          int paste_len = strlen ( puGetPasteBuffer () ) ;
+          p = new char [  str_val_len + paste_len + 1 ] ;
+          memcpy ( p, getStringValue (), cursor_position ) ;
+          memcpy ( p + cursor_position, puGetPasteBuffer (), paste_len ) ;
+          memcpy ( p + cursor_position + paste_len, getStringValue () + cursor_position, str_val_len - cursor_position + 1 ) ;
+          cursor_position += paste_len ;
+        }
 
         break ;
 
@@ -431,7 +412,7 @@ int puInput::checkKey ( int key, int /* updown */ )
     delete [] p ;
   }
 
-  normalize_cursors () ;
+  normalizeCursors () ;
   return TRUE ;
 }
 

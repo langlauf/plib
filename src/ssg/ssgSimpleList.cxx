@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgSimpleList.cxx,v 1.13 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgSimpleList.cxx,v 1.14 2004/01/25 16:50:04 wolfram_kuss Exp $
 */
 
 
@@ -67,6 +67,13 @@ ssgBase *ssgTexCoordArray::clone ( int clone_flags )
 ssgBase *ssgColourArray::clone ( int clone_flags )
 {
   ssgColourArray *b = new ssgColourArray () ;
+  b -> copy_from ( this, clone_flags ) ;
+  return b ;
+}
+
+ssgBase *ssgIndexArray::clone ( int clone_flags )
+{
+  ssgIndexArray *b = new ssgIndexArray () ;
   b -> copy_from ( this, clone_flags ) ;
   return b ;
 }

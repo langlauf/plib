@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadAC.cxx,v 1.29 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLoadAC.cxx,v 1.32 2003/07/11 11:16:43 puggles Exp $
 */
 
 
@@ -138,6 +138,7 @@ static Tag top_tags [] =
 {
   { "MATERIAL", do_material },
   { "OBJECT"  , do_object   },
+  { NULL, NULL }
 } ;
 
 
@@ -345,7 +346,7 @@ static int do_name ( char *s )
 }
 
 
-static int do_data     ( char *s )
+static int do_data ( char *s )
 {
   int len = strtol ( s, NULL, 0 ) ;
 
@@ -356,7 +357,12 @@ static int do_data     ( char *s )
 
   current_data [ len ] = '\0' ;
 
-  getc ( loader_fd ) ;  /* Final RETURN */
+  int c;
+  while ( ( c = getc( loader_fd ) ) != EOF )  /* Final RETURN */
+    if ( c != '\r' && c != '\n' ) {
+      ungetc ( c, loader_fd ) ;
+      break ;
+    }
 
   ssgBranch *br = current_options -> createBranch ( current_data ) ;
 
@@ -382,10 +388,7 @@ static int do_texture  ( char *s )
   if ( s == NULL || s[0] == '\0' )
     current_tfname = NULL ;
   else
-  {
-    current_tfname = new char [ strlen(s)+1 ] ;
-    strcpy ( current_tfname, s ) ;
-  }
+    current_tfname = ulStrDup ( s ) ;
 
   return PARSE_CONT ;
 }

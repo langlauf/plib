@@ -18,18 +18,12 @@
  
      For further information visit http://plib.sourceforge.net
  
-     $Id: ulList.cxx,v 1.5 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ulList.cxx,v 1.7 2002/11/30 00:41:50 sjbaker Exp $
 */
  
  
-#include <stdio.h>
-#include <stdlib.h>
-#if defined(WIN32)
-#include <windows.h>
-#include <mmsystem.h>
-#endif
- 
 #include "ul.h"
+ 
                                                                                 
 ulList::ulList ( int init )
 {
@@ -106,7 +100,10 @@ void ulList::removeEntity ( unsigned int n )
  
 void ulList::replaceEntity ( unsigned int n, void *new_entity )
 {
-  entity_list [ n ] = new_entity;
-}                                                                               
+  if ( n >= 0 )
+    entity_list [ n ] = new_entity;
+  else
+    addEntity ( new_entity ) ;
+}
 
 

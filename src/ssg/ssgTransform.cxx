@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTransform.cxx,v 1.12 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgTransform.cxx,v 1.13 2002/11/29 19:39:48 sjbaker Exp $
 */
 
 
@@ -198,6 +198,32 @@ void ssgTransform::setTransform ( sgMat4 xform )
   dirtyBSphere () ;
 }
 
+
+void ssgTransform::getNetTransform ( sgMat4 xform )
+{
+  if ( getNumParents () > 0 )
+  {
+    getParent ( 0 ) -> getNetTransform ( xform ) ;
+    sgPreMultMat4 ( xform, transform ) ;
+  }
+  else 
+    sgCopyMat4 ( xform, transform ) ;
+}
+
+
+void ssgTransform::getLastNetTransform ( sgMat4 xform )
+{
+  sgMat4 last_xform ;
+  getLastTransform ( last_xform ) ;
+
+  if ( getNumParents () > 0 )
+  {
+    getParent ( 0 ) -> getLastNetTransform ( xform ) ;
+    sgPreMultMat4 ( xform, last_xform ) ;
+  }
+  else 
+    sgCopyMat4 ( xform, last_xform ) ;
+}
 
 
 int ssgTransform::load ( FILE *fd )

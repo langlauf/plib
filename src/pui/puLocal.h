@@ -18,25 +18,13 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puLocal.h,v 1.10 2002/09/02 06:05:46 sjbaker Exp $
+     $Id: puLocal.h,v 1.13 2004/02/16 13:49:03 stromberg Exp $
 */
 
 
 #include "pu.h"
 
-/*
-  Include GLUT
- */
 
-#ifndef PU_NOT_USING_GLUT
-#  ifdef FREEGLUT_IS_PRESENT
-#    include <GL/freeglut.h>
-#  else
-#    ifdef __APPLE__
-#      include <GLUT/glut.h>
-#    else
-#      include <GL/glut.h>
-#    endif
-#  endif
-#endif
+void puSetPasteBuffer  ( const char *ch ) ;
+char *puGetPasteBuffer () ;
 

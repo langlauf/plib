@@ -18,39 +18,39 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: fntTXF.cxx,v 1.16 2002/09/02 06:05:43 sjbaker Exp $
+     $Id: fntTXF.cxx,v 1.19 2002/12/01 18:21:46 sjbaker Exp $
 */
 
 
 #include "fntLocal.h"
 
-#ifndef WIN32
-#  if defined(macintosh)
-#    include <agl.h>
-#  elif defined(__APPLE__)
-#    include <OpenGL/CGLCurrent.h>
-#  else
-#    include <GL/glx.h>
-#  endif
+#ifdef UL_MACINTOSH
+#  include <agl.h>
+#elif defined(UL_MAC_OSX)
+#  include <OpenGL/CGLCurrent.h>
+#elif defined(UL_WIN32)
+   /* Nothing */
+#else
+#  include <GL/glx.h>
 #endif
 
 static bool glIsValidContext ( void )
 {
 #if defined(CONSOLE)
   return true ;
-#elif defined(WIN32)
+#elif defined(UL_WIN32)
   return ( wglGetCurrentContext () != NULL ) ;
-#elif defined(macintosh)
+#elif defined(UL_MACINTOSH)
   return ( aglGetCurrentContext () != NULL ) ;
-#elif defined(__APPLE__)
+#elif defined(UL_MAC_OSX)
   return ( CGLGetCurrentContext () != NULL ) ;
 #else
   return ( glXGetCurrentContext () != NULL ) ;
 #endif
 }
 
-FILE *curr_image_fd ;
-int isSwapped = FALSE ;
+FILE *_fntCurrImageFd ;
+int _fntIsSwapped = FALSE ;
 
 static void tex_make_mip_maps ( GLubyte *image, int xsize,
                                      int ysize, int zsize )
@@ -187,7 +187,7 @@ int fntTexFont::loadTXF ( const char *fname, GLenum mag, GLenum min )
     return FNT_FALSE ;
   }
 
-  curr_image_fd = fd ;
+  _fntCurrImageFd = fd ;
 
   unsigned char magic [ 4 ] ;
 
@@ -206,10 +206,10 @@ int fntTexFont::loadTXF ( const char *fname, GLenum mag, GLenum min )
     return FNT_FALSE ;
   }
 
-  isSwapped  = FALSE ;
+  _fntIsSwapped  = FALSE ;
   int endianness  = _fnt_readInt () ;
 
-  isSwapped  = ( endianness != 0x12345678 ) ;
+  _fntIsSwapped  = ( endianness != 0x12345678 ) ;
 
   int format      = _fnt_readInt () ;
   int tex_width   = _fnt_readInt () ;

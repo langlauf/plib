@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgKeyFlier.h,v 1.6 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgKeyFlier.h,v 1.7 2004/02/28 22:29:11 sjbaker Exp $
 */
 
 
@@ -156,9 +156,9 @@ public:
     return & curr_pos ;
   }
 
-  void set_coord ( sgCoord *pos )
+  void set_coord ( sgCoord *pos, int noStop = 0 )
   {
-    stop_all () ;
+    if ( ! noStop ) stop_all () ;
     sgCopyCoord ( & last_pos, pos ) ;
     update   () ;
   }

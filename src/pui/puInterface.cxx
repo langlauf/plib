@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puInterface.cxx,v 1.17 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puInterface.cxx,v 1.19 2003/12/16 23:16:04 puggles Exp $
 */
 
 
@@ -42,7 +42,7 @@ void puPushLiveInterface ( puInterface *in )
 
 void  puPopLiveInterface ( puInterface *in )
 {
-  if ( currLiveInterface <= 0 )
+  if ( currLiveInterface < 0 )
   {
     ulSetError ( UL_WARNING, "PUI: Live puInterface stack is empty!\n" ) ;
     return;
@@ -106,6 +106,8 @@ puInterface *puGetBaseLiveInterface ( void )
 
 puInterface::~puInterface ()
 {
+  void puCleanUpJunk ( void ) ;
+
   puObject *bo = getLastChild () ;
 
   while ( bo != NULL )
@@ -114,6 +116,9 @@ puInterface::~puInterface ()
     bo = bo -> getPrevObject() ;
     puDeleteObject ( dlist )  ;
   }
+
+  // Since this is an object destructor, it should be okay to delete the child objects as well.
+  puCleanUpJunk () ;
 
   dlist = NULL ;
 

@@ -18,13 +18,113 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVtxTable.cxx,v 1.30 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgVtxTable.cxx,v 1.34 2004/02/02 01:35:15 sjbaker Exp $
 */
 
 
 #include "ssgLocal.h"
 
 #define HL_DELTA 0.04f
+
+int ssgSimpleList::compare(ssgSimpleList *other, int print_result)
+{
+	int result = TRUE;
+  if (total   !=other->total   )
+	{	result = FALSE;
+		if(print_result)
+			printf("ERROR: total   \n");
+	}
+	else
+		if(print_result)
+		  printf("Ok: total   \n");
+  if (size_of !=other->size_of )
+	{	result = FALSE;
+		if(print_result)
+		  printf("ERROR: size_of \n");
+	}
+	else
+		if(print_result)
+		  if(print_result)
+		    printf("Ok: size_of \n");
+	if (memcmp(list, other->list, total*size_of))
+	{	result = FALSE;
+		if(print_result)
+		  printf("ERROR: list \n");
+	}
+	else
+		if(print_result)
+		  printf("Ok: list \n");
+
+	return result;
+}
+
+
+int ssgVtxTable::compare(ssgVtxTable *other, int print_result)
+// returns TRUE, if equal.
+// prints stuff to stdout.
+{
+	int result = TRUE;
+	if(print_result)
+		printf("comparing vertices\n");
+  if(!vertices->compare(other->vertices, print_result))
+		result=FALSE;
+  if(print_result)
+		printf("comparing normals\n");
+  if(!normals->compare(other->normals, print_result))
+		result=FALSE;
+  if(print_result)
+		printf("comparing texcoords\n");
+  if(!texcoords->compare(other->texcoords, print_result))
+		result=FALSE;
+  if(print_result)
+		printf("comparing colours \n");
+  if(!colours ->compare(other->colours, print_result))
+		result=FALSE;
+  // could be in ssgLeaf:
+  if(getState () == other->getState ())
+	{
+		if(print_result)
+		  printf("Ok: state\n");
+	}
+  else
+	  if(print_result)
+		  printf("WARNING: state pointers differ. state contents is not investigated\n");
+  
+  if (getNumVertices  ()!=other->getNumVertices  ())
+	{	result = FALSE;
+		if(print_result)
+		  printf("ERROR: getNumVertices  ()\n");
+	}
+	else
+		if(print_result)
+		  printf("Ok: getNumVertices  ()\n");
+  if (getNumNormals   ()!=other->getNumNormals   ())
+	{	result = FALSE;
+		if(print_result)
+		  printf("ERROR: getNumNormals   ()\n");
+	}
+	else
+		if(print_result)
+		  printf("Ok: getNumNormals   ()\n");
+  if (getNumColours   ()!=other->getNumColours   ())
+	{	result = FALSE;
+		if(print_result)
+		  printf("ERROR: getNumColours   ()\n");
+	}
+	else
+		if(print_result)
+		  printf("Ok: getNumColours   ()\n");
+  if (getNumTexCoords ()!=other->getNumTexCoords ())
+	{	result = FALSE;
+		if(print_result)
+		  printf("ERROR: getNumTexCoords ()\n");
+	}
+	else
+		if(print_result)
+		  printf("Ok: getNumTexCoords ()\n");
+  // end could be in leaf
+	return result;
+}
 
 void ssgVtxTable::copy_from ( ssgVtxTable *src, int clone_flags )
 {
@@ -439,7 +539,11 @@ void ssgVtxTable::draw ()
   if ( ! preDraw () )
     return ;
 
-  if ( hasState () ) getState () -> apply () ;
+  if ( _ssgCurrentContext-> stateOverridden () )
+     _ssgCurrentContext -> overriddenState () -> apply () ;
+  else
+  if ( hasState () )
+    getState () -> apply () ;
 
   stats_num_leaves++ ;
   stats_num_vertices += getNumVertices() ;
@@ -521,6 +625,9 @@ void ssgVtxTable::draw_geometry ()
   glEnableClientState ( GL_VERTEX_ARRAY ) ;
   glVertexPointer ( 3, GL_FLOAT, 0, vertices->get(0) ) ;
 
+  _ssgCurrStatistics . bumpVertexCount ( num_vertices ) ;
+  _ssgCurrStatistics . bumpLeafCount   ( 1 ) ;
+
   glDrawArrays ( gltype, 0, num_vertices ) ;
 
   glPopClientAttrib () ;
@@ -536,7 +643,7 @@ void ssgVtxTable::hot_triangles ( sgVec3 s, sgMat4 m, int /* test_needed */ )
 
   for ( int i = 0 ; i < nt ; i++ )
   {
-    short   v1,  v2,  v3 ;
+    short v1,  v2,  v3 ;
     sgVec3 vv1, vv2, vv3 ;
     sgVec4 plane ;
 
@@ -617,7 +724,7 @@ void ssgVtxTable::los_triangles ( sgVec3 s, sgMat4 m, int /* test_needed */ )
 
   for ( int i = 0 ; i < nt ; i++ )
   {
-    short   v1,  v2,  v3 ;
+    short v1,  v2,  v3 ;
     sgVec3 vv1, vv2, vv3 ;
     sgVec4 plane ;
 
@@ -676,6 +783,36 @@ void ssgVtxTable::los_triangles ( sgVec3 s, sgMat4 m, int /* test_needed */ )
 }
 
 
+ssgVtxArray *ssgVtxTable::getAs_ssgVtxArray()
+{ 
+
+	ssgIndexArray    *indices = new ssgIndexArray ();
+	int i, no = 0;
+	switch ( getPrimitiveType () )
+  {
+    case GL_POLYGON :
+    case GL_TRIANGLE_FAN :
+    case GL_TRIANGLE_STRIP :
+      no = getNumTriangles() + 2 ;
+			break;
+
+    case GL_TRIANGLES :
+      no = getNumTriangles() * 3 ;
+	}
+	for(i=0;i<no;i++)
+		indices ->add(i);
+
+  
+	ssgState * state = getState();
+	char * name = getName();
+	ssgVtxArray * s = new ssgVtxArray ( getGLtype(),
+							vertices, normals, texcoords, colours, indices);
+	s->setName(name);
+	s->setState(state);
+	return s;
+}
+
+
 void ssgVtxTable::isect_triangles ( sgSphere *s, sgMat4 m, int test_needed )
 {
   int nt = getNumTriangles () ;
@@ -684,7 +821,7 @@ void ssgVtxTable::isect_triangles ( sgSphere *s, sgMat4 m, int test_needed )
 
   for ( int i = 0 ; i < nt ; i++ )
   {
-    short   v1,  v2,  v3 ;
+    short v1,  v2,  v3 ;
     sgVec3 vv1, vv2, vv3 ;
     sgVec4 plane ;
 

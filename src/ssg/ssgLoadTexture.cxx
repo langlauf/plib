@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadTexture.cxx,v 1.16 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLoadTexture.cxx,v 1.18 2003/06/27 08:15:15 sjbaker Exp $
 */
 
 
@@ -97,6 +97,15 @@ bool ssgMakeMipMaps ( GLubyte *image, int xsize, int ysize, int zsize )
 	  int t3 = texels [ l1 ] [ (y1   * w1 + x1_1) * zsize + c ] ;
 	  int t4 = texels [ l1 ] [ (y1_1 * w1 + x1_1) * zsize + c ] ;
 
+if ( c == 3 ) /* Alpha */
+{
+  int a = t1 ;
+  if ( t2 > a ) a = t2 ;
+  if ( t3 > a ) a = t3 ;
+  if ( t4 > a ) a = t4 ;
+  texels [ l2 ] [ (y2 * w2 + x2) * zsize + c ] = a ;
+}
+else
           texels [ l2 ] [ (y2 * w2 + x2) * zsize + c ] =
                                            ( t1 + t2 + t3 + t4 ) / 4 ;
         }
@@ -244,7 +253,7 @@ bool ssgConvertTexture( char * fname_output, const char * fname_input )
 	}
 
 	// ****** found original file. convert it. ******
-#ifdef WIN32
+#ifdef UL_WIN32
   char command [ 1024 ] ;
 	sprintf(command, "imconvert -verbose %s sgi:%s", fname_input, fname_output);
 	unsigned int ui = WinExec(command, SW_HIDE );	

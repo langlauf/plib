@@ -18,13 +18,13 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puDial.cxx,v 1.24 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puDial.cxx,v 1.26 2002/09/21 17:47:09 ude Exp $
 */
 
 
 #include "puLocal.h"
 
-UL_RTTI_DEF1(puDial,puRange)
+UL_RTTI_DEF2(puDial,puRange,puObject)
 
 
 void puDial::draw ( int dx, int dy )
@@ -86,8 +86,8 @@ void puDial::draw ( int dx, int dy )
     getValue ( &val ) ;
     val = ( val - minimum_value) / (maximum_value - minimum_value) ;
 
-    if ( val < 0.0 ) val = 0.0 ;
-    if ( val > 1.0 ) val = 1.0 ;
+    if ( val < 0.0f ) val = 0.0f ;
+    if ( val > 1.0f ) val = 1.0f ;
 
     val = ( 2.0f * val - 1.0f ) * SG_PI ;
 
@@ -133,9 +133,9 @@ void puDial::doHit ( int button, int updown, int x, int y )
     // Move to within the (0,1) interval
 
     if ( angle < -1.0f )
-      angle += 2.0 ;
+      angle += 2.0f ;
     else if (angle > 1.0f )
-      angle -= 2.0 ;
+      angle -= 2.0f ;
 
     angle = ( angle + 1.0f ) / 2.0f ;
 
@@ -143,10 +143,10 @@ void puDial::doHit ( int button, int updown, int x, int y )
     // of the widget)
     if ( !wrap )
     {
-      if ( ( angle > 0.75 ) && ( getFloatValue () < 0.25 ) )
-        angle = 0.0 ;
-      else if ( ( angle < 0.25 ) && ( getFloatValue () > 0.75 ) )
-        angle = 1.0 ;
+      if ( ( angle > 0.75f ) && ( getFloatValue () < 0.25f ) )
+        angle = 0.0f ;
+      else if ( ( angle < 0.25f ) && ( getFloatValue () > 0.75f ) )
+        angle = 1.0f ;
     }
     
     angle = angle * (maximum_value - minimum_value) + minimum_value ;

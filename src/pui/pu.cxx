@@ -18,114 +18,102 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: pu.cxx,v 1.57 2002/09/02 06:05:44 sjbaker Exp $
+     $Id: pu.cxx,v 1.67 2004/02/16 22:09:34 stromberg Exp $
 */
 
 #include "puLocal.h"
 
-#ifndef WIN32
-#  if defined(macintosh)
-#    include <agl.h>
-#  elif defined(__APPLE__)
-#    include <OpenGL/CGLCurrent.h>
-#  else
-#    include <GL/glx.h>
-#  endif
+#if defined(UL_AGL)
+#  include <agl.h>
+#elif defined(UL_CGL)
+#  include <OpenGL/CGLCurrent.h>
+#elif defined(UL_GLX)
+#  include <GL/glx.h>
 #endif
+
 
 int puRefresh = TRUE ;
 
-static int puWindowWidth  = 400 ;
-static int puWindowHeight = 400 ;
 
-static int openGLSize = 0 ;
+static puGetWindowCallback     cbGetWindow;
+static puSetWindowCallback     cbSetWindow;
+static puGetWindowSizeCallback cbGetWindowSize;
+static puSetWindowSizeCallback cbSetWindowSize;
 
-#ifdef PU_NOT_USING_GLUT
 
-int puGetWindow       ( void ) { return 0              ; }
-void puSetWindow ( int w ) {}
-int puGetWindowHeight ( void ) { return puWindowHeight ; }
-int puGetWindowWidth  ( void ) { return puWindowWidth  ; }
+void puSetWindowFuncs ( puGetWindowCallback   getWindow,
+			puSetWindowCallback   setWindow,
+			puGetWindowSizeCallback getWindowSize,
+			puSetWindowSizeCallback setWindowSize )
+{
+    cbGetWindow     = getWindow;
+    cbSetWindow     = setWindow;
+    cbGetWindowSize = getWindowSize;
+    cbSetWindowSize = setWindowSize;
+}
+
+
+int puGetWindow ()
+{
+    if ( !cbGetWindow )
+	ulSetError ( UL_FATAL, "puGetWindow: Callbacks not initialized." ) ;
+    return ( *cbGetWindow ) () ;
+}
+
+void puSetWindow ( int window )
+{
+    if ( !cbSetWindow )
+	ulSetError ( UL_WARNING, "puSetWindow: Cannot set window (null callback)." ) ;
+    else
+	( *cbSetWindow ) ( window ) ;
+}
+
+void puGetWindowSize ( int *width, int *height )
+{
+    if ( !cbGetWindowSize )
+	ulSetError ( UL_FATAL, "puGetWindowSize: Callbacks not initialized." ) ;
+    ( *cbGetWindowSize ) ( width, height ) ;
+}
 
 void puSetWindowSize ( int width, int height )
 {
-  puWindowWidth  = width  ;
-  puWindowHeight = height ;
+    if ( !cbSetWindowSize )
+	ulSetError ( UL_WARNING, "puSetWindowSize: Cannot change size (null callback)." ) ;
+    else
+	( *cbSetWindowSize ) ( width, height ) ;
 }
 
-#else
-
-
-void puSetResizeMode ( int mode ) {
-  openGLSize = mode ;
-}
-
-
-int puGetWindow ( void )
+int puGetWindowWidth ()
 {
-  return glutGetWindow () ;
+    int w, h ;
+    puGetWindowSize ( &w, &h ) ;
+    return w ;
 }
 
-
-void puSetWindow ( int w ) {  glutSetWindow ( w ) ;  }
-
-int puGetWindowHeight ( void )
+int puGetWindowHeight ()
 {
-  if ( ! openGLSize )
-        return glutGet ( (GLenum) GLUT_WINDOW_HEIGHT ) ;
-  else
-        return puWindowHeight ;
+    int w, h ;
+    puGetWindowSize ( &w, &h ) ;
+    return h ;
 }
 
-
-int puGetWindowWidth ( void )
-{
-  if ( ! openGLSize )
-        return glutGet ( (GLenum) GLUT_WINDOW_WIDTH ) ;
-  else
-        return puWindowWidth ;
-}
-
-
-void puSetWindowSize ( int width, int height )
-{
-  if ( ! openGLSize )
-    ulSetError ( UL_WARNING, "PUI: puSetWindowSize shouldn't be used with GLUT." ) ;
-  else
-  {
-    glutReshapeWindow ( width, height ) ;
-    puWindowWidth  = width  ;
-    puWindowHeight = height ;
-  }
-}
-
-#endif
-
-puColour _puDefaultColourTable[] =
-{
-  { 0.5f, 0.5f, 0.5f, 1.0f }, /* PUCOL_FOREGROUND */
-  { 0.3f, 0.3f, 0.3f, 1.0f }, /* PUCOL_BACKGROUND */
-  { 0.7f, 0.7f, 0.7f, 1.0f }, /* PUCOL_HIGHLIGHT  */
-  { 0.0f, 0.0f, 0.0f, 1.0f }, /* PUCOL_LABEL      */
-  { 1.0f, 1.0f, 1.0f, 1.0f }, /* PUCOL_LEGEND     */
-  { 0.0f, 0.0f, 0.0f, 1.0f }  /* PUCOL_MISC       */
-} ;
 
 
 static bool glIsValidContext ( void )
 {
-#if defined(CONSOLE)
-  return true ;
-#elif defined(WIN32)
+#if defined(UL_WGL)
   return ( wglGetCurrentContext () != NULL ) ;
-#elif defined(macintosh)
+#elif defined(UL_AGL)
   return ( aglGetCurrentContext () != NULL ) ;
-#elif defined(__APPLE__)
+#elif defined(UL_CGL)
   return ( CGLGetCurrentContext () != NULL ) ;
-#else
+#elif defined(UL_GLX)
   return ( glXGetCurrentContext () != NULL ) ;
+#else
+  return true ;
 #endif
 }
+
 
 static int _puCursor_enable = FALSE ;
 static int _puCursor_x      = 0 ;
@@ -193,45 +181,31 @@ void puDeleteObject ( puObject *ob )
 
   puGroup *parent = ob->getParent () ;
 
-  if ( !ob->IsItSubWidget() )
+  /* Add object to linked list to be deleted */
+  if ( objects_to_delete == NULL )
+    objects_to_delete = ob ;
+  else
   {
-      /* Add object to linked list to be deleted */
-      if ( objects_to_delete == NULL )
-        objects_to_delete = ob ;
-      else
-      {
-        /* Ensure that objects are deleted in the order of puDeleteObject calls */
+    /* Ensure that objects are deleted in the order of puDeleteObject calls */
 
-        puObject *last ;
+    puObject *last ;
 
-        for ( last = objects_to_delete ;
-              last -> getNextObject() != NULL ;
-              last = last -> getNextObject() )
-          /* Find last object. */ ;
+    for ( last = objects_to_delete ;
+          last -> getNextObject() != NULL ;
+          last = last -> getNextObject() )
+      /* Find last object. */ ;
 
-        last -> setNextObject ( ob ) ;
-      }
-      /* Remove from parent interface */
- 
-     if ( parent != ob && parent != NULL )
-        parent -> remove ( ob ) ;  /* Sets object's next and previous pointers to null as well */
-
-      /* If it is a group, then delete all child objects as well */
-     if ( ob->getType () & PUCLASS_GROUP ) 
-     {
-       puObject *child = ((puGroup *)ob)->getFirstChild () ;
-       while ( child )
-        {
-            puObject *next = child->getNextObject () ;
-            puDeleteObject ( child ) ;
-            child = next ;
-        }
-     }
+    last -> setNextObject ( ob ) ;
   }
+
+  /* Remove from parent interface */
+ 
+  if ( parent != ob && parent != NULL )
+     parent -> remove ( ob ) ;  /* Sets object's next and previous pointers to null as well */
 }
 
 
-static void puCleanUpJunk ( void )
+void puCleanUpJunk ( void )
 {
   puObject * local_objects_to_delete = objects_to_delete ;
   objects_to_delete = NULL ;
@@ -239,8 +213,17 @@ static void puCleanUpJunk ( void )
   while ( local_objects_to_delete != NULL )
   {
     puObject *next_ob = local_objects_to_delete -> getNextObject() ;
-        delete local_objects_to_delete ;
+    delete local_objects_to_delete ;
     local_objects_to_delete = next_ob ;
+
+    /* If we've reached the end of the list, start over (in case we've deleted a group and
+     * it has put new widgets on the delete list)
+     */
+    if ( local_objects_to_delete == NULL )
+    {
+      local_objects_to_delete = objects_to_delete ;
+      objects_to_delete = NULL ;
+    }
   }
 }
 
@@ -248,10 +231,10 @@ static void puCleanUpJunk ( void )
 static puObject *active_widget ;   /* Widget which is currently receiving user input */
 static char *input_paste_buffer ;  /* Cut/Copy/Paste buffer for input widgets */
 
-void puInit ( void )
-{
-  static int firsttime = TRUE ;
+static int firsttime = TRUE ;
 
+void puRealInit ( void )
+{
   if ( firsttime )
   {
     if ( ! glIsValidContext () )
@@ -266,31 +249,25 @@ void puInit ( void )
     input_paste_buffer = NULL ;
 
     firsttime = FALSE ;
-#ifdef PU_NOT_USING_GLUT
-
-    // No GLUT fonts, try some corresponding textured fonts
-
-    if ( ( PUFONT_TXF_TYPEWRITER.load ( "Courier.txf"     ) == FALSE ) |
-         ( PUFONT_TXF_TIMES.load      ( "Times-Roman.txf" ) == FALSE ) |
-         ( PUFONT_TXF_HELVETICA.load  ( "Helvetica.txf"   ) == FALSE ) )
-    {
-      // Exit
-      ulSetError ( UL_FATAL, "PUI: Could not load default fonts." ) ;
-    }
-
-#endif
   }
+}
+
+void puExit ( void )
+{
+  if ( firsttime )
+    ulSetError ( UL_FATAL, "puExit called without a previous call to puInit." ) ;
+
+  delete puGetBaseLiveInterface () ;
+  firsttime = TRUE ;
 }
 
 static void puSetOpenGLState ( void )
 {
-  int w = puGetWindowWidth  () ;
-  int h = puGetWindowHeight () ;
+  int w, h ;
 
-  if ( ! openGLSize )
-    glPushAttrib   ( GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LIGHTING_BIT ) ;
-  else
-    glPushAttrib   ( GL_ENABLE_BIT | GL_VIEWPORT_BIT | GL_TRANSFORM_BIT | GL_LIGHTING_BIT ) ;
+  puGetWindowSize ( &w, &h ) ;
+
+  glPushAttrib ( GL_ENABLE_BIT | GL_VIEWPORT_BIT  | GL_TRANSFORM_BIT | GL_LIGHTING_BIT ) ;
 
   glDisable      ( GL_LIGHTING   ) ;
   glDisable      ( GL_FOG        ) ;
@@ -298,8 +275,7 @@ static void puSetOpenGLState ( void )
   glDisable      ( GL_DEPTH_TEST ) ;
   glDisable      ( GL_CULL_FACE  ) ;
 
-  if ( ! openGLSize )
-    glViewport   ( 0, 0, w, h ) ;
+  glViewport ( 0, 0, w, h ) ;
 
   glMatrixMode   ( GL_PROJECTION ) ;
   glPushMatrix   () ;
@@ -343,6 +319,12 @@ void  puDisplay ( int window_number )  /* Deprecated */
 {
   if ( window_number == puGetWindow () )
     puDisplay () ;
+}
+
+
+int puKeyboard ( int key, int updown, int, int )
+{
+  return puKeyboard ( key, updown ) ;
 }
 
 
@@ -474,11 +456,10 @@ void puSetActiveWidget ( puObject *w, int x, int y )
 
 puObject *puActiveWidget ( void ) {   return active_widget ; }
 
-void puSetPasteBuffer ( char *ch )
+void puSetPasteBuffer ( const char *ch )
 {
   delete [] input_paste_buffer ;
-  input_paste_buffer = new char [ strlen(ch) + 1 ] ;
-  strcpy ( input_paste_buffer, ch ) ;
+  input_paste_buffer = ulStrDup ( ch ) ;
 }
 
 char *puGetPasteBuffer ( void )  {  return input_paste_buffer ;  }
@@ -487,3 +468,10 @@ int  puNeedRefresh ( void )  {  return puRefresh ;  }
 void puPostRefresh ( void )  {  puRefresh = TRUE ;  }
 
 
+void puSetResizeMode ( int mode )
+{
+    static int last = 0;
+    if ( last == 0 && mode != 0 )
+	ulSetError ( UL_WARNING, "puSetResizeMode is deprecated!" ) ;
+    last = mode ;
+}

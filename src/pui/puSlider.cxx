@@ -18,13 +18,13 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puSlider.cxx,v 1.25 2002/09/02 06:05:46 sjbaker Exp $
+     $Id: puSlider.cxx,v 1.26 2002/09/21 15:59:56 ude Exp $
 */
 
 
 #include "puLocal.h"
 
-UL_RTTI_DEF1(puSlider,puRange)
+UL_RTTI_DEF2(puSlider,puRange,puObject)
 
 
 void puSlider::draw_slider_box ( int dx, int dy, const puBox &box, float val, const char *box_label )

@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puComboBox.cxx,v 1.13 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puComboBox.cxx,v 1.15 2004/02/23 04:16:52 sjbaker Exp $
 */
 
 
@@ -192,7 +192,7 @@ int puComboBox::checkHit ( int button, int updown, int x, int y )
 
 int puComboBox::checkKey ( int key, int updown )
 {
-  if ( ! input -> isAcceptingInput () || ! isVisible () || ! isActive () || ( window != puGetWindow () ) )
+  if ( updown == PU_UP || ! input -> isAcceptingInput () || ! isVisible () || ! isActive () || ( window != puGetWindow () ) )
     return FALSE ;
 
   switch ( key )
@@ -238,7 +238,7 @@ puComboBox::puComboBox ( int minx, int miny, int maxx, int maxy,
   type |= PUCLASS_COMBOBOX ;
 
   char *stringval ;
-  int arrow_width = (int) ( (maxy-miny) / 1.5 ) ;
+  int arrow_width = (int) ( (maxy-miny) / 1.5f ) ;
 
   input = new puInput ( 0, 0, maxx-minx - arrow_width, maxy-miny ) ;
   input -> setUserData ( this ) ;

@@ -19,7 +19,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTweenController.cxx,v 1.5 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgTweenController.cxx,v 1.6 2002/11/04 05:11:22 sjbaker Exp $
 */
 
 
@@ -58,11 +58,15 @@ ssgTweenController::~ssgTweenController (void)
 void ssgTweenController::cull ( sgFrustum *f, sgMat4 m, int test_needed )
 {
   float tmp = _ssgGetCurrentTweenState () ;
+  int   mm  = _ssgGetCurrentTweenMode  () ;
+
   _ssgSetCurrentTweenState ( curr_bank ) ;
+  _ssgSetCurrentTweenMode  ( mode ) ;
  
   ssgBranch::cull ( f, m, test_needed ) ;
 
   _ssgSetCurrentTweenState ( tmp ) ;
+  _ssgSetCurrentTweenMode  ( mm  ) ;
 }
 
 

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgBase.cxx,v 1.20 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: ssgBase.cxx,v 1.21 2002/09/15 01:29:11 ude Exp $
 */
 
 
@@ -95,10 +95,7 @@ void ssgBase::setName ( const char *nm )
   if ( nm == NULL )
     name = NULL ;
   else
-  {
-    name = new char [ strlen ( nm ) + 1 ] ;
-    strcpy ( name, nm ) ;
-  }
+    name = ulStrDup ( nm ) ;
 }
                                                                                 
 void ssgBase::zeroSpareRecursive (){ zeroSpare () ; }

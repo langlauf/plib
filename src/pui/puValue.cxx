@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puValue.cxx,v 1.22 2002/09/02 06:05:46 sjbaker Exp $
+     $Id: puValue.cxx,v 1.26 2003/09/09 19:45:13 stromberg Exp $
 */
 
 
@@ -27,7 +27,7 @@
 UL_RTTI_DEF(puValue)
 
 
-inline void skip_whitespace ( const char **str )
+static inline void skip_whitespace ( const char **str )
 {
   while ( isspace ( **str ) != 0 )
     (*str)++ ;
@@ -84,6 +84,8 @@ void puValue::re_eval ( void )
     if ( *res_integer != strtoint ( string ) )
       sprintf ( string, "%d", *res_integer ) ;
 
+    boolean = ( *res_integer != 0 ) ;
+
     puPostRefresh () ;
   }
   else if ( res_floater != NULL )
@@ -97,12 +99,29 @@ void puValue::re_eval ( void )
     if ( *res_floater != strtod ( string, NULL ) )
       sprintf ( string, "%g", *res_floater ) ;
 
+    boolean = ( *res_floater != 0.0f ) ;
+
     puPostRefresh () ;
   }
   else if ( res_string  != NULL )
   {
     integer = strtoint ( res_string ) ;
     floater = (float) strtod ( res_string, NULL ) ;
+    boolean = ( strcmp ( res_string, "0" ) != 0 ) ;
+    puPostRefresh () ;
+  }
+  else if ( res_bool != NULL )
+  {
+    integer = *res_bool ? 1 : 0 ;
+    floater = *res_bool ? 1.0f : 0.0f ;
+
+    /*
+      Needed for puInput / puLargeInput:
+      Do not modify the string value unless necessary
+    */
+    if ( *res_bool != ( strcmp ( string, "0" ) != 0 ) )
+      sprintf ( string, "%d", *res_bool ? 1 : 0 ) ;
+
     puPostRefresh () ;
   }
 }
@@ -152,6 +171,7 @@ void puValue::setValue ( const char *s )
   {
     *getIntegerp () = strtoint ( s ) ;
     *getFloaterp () = (float) strtod ( s, NULL ) ;
+    *getBooleanp () = ( strcmp ( s, "0" ) != 0 ) ;
   }
 
   puPostRefresh () ;
@@ -162,6 +182,8 @@ const char *puValue::getTypeString ( void ) const
 {
   int i = getType () ;
 
+  if ( i & PUCLASS_SCROLLBAR    ) return "puScrollBar" ;
+  if ( i & PUCLASS_SPINBOX      ) return "puSpinBox" ;
   if ( i & PUCLASS_SELECTBOX    ) return "puSelectBox" ;
   if ( i & PUCLASS_COMBOBOX     ) return "puComboBox" ;
   if ( i & PUCLASS_LARGEINPUT   ) return "puLargeInput" ;

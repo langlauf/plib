@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoad.cxx,v 1.24 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLoad.cxx,v 1.26 2004/01/24 18:25:45 wolfram_kuss Exp $
 */
 
 
@@ -137,15 +137,13 @@ ssgSelector* ssgLoaderOptions::createSelector ( ssgSelector* s ) const
 void ssgLoaderOptions::setModelDir ( const char *s )
 {
   delete [] model_dir ;
-  model_dir = new char [ strlen ( s ) + 1 ] ;
-  strcpy ( model_dir, s ) ;
+  model_dir = ulStrDup ( s ) ;
 }
 
 void ssgLoaderOptions::setTextureDir ( const char *s )
 {
   delete [] texture_dir ;
-  texture_dir = new char [ strlen ( s ) + 1 ] ;
-  strcpy ( texture_dir, s ) ;
+  texture_dir = ulStrDup ( s ) ;
 }
 
 
@@ -215,6 +213,9 @@ ssgEntity *ssgLoad ( const char *fname, const ssgLoaderOptions* options )
     ulSetError ( UL_WARNING, "ssgLoad: Cannot determine file type for '%s'", fname );
     return NULL ;
   }
+
+extern int g_noLoDs;
+	g_noLoDs = 1;
 
   _ssgModelFormat *f = formats ;
   for ( int i=0; i<num_formats; i++, f++ )

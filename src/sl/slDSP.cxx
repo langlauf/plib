@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slDSP.cxx,v 1.18 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: slDSP.cxx,v 1.22 2003/07/04 14:33:03 puggles Exp $
 */
 
 
@@ -155,7 +155,7 @@ void slDSP::stop ()
 
 #endif
 
-#ifdef WIN32
+#ifdef UL_WIN32
 
 /* ------------------------------------------------------------ */
 /* win32                                                        */
@@ -357,7 +357,7 @@ float slDSP::secondsRemaining ()
    if ( error )
       return 0.0f ;
    
-   return 0.0f ;
+   return 10.0f ;
 }
 
 
@@ -413,7 +413,7 @@ void slDSP::stop ()
 /* NetBSD/OpenBSD 2.3 this should be very close to SUN Audio    */
 /* ------------------------------------------------------------ */
 
-#elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(SOLARIS)
+#elif (defined(UL_BSD) && !defined(__FreeBSD__)) || defined(UL_SOLARIS)
 void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
 
@@ -440,13 +440,13 @@ void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
       return;
     }
       
-#ifdef SOLARIS
+#ifdef UL_SOLARIS
 	AUDIO_INITINFO(&ainfo);
 #endif
 
     ainfo.play.sample_rate  = _rate;
     ainfo.play.precision    = _bps;    
-#ifdef SOLARIS
+#ifdef UL_SOLARIS
 	if ( ainfo.play.port == AUDIO_SPEAKER )
 		ainfo.play.channels = 1;
 	else
@@ -508,7 +508,7 @@ int slDSP::getDriverBufferSize ()
   
   // HW buffer is 0xffff on my box
 
-#ifdef SOLARIS
+#ifdef UL_SOLARIS
   return ainfo.play.buffer_size;
 #else
   return  1024 * 8;
@@ -528,7 +528,7 @@ void slDSP::getBufferInfo ()
     return ;
   }
     
-#ifndef SOLARIS
+#ifndef UL_SOLARIS
   if( ::ioctl( fd, AUDIO_GETOOFFS, &audio_offset ) < 0)
   {
     perror ( "slDSP: getBufferInfo" ) ;
@@ -557,7 +557,7 @@ void slDSP::write ( void *buffer, size_t length )
 
 float slDSP::secondsRemaining ()
 {
-    return 0.0f ;
+    return 10.0f ;
 }
 
 
@@ -594,10 +594,10 @@ float slDSP::secondsUsed ()
   if ( counter == 0 )
       return 0.0;
 
-#ifndef SOLARIS
-  samples_used = ( counter * init_bytes ) - audio_offset.samples;
-#else
+#ifdef UL_SOLARIS
   samples_used = ( counter * init_bytes ) - ainfo.play.samples;
+#else
+  samples_used = ( counter * init_bytes ) - audio_offset.samples;
 #endif
   
   if (  stereo   ) samples_used /= 2 ;
@@ -609,10 +609,10 @@ float slDSP::secondsUsed ()
 
 void slDSP::sync ()
 { 
-#ifndef SOLARIS
-   if ( !error) ::ioctl ( fd, AUDIO_FLUSH , 0 ) ; 
-#else
+#ifdef UL_SOLARIS
    if ( !error) ::ioctl ( fd, I_FLUSH, FLUSHRW ) ;
+#else
+   if ( !error) ::ioctl ( fd, AUDIO_FLUSH , 0 ) ; 
 #endif
 }
 
@@ -625,7 +625,7 @@ void slDSP::stop ()
 /* SGI IRIX audio                                               */
 /* ------------------------------------------------------------ */
 
-#elif defined(sgi)
+#elif defined(UL_IRIX)
 
 void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
@@ -636,13 +636,13 @@ void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
     return;
   }
 
-  init_bytes = 1024 * 16;
+  init_bytes = 1024 * 4 ;
 
   config  = ALnewconfig();
  
   ALsetchannels (  config, _stereo ? AL_STEREO : AL_MONO );
   ALsetwidth    (  config, _bps == 8 ? AL_SAMPLE_8 : AL_SAMPLE_16 );
-  ALsetqueuesize(  config, init_bytes );
+  ALsetqueuesize(  config, init_bytes * 2 );
 
   port = ALopenport( device, "w", config );
   
@@ -690,7 +690,7 @@ int slDSP::getDriverBufferSize ()
   if ( error )
     return 0 ;
 
-  return  ALgetqueuesize( config );
+  return  ALgetqueuesize( config ) / 2 ;
 }
 
 void slDSP::getBufferInfo ()
@@ -700,8 +700,6 @@ void slDSP::getBufferInfo ()
 }
 
 
-#define swap_half(a) ( ((a & 0xff) << 8) | ((unsigned short)(a) >> 8) )
-
 void slDSP::write ( void *buffer, size_t length )
 {
   char *buf = (char *)buffer;
@@ -709,15 +707,10 @@ void slDSP::write ( void *buffer, size_t length )
   if ( error || (int)length <= 0 )
     return ;
 
-  // Steve: is this a problem ??
-
-  for ( int i = 0; i < (int)length; i++ ) {
+  for ( int i = 0; i < (int)length; i++ )
     buf[i] = buf[i] >> 1;
-    if (bps == 16)
-       buf[i] = swap_half( buf[i] );
-  }
 
-  ALwritesamps(port, (void *)buf, length/2 );
+  ALwritesamps(port, (void *)buf, length );
 }
 
 
@@ -728,10 +721,7 @@ float slDSP::secondsRemaining ()
   if ( error )
     return 0.0f ;
 
-  samples_remain = ALgetfillable(port);
-
-  if (  stereo   ) samples_remain /= 2 ;
-  if ( bps == 16 ) samples_remain /= 2 ;
+  samples_remain = ALgetfillable(port) ;
 
   return   (float) samples_remain / (float) rate ;
 }
@@ -744,10 +734,7 @@ float slDSP::secondsUsed ()
   if ( error )
     return 0.0f ;
 
-  samples_used = ALgetfilled(port);
-
-  if (  stereo   ) samples_used /= 2 ;
-  if ( bps == 16 ) samples_used /= 2 ;
+  samples_used = ALgetfilled(port) * 2 ;
 
   return   (float) samples_used / (float) rate ;
 }
@@ -773,7 +760,7 @@ void slDSP::stop ()
 #endif
 
 
-#if defined(macintosh) || defined(__APPLE__)
+#if defined(UL_MACINTOSH) || defined(UL_MAC_OSX)
 	
 
 // Print out debugging info when secondsUsed is called,
@@ -1065,7 +1052,7 @@ float slDSP::secondsRemaining ()
     return 0.0f;
   
   // sl doesn't use this, so I didn't write it!
-  return secLeft;
+  return 10.0f;
 }
 
 float slDSP::secondsUsed ()

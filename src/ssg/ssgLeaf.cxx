@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLeaf.cxx,v 1.20 2002/09/02 06:05:48 sjbaker Exp $
+     $Id: ssgLeaf.cxx,v 1.24 2003/11/20 13:58:35 stromberg Exp $
 */
 
 
@@ -55,6 +55,9 @@ void ssgLeaf::copy_from ( ssgLeaf *src, int clone_flags )
    //~~ T.G. increment ref counter 
    if (state != NULL)  
        state->ref(); 
+
+   setCallback( SSG_CALLBACK_PREDRAW,  src->getCallback( SSG_CALLBACK_PREDRAW  ) );
+   setCallback( SSG_CALLBACK_POSTDRAW, src->getCallback( SSG_CALLBACK_POSTDRAW ) );
 }
 
 
@@ -156,6 +159,15 @@ void ssgLeaf::isect ( sgSphere *s, sgMat4 m, int test_needed )
 }
 
 
+void ssgLeaf::getStats ( int *num_branches, int *num_leaves, int *num_tris, int *num_verts )
+{
+  *num_branches = 0 ;
+  *num_leaves   = 1 ;   /* this! */
+  *num_tris     = getNumTriangles () ;
+  *num_verts    = getNumVertices  () ;
+}
+
+
 void ssgLeaf::print ( FILE *fd, char *indent, int how_much )
 {
   if ( how_much == 0 ) 
@@ -201,7 +213,7 @@ int ssgLeaf::load ( FILE *fd )
   if ( ! _ssgLoadObject ( fd, (ssgBase **) &st, ssgTypeState () ) )
      return FALSE ;
 
-  if ( st -> isAKindOf ( ssgTypeSimpleState () ) )
+  if ( st != NULL && st -> isAKindOf ( ssgTypeSimpleState () ) )
   {
     ssgSimpleState *ss = (ssgSimpleState *) st ;
     char *tfname = ss -> getTextureFilename () ;

@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puFilePicker.cxx,v 1.29 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puFilePicker.cxx,v 1.32 2002/11/30 00:41:49 sjbaker Exp $
 */
 
 /****
@@ -45,7 +45,7 @@
 UL_RTTI_DEF1(puFilePicker,puDialogBox)
 
 
-#if defined(WIN32) && !defined(__CYGWIN__)
+#ifdef UL_MSVC
 #define DOTDOTSLASH "..\\"
 #define SLASH       "\\"
 #else
@@ -81,7 +81,7 @@ static void puFilePickerHandleArrow ( puObject *arrow )
   int num_items = list_box->getNumItems () - 1 ;
   if ( num_items > 0 )
   {
-    int idx = int ( num_items * val + 0.5 ) + inc ;
+    int idx = int ( num_items * val + 0.5f ) + inc ;
     if ( idx > num_items ) idx = num_items ;
     if ( idx < 0 ) idx = 0 ;
 
@@ -381,7 +381,7 @@ static int puFilePickerStringCompare ( const char *s1, const char *s2,
       listing.
     */
 
-#if defined(WIN32)
+#ifdef UL_WIN32
     if ( c1 >= 'a' && c1 <= 'z' )
       c1 = c1 - ('a'-'A') ;
     
@@ -526,10 +526,7 @@ void puFilePicker::find_files ( void )
       strcat ( files [ ifile ], "]" ) ;
     }
     else
-    {
-      files[ ifile ] = new char[ strlen(dp->d_name)+1 ] ;
-      strcpy ( files [ ifile ], dp->d_name ) ;
-    }
+      files[ ifile ] = ulStrDup ( dp->d_name ) ;
   }
 
   files [ ifile ] = NULL ;

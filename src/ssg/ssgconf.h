@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgconf.h,v 1.10 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgconf.h,v 1.12 2003/12/12 18:23:55 wolfram_kuss Exp $
 */
 
 #ifndef _INCLUDED_SSGCONF_H_
@@ -50,4 +50,6 @@
 #define SSG_LOAD_BMP_SUPPORTED
 #define SSG_LOAD_MDL_SUPPORTED
 #define SSG_LOAD_MDL_BGL_TEXTURE_SUPPORTED
+#define SSG_LOAD_XPL_SUPPORTED
+#define SSG_LOAD_PCX_SUPPORTED
 #endif

@@ -18,32 +18,32 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssg.cxx,v 1.57 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: ssg.cxx,v 1.65 2003/12/12 17:23:51 wolfram_kuss Exp $
 */
 
 
 #define _UL_GENERATE_CODE_
 #include "ssgLocal.h"
 
-#ifndef WIN32
-#  if defined(macintosh)
-#    include <agl.h>
-#  elif defined(__APPLE__)
-#    include <OpenGL/CGLCurrent.h>
-#  else
-#    include <GL/glx.h>
-#  endif
+#if defined(UL_MACINTOSH)
+#  include <agl.h>
+#elif defined(UL_MAC_OSX)
+#  include <OpenGL/CGLCurrent.h>
+#elif defined(UL_WIN32)
+   /* Nothing */
+#else
+#  include <GL/glx.h>
 #endif
 
 static bool glIsValidContext ( void )
 {
 #if defined(CONSOLE)
   return true ;
-#elif defined(WIN32)
+#elif defined(UL_WIN32)
   return ( wglGetCurrentContext () != NULL ) ;
-#elif defined(macintosh)
+#elif defined(UL_MACINTOSH)
   return ( aglGetCurrentContext () != NULL ) ;
-#elif defined(__APPLE__)
+#elif defined(UL_MAC_OSX)
   return ( CGLGetCurrentContext () != NULL ) ;
 #else
   return ( glXGetCurrentContext () != NULL ) ;
@@ -129,20 +129,23 @@ void ssgInit ()
   ssgAddModelFormat ( ".3ds",   ssgLoad3ds  , ssgSave3ds ) ;
   ssgAddModelFormat ( ".ac" ,   ssgLoadAC3D , ssgSaveAC  ) ;
   ssgAddModelFormat ( ".ase",   ssgLoadASE  , ssgSaveASE ) ;
+  ssgAddModelFormat ( ".dof",   ssgLoadDOF  , NULL       ) ;
   ssgAddModelFormat ( ".dxf",   ssgLoadDXF  , ssgSaveDXF ) ;
   ssgAddModelFormat ( ".obj",   ssgLoadOBJ  , ssgSaveOBJ ) ;
   ssgAddModelFormat ( ".tri",   ssgLoadTRI  , ssgSaveTRI ) ;
   ssgAddModelFormat ( ".md2",   ssgLoadMD2  , NULL       ) ;
   ssgAddModelFormat ( ".x"  ,   ssgLoadX    , ssgSaveX   ) ;
-  ssgAddModelFormat ( ".flt",   ssgLoadFLT  , NULL       ) ;
+  ssgAddModelFormat ( ".flt",   ssgLoadFLT  , ssgSaveFLT ) ;
   ssgAddModelFormat ( ".strip", ssgLoadStrip, NULL       ) ;
   ssgAddModelFormat ( ".m"  ,   ssgLoadM    , ssgSaveM   ) ;
   ssgAddModelFormat ( ".off"  , ssgLoadOFF  , ssgSaveOFF ) ;
   ssgAddModelFormat ( ".atg"  , ssgLoadATG  , ssgSaveATG ) ;
   ssgAddModelFormat ( ".qhi"  , NULL        , ssgSaveQHI ) ;
   ssgAddModelFormat ( ".wrl",   ssgLoadVRML1, ssgSaveVRML1 ) ;
-  ssgAddModelFormat ( ".iv", ssgLoadIV , NULL ) ;
-
+  ssgAddModelFormat ( ".iv", ssgLoadIV      , NULL ) ;
+  ssgAddModelFormat ( ".asc",   NULL        , ssgSaveASC ) ;
+//ssgAddModelFormat ( ".pov",   NULL        , ssgSavePOV ) ;
+	
 
 #ifdef SSG_LOAD_MDL_SUPPORTED
   ssgAddModelFormat ( ".mdl",   ssgLoadMDL  , NULL       ) ;
@@ -158,6 +161,10 @@ void ssgInit ()
 
 #ifdef SSG_LOAD_PNG_SUPPORTED
   ssgAddTextureFormat ( ".png" ,   ssgLoadPNG ) ;
+#endif
+
+#ifdef SSG_LOAD_PCX_SUPPORTED
+  ssgAddTextureFormat ( ".pcx" ,   ssgLoadPCX ) ;
 #endif
 
 #ifdef SSG_LOAD_SGI_SUPPORTED
@@ -199,11 +206,14 @@ void ssgInit ()
   ssgAddTextureFormat ( ".ngt" ,   ssgLoadMDLTexture ) ;
 #endif
 
+#ifdef SSG_LOAD_XPL_SUPPORTED
+  ssgAddModelFormat ( ".xpl",   ssgLoadXPlaneOBJ  , NULL ) ;
+#endif
 }
 
 
 
-void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
+void ssgCullAndPick ( ssgBranch *r, sgVec2 botleft, sgVec2 topright )
 {
   if ( _ssgCurrentContext == NULL )
   {
@@ -257,7 +267,7 @@ void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
 }
 
 
-void ssgCullAndDraw ( ssgRoot *r )
+void ssgCullAndDraw ( ssgBranch *r )
 {
   if ( _ssgCurrentContext == NULL )
   {

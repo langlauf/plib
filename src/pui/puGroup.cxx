@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puGroup.cxx,v 1.23 2002/09/02 06:05:45 sjbaker Exp $
+     $Id: puGroup.cxx,v 1.28 2004/02/23 04:16:52 sjbaker Exp $
 */
 
 
@@ -28,6 +28,12 @@ UL_RTTI_DEF1(puGroup,puObject)
 
 
 #define PUSTACK_MAX 100
+
+ /*
+  This is a stack of groups that are currently being filled with other widgets.
+  A group is pushed onto the stack when it is created and it is popped off the
+  stack when its "close" function is called.
+  */
 
 static int currGroup = -1 ;
 static puGroup *groupStack [ PUSTACK_MAX ] ;
@@ -143,7 +149,7 @@ void puGroup::add ( puObject *new_obj )
 
 int puGroup::checkKey ( int key, int updown )
 {
-  if ( dlist == NULL || ! isVisible () || ! isActive () )
+  if ( updown == PU_UP || dlist == NULL || ! isVisible () || ! isActive () )
     return FALSE ;
 
   puObject *bo ;
@@ -220,7 +226,7 @@ int puGroup::checkHit ( int button, int updown, int x, int y )
   */
 
   if ( mouse_active || ( isHit ( x+abox.min[0], y+abox.min[1]) &&
-       floating && ( button == PU_RIGHT_BUTTON ) ) )
+       floating && ( button == PU_RIGHT_BUTTON ) ) )  // DEPRECATED! -- we need to replace this code.
   {
     puMoveToLast ( this );
 
@@ -313,6 +319,8 @@ void puGroup::draw ( int dx, int dy )
 
     bo -> draw ( xdraw, ydraw ) ;
   }
+
+  if ( getWindow () == puGetWindow () ) draw_label ( dx, dy ) ;
 }
 
 
@@ -348,6 +356,8 @@ void puGroup::doHit ( int, int, int, int )
 
 puGroup::~puGroup ()
 {
+  void puCleanUpJunk ( void ) ;
+
   puObject *bo = getLastChild () ;
 
   while ( bo != NULL )
@@ -356,6 +366,9 @@ puGroup::~puGroup ()
     bo = bo -> getPrevObject() ;
     puDeleteObject ( dlist )  ;
   }
+
+  // Since this is an object destructor, it should be okay to delete the child objects as well.
+  puCleanUpJunk () ;
 }
 
 

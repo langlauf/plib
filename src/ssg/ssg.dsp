@@ -194,6 +194,10 @@ SOURCE=.\ssgLoadBMP.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\ssgLoadDOF.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\ssgLoadDXF.cxx
 # End Source File
 # Begin Source File
@@ -222,10 +226,6 @@ SOURCE=.\ssgLoadMD2.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\ssgLoadMDL_BGLTexture.cxx
-# End Source File
-# Begin Source File
-
 SOURCE=.\ssgLoadMDL.cxx
 # End Source File
 # Begin Source File
@@ -234,11 +234,19 @@ SOURCE=.\ssgLoadMDL.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\ssgLoadMDL_BGLTexture.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\ssgLoadOBJ.cxx
 # End Source File
 # Begin Source File
 
 SOURCE=.\ssgLoadOFF.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgLoadPCX.cxx
 # End Source File
 # Begin Source File
 
@@ -282,6 +290,10 @@ SOURCE=.\ssgLoadX.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\ssgLoadXPlaneObj.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\ssgLocal.h
 # End Source File
 # Begin Source File
@@ -318,6 +330,10 @@ SOURCE=.\ssgSaveAC.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\ssgSaveASC.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\ssgSaveASE.cxx
 # End Source File
 # Begin Source File
@@ -327,6 +343,10 @@ SOURCE=.\ssgSaveATG.cxx
 # Begin Source File
 
 SOURCE=.\ssgSaveDXF.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgSaveFLT.cxx
 # End Source File
 # Begin Source File
 
@@ -403,6 +423,14 @@ SOURCE=.\ssgTween.cxx
 # Begin Source File
 
 SOURCE=.\ssgTweenController.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgVertSplitter.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgVertSplitter.h
 # End Source File
 # Begin Source File
 

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: smMixer.cxx,v 1.8 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: smMixer.cxx,v 1.9 2002/11/30 00:41:49 sjbaker Exp $
 */
 
 #include "sm.h"
@@ -179,7 +179,7 @@ void smMixer::setCDVolume     ( int left, int right )
    setVolume ( SOUND_MIXER_CD     , left, right ) ; 
 }
 
-#elif defined(__NetBSD__) || defined(__OpenBSD__)
+#elif defined(UL_BSD)
 
 /* ------------------------------------------------------------ */
 /* NetBSD or OpenBSD 2.3                                        */

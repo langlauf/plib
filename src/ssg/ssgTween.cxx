@@ -19,7 +19,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTween.cxx,v 1.9 2002/09/02 06:05:49 sjbaker Exp $
+     $Id: ssgTween.cxx,v 1.12 2002/12/04 19:12:35 sjbaker Exp $
 */
 
 
@@ -27,16 +27,15 @@
 #include "ul.h"
 
 static float current_tween_state = 0.0f ;
+static int   current_tween_mode  = SSGTWEEN_STOP_AT_END ;
 
 const char *ssgTween::getTypeName (void) { return "ssgTween" ; }
 
+int   _ssgGetCurrentTweenMode  () { return current_tween_mode  ; }
 float _ssgGetCurrentTweenState () { return current_tween_state ; }
 
-
-void  _ssgSetCurrentTweenState ( float tstate )
-{
-  current_tween_state = tstate ;
-}
+void  _ssgSetCurrentTweenMode  ( int   mode   ) { current_tween_mode = mode ; }
+void  _ssgSetCurrentTweenState ( float tstate ) { current_tween_state= tstate ;}
 
 void ssgTween::copy_from ( ssgTween *src, int clone_flags )
 {
@@ -211,6 +210,14 @@ void ssgTween::setColours ( ssgColourArray *cl )
 
 ssgTween::~ssgTween ()
 {
+  /* Need to ref these one more time to avoid problems when the base class destructor
+    deletes them */
+
+  vertices  -> ref () ;
+  normals   -> ref () ;
+  texcoords -> ref () ;
+  colours   -> ref () ;
+
   for ( int i = 0 ; i < getNumBanks () ; i++ )
   {
     ssgDeRefDelete ( (ssgVertexArray   *) banked_vertices  -> getEntity (i)) ;
@@ -255,7 +262,11 @@ void ssgTween::draw ()
   if ( ! preDraw () )
     return ;
 
-  if ( hasState () ) getState () -> apply () ;
+  if ( _ssgCurrentContext-> stateOverridden () )
+     _ssgCurrentContext -> overriddenState () -> apply () ;
+  else
+  if ( hasState () )
+    getState () -> apply () ;
 
   stats_num_leaves++ ;
   stats_num_vertices += getNumVertices() ;
@@ -269,8 +280,17 @@ void ssgTween::draw ()
   int   state2 = state1 + 1 ;
   float tween  = tstate - (float) state1 ;
 
-  if ( state1 >= num_banks ) state1 = num_banks - 1 ;
-  if ( state2 >= num_banks ) state2 = num_banks - 1 ;
+  if ( _ssgGetCurrentTweenMode () == SSGTWEEN_REPEAT )
+  {
+    state1 %= num_banks ;
+    state2 %= num_banks ;
+  }
+  else
+  {
+    if ( state1 >= num_banks ) state1 = num_banks - 1 ;
+    if ( state2 >= num_banks ) state2 = num_banks - 1 ;
+  }
+
   if ( state1 == state2    ) tween  = 0.0f ;
 
   int l1, l2 ;

@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puPopupMenu.cxx,v 1.17 2002/09/02 06:05:46 sjbaker Exp $
+     $Id: puPopupMenu.cxx,v 1.18 2003/06/26 11:31:07 puggles Exp $
 */
 
 
@@ -222,8 +222,8 @@ int puPopupMenu::checkHit ( int button, int updown, int x, int y )
   for ( ; bo != NULL ; bo = bo -> getPrevObject() ) 
   {
     puBox *box = bo->getABox () ;
-    if ( ( x >= box->min[0] ) && ( x <= box->max[0] ) &&
-         ( y >= box->min[1] ) && ( y <= box->max[1] ) )
+    if ( ( x > box->min[0] ) && ( x < box->max[0] ) &&
+         ( y > box->min[1] ) && ( y < box->max[1] ) )
       bo->highlight () ;
     else
       bo->lowlight () ;
