@@ -21,6 +21,7 @@ extern int    _ssgCurrentCullFace ;
 extern int    _ssgOverrideTexture  ;
 extern int    _ssgOverrideCullface ;
 extern int    _ssgIsHotTest ;
+extern void   _ssgForceLineState () ;
 
 extern char *_ssgModelPath ;
 extern char *_ssgTexturePath ;

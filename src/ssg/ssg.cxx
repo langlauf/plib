@@ -181,6 +181,58 @@ void ssgLoadModelviewMatrix ( sgMat4 mat )
 }
 
 
+void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
+{
+  if ( _ssgCurrentFrustum == NULL )
+  {
+    fprintf ( stderr, "You forgot to call ssgInit()!\n" ) ;
+    exit ( 1 ) ;
+  }
+
+  ssgForceBasicState () ;
+
+  int w = (int)(topright[0] - botleft[0]) ;
+  int h = (int)(topright[1] - botleft[1]) ;
+
+  int x = (int)(botleft[0] + topright[0]) / 2 ;
+  int y = (int)(botleft[1] + topright[1]) / 2 ;
+
+  GLint viewport [ 4 ] ;
+  glGetIntegerv ( GL_VIEWPORT, viewport ) ;
+  glMatrixMode ( GL_PROJECTION ) ;
+  glLoadIdentity () ;
+  gluPickMatrix ( x, y, w, h, viewport ) ;
+  glFrustum ( _ssgCurrentFrustum -> getLeft  (),
+              _ssgCurrentFrustum -> getRight (),
+              _ssgCurrentFrustum -> getBot   (),
+              _ssgCurrentFrustum -> getTop   (),
+              _ssgCurrentFrustum -> getNear  (),
+              _ssgCurrentFrustum -> getFar   () ) ;
+
+  glMatrixMode ( GL_MODELVIEW ) ;
+  glLoadIdentity () ;
+
+  int i ;
+
+  for ( i = 0 ; i < 8 ; i++ )
+    if ( _ssgLights [ i ] . isHeadlight () )
+      _ssgLights [ i ] . setup () ;
+
+  ssgLoadModelviewMatrix  ( _ssgCurrentCameraMatrix ) ;
+
+  for ( i = 0 ; i < 8 ; i++ )
+    if ( ! _ssgLights [ i ] . isHeadlight () )
+      _ssgLights [ i ] . setup () ;
+
+  r -> cull ( _ssgCurrentFrustum, _ssgCurrentCameraMatrix, TRUE ) ;
+
+  _ssgDrawDList () ;
+
+  glMatrixMode ( GL_MODELVIEW ) ;
+  glLoadIdentity () ;
+}
+
+
 void ssgCullAndDraw ( ssgRoot *r )
 {
   if ( _ssgCurrentFrustum == NULL )
@@ -255,4 +307,15 @@ char *ssgTransform    ::getTypeName (void) { return "ssgTransform"     ; }
 char *ssgTexTrans     ::getTypeName (void) { return "ssgTexTrans"      ; }
 char *ssgCutout       ::getTypeName (void) { return "ssgCutout"        ; }
 char *ssgRoot         ::getTypeName (void) { return "ssgRoot"          ; }
+
+void ssgDeRefDelete ( ssgBase *s )
+{
+  if ( s == NULL ) return ;
+
+  s -> deRef () ;
+
+  if ( s -> getRef () <= 0 )
+    delete s ;
+}
+
 

@@ -13,7 +13,7 @@ ssgEntity::ssgEntity (void)
 ssgEntity::~ssgEntity (void)
 {
   delete name ;
-  delete user_data ;
+  ssgDeRefDelete ( user_data ) ;
 }
 
 

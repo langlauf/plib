@@ -23,6 +23,17 @@ void _ssgInitState ()
 }
 
 
+void _ssgForceLineState ()
+{
+  ssgCurrentState->enables &= ~((1<<SSG_GL_TEXTURE_EN) |
+                                (1<<SSG_GL_LIGHTING_EN)|
+                                (1<<SSG_GL_COLOR_MATERIAL_EN)) ;
+  glDisable ( GL_TEXTURE_2D ) ;
+  glDisable ( GL_COLOR_MATERIAL ) ;
+  glDisable ( GL_LIGHTING  ) ;
+  glDisable ( GL_DEPTH_TEST ) ;
+}
+
 void ssgForceBasicState ()
 {
   if ( ssgBasicState == NULL )

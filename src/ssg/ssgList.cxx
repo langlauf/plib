@@ -84,10 +84,7 @@ void ssgKidList::removeEntity ( unsigned int n )
 
   ssgList::removeEntity ( n ) ;
 
-  e -> deRef () ;
-
-  if ( e -> getRef () == 0 )
-    delete e ;
+  ssgDeRefDelete ( e ) ;
 }
 
 

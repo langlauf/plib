@@ -129,6 +129,8 @@ inline int ssgTypeStateSelector() { return SSG_TYPE_STATESELECTOR | ssgTypeSimpl
 
 int ssgGetFrameCounter () ;
 
+void ssgDeRefDelete ( ssgBase *s ) ;
+
 
 class ssgList
 {
@@ -606,16 +608,24 @@ struct ssgEntityBinding
 } ;
 
 
+typedef int (*ssgCallback)( ssgEntity * ) ;
+#define SSG_CALLBACK_PREDRAW   1
+#define SSG_CALLBACK_POSTDRAW  2
+
+
 class ssgEntity : public ssgBase
 {
   ssgList parents ;
 
   char *name ;
 
-  char *user_data ;
+  ssgBase *user_data ;
   int traversal_mask ;
 
 protected:
+  ssgCallback  preDrawCB ;
+  ssgCallback postDrawCB ;
+
   sgSphere bsphere ;
   int bsphere_is_invalid ;
 
@@ -643,8 +653,29 @@ public:
   virtual ssgEntity* getByPath  ( char *path ) ;
   int  bindEntities ( ssgEntityBinding *bind ) ;
 
-  char *getUserData ()            { return user_data ; }
-  void  setUserData ( char *s )   { user_data = s ; }
+  ssgBase *getUserData () { return user_data ; }
+
+  void setUserData ( ssgBase *s )
+  {
+    ssgDeRefDelete ( user_data ) ;
+    user_data = s ;
+    if ( s != NULL )
+      s -> ref () ;
+  }
+
+  ssgCallback getCallback ( int cb_type )
+  {
+    return ( cb_type == SSG_CALLBACK_PREDRAW ) ? preDrawCB : postDrawCB ;
+  }
+
+  void setCallback ( int cb_type, ssgCallback cb )
+  {
+    if ( cb_type == SSG_CALLBACK_PREDRAW )
+      preDrawCB = cb ;
+    else
+      postDrawCB = cb ;
+  }
+
 
   virtual void recalcBSphere (void) = 0 ;
   int  isDirtyBSphere (void) { return bsphere_is_invalid ; }
@@ -680,10 +711,6 @@ public:
 } ;
 
 
-typedef int (*ssgCallback)( ssgEntity * ) ;
-#define SSG_CALLBACK_PREDRAW   1
-#define SSG_CALLBACK_POSTDRAW  2
-
 
 class ssgLeaf : public ssgEntity
 {
@@ -691,9 +718,6 @@ class ssgLeaf : public ssgEntity
   ssgState *state ;
 
 protected:
-
-  ssgCallback  preDrawCB ;
-  ssgCallback postDrawCB ;
 
   GLuint dlist ;
   virtual void draw_geometry () = 0 ;
@@ -703,6 +727,10 @@ protected:
 public:
   ssgLeaf (void) ;
   virtual ~ssgLeaf (void) ;
+
+  virtual void drawHighlight ( sgVec4 colour ) = 0 ;
+  virtual void drawHighlight ( sgVec4 colour, int i ) = 0 ;
+  virtual void pick ( int baseName ) = 0 ;
 
   void makeDList () ;
   void deleteDList () ;
@@ -714,21 +742,13 @@ public:
   int  isTranslucent () { return state ? state->isTranslucent() : FALSE ; }
   int       hasState () { return state != NULL ; }
 
-  ssgCallback getCallback ( int cb_type )
-  {
-    return ( cb_type == SSG_CALLBACK_PREDRAW ) ? preDrawCB : postDrawCB ;
-  }
-
-  void setCallback ( int cb_type, ssgCallback cb )
-  {
-    if ( cb_type == SSG_CALLBACK_PREDRAW )
-      preDrawCB = cb ;
-    else
-      postDrawCB = cb ;
-  }
-
   ssgState *getState () { return state ; }
   void      setState ( ssgState *st ) { state = st ; }
+
+  virtual int getNumVertices  () { return 0 ; }
+  virtual int getNumNormals   () { return 0 ; }
+  virtual int getNumColours   () { return 0 ; }
+  virtual int getNumTexCoords () { return 0 ; }
 
   virtual float *getVertex   ( int i ) = 0 ;
   virtual float *getNormal   ( int i ) = 0 ;
@@ -789,6 +809,9 @@ public:
               int nt, sgVec2 *tl,
               int nc, sgVec4 *cl ) ;
 
+  virtual void drawHighlight ( sgVec4 colour ) ;
+  virtual void drawHighlight ( sgVec4 colour, int i ) ;
+  virtual void pick ( int baseName ) ;
   virtual void transform ( sgMat4 m ) ;
 
   int getNumVertices  () { return num_vertices  ; }
@@ -871,6 +894,9 @@ public:
                            ssgTexCoordArray *tl,
                            ssgColourArray   *cl ) ;
 
+  virtual void drawHighlight ( sgVec4 colour ) ;
+  virtual void drawHighlight ( sgVec4 colour, int i ) ;
+  virtual void pick ( int baseName ) ;
   virtual void transform ( sgMat4 m ) ;
 
   void setPrimitiveType ( GLenum ty ) { gltype = ty ; }
@@ -1417,6 +1443,7 @@ void ssgSetCamera   ( sgCoord *coord ) ;
 void ssgSetCamera   ( sgMat4 m ) ;
 
 void ssgCullAndDraw ( ssgRoot *root ) ;
+void ssgCullAndPick ( ssgRoot *root, sgVec2 botleft, sgVec2 topright ) ;
 void ssgForceBasicState () ;
 int  ssgIsect       ( ssgRoot *root, sgSphere *s, sgMat4 m, ssgHit **results ) ;
 int  ssgHOT         ( ssgRoot *root, sgVec3    s, sgMat4 m, ssgHit **results ) ;

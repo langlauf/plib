@@ -181,6 +181,66 @@ void ssgVTable::draw ()
     (*postDrawCB)(this) ;
 }
 
+void ssgVTable::drawHighlight ( sgVec4 /* colour */, int /* vertex id */ )
+{
+}
+
+void ssgVTable::drawHighlight ( sgVec4 /* colour */ )
+{
+}
+
+void ssgVTable::pick ( int baseName )
+{
+  int i ;
+
+  glPushName ( baseName ) ;
+
+  if ( indexed )
+  {
+    glBegin ( gltype ) ;
+
+    for ( i = 0 ; i < num_vertices ; i++ )
+      glVertex3fv( vertices [ v_index [ i ]] ) ;
+   
+    glEnd () ;
+
+  /* Then test each vertex in turn */
+
+    for ( i = 0 ; i < num_vertices ; i++ )
+    {
+      glLoadName ( baseName + i + 1 ) ;
+      glBegin  ( GL_POINTS ) ;
+      glVertex3fv( vertices [ v_index [ i ]] ) ;
+      glEnd    () ;
+    }
+  }
+  else
+  {
+    glBegin ( gltype ) ;
+
+    for ( i = 0 ; i < num_vertices ; i++ )
+    {
+      glLoadName ( baseName + i + 1 ) ;
+      glVertex3fv( vertices  [ i ] ) ;
+    }
+   
+    glEnd () ;
+
+  /* Then test each vertex in turn */
+
+    for ( i = 0 ; i < num_vertices ; i++ )
+    {
+      glLoadName ( baseName + i + 1 ) ;
+      glBegin  ( GL_POINTS ) ;
+      glVertex3fv( vertices [ i ] ) ;
+      glEnd    () ;
+    }
+  }
+
+  glPopName () ;
+}
+
+
 void ssgVTable::draw_geometry ()
 {
   if ( indexed )

@@ -1,6 +1,7 @@
 
 #include "ssgLocal.h"
 
+#define HL_DELTA 0.04f
 
 ssgVtxTable::ssgVtxTable ()
 {
@@ -38,15 +39,10 @@ ssgVtxTable::ssgVtxTable ( GLenum ty,
 
 ssgVtxTable::~ssgVtxTable ()
 {
-  vertices  -> deRef () ;
-  normals   -> deRef () ;
-  texcoords -> deRef () ;
-  colours   -> deRef () ;
-
-  if ( vertices  -> getRef () <= 0 ) delete vertices  ;
-  if ( normals   -> getRef () <= 0 ) delete normals   ;
-  if ( texcoords -> getRef () <= 0 ) delete texcoords ;
-  if ( colours   -> getRef () <= 0 ) delete colours   ;
+  ssgDeRefDelete ( vertices  ) ;
+  ssgDeRefDelete ( normals   ) ;
+  ssgDeRefDelete ( texcoords ) ;
+  ssgDeRefDelete ( colours   ) ;
 } 
 
 
@@ -149,6 +145,64 @@ void ssgVtxTable::recalcBSphere ()
 }
 
 
+void ssgVtxTable::drawHighlight ( sgVec4 colour )
+{
+  _ssgForceLineState () ;
+
+  int i ;
+  int num_vertices  = getNumVertices  () ;
+
+  sgVec3 *vx = (sgVec3 *) vertices -> get(0) ;
+
+  glPushAttrib ( GL_POLYGON_BIT ) ;
+  glPolygonMode ( GL_FRONT_AND_BACK, GL_LINE ) ;
+  glColor4fv ( colour ) ;
+  glBegin ( gltype ) ;
+  for ( i = 0 ; i < num_vertices ; i++ )
+    glVertex3fv ( vx [ i ] ) ;
+  glEnd () ;
+  glPopAttrib () ;
+  glEnable ( GL_DEPTH_TEST ) ;
+}
+
+
+void ssgVtxTable::drawHighlight ( sgVec4 colour, int v )
+{
+  _ssgForceLineState () ;
+
+  int num_vertices  = getNumVertices  () ;
+
+  if ( v < 0 || v >= num_vertices )
+    return ;
+
+  sgVec3 *vx = (sgVec3 *) vertices -> get(v) ;
+
+  float x = vx[0][0] ;
+  float y = vx[0][1] ;
+  float z = vx[0][2] ;
+
+  sgVec3 t[6] ;
+  sgSetVec3 ( t[0], x-HL_DELTA,y,z ) ;
+  sgSetVec3 ( t[1], x+HL_DELTA,y,z ) ;
+  sgSetVec3 ( t[2], x,y-HL_DELTA,z ) ;
+  sgSetVec3 ( t[3], x,y+HL_DELTA,z ) ;
+  sgSetVec3 ( t[4], x,y,z-HL_DELTA ) ;
+  sgSetVec3 ( t[5], x,y,z+HL_DELTA ) ;
+  glColor4fv ( colour ) ;
+  glLineWidth ( 4.0f ) ;
+  glBegin ( GL_LINES ) ;
+  glVertex3fv ( t[0] ) ;
+  glVertex3fv ( t[1] ) ;
+  glVertex3fv ( t[2] ) ;
+  glVertex3fv ( t[3] ) ;
+  glVertex3fv ( t[4] ) ;
+  glVertex3fv ( t[5] ) ;
+  glEnd () ;
+  glLineWidth ( 1.0f ) ;
+  glEnable ( GL_DEPTH_TEST ) ;
+}
+
+
 void ssgVtxTable::draw ()
 {
   if ( ! preDraw () )
@@ -166,6 +220,37 @@ void ssgVtxTable::draw ()
 
   if ( postDrawCB != NULL )
     (*postDrawCB)(this) ;
+}
+
+
+void ssgVtxTable::pick ( int baseName )
+{
+  int i ;
+  int num_vertices  = getNumVertices  () ;
+
+  sgVec3 *vx = (sgVec3 *) vertices -> get(0) ;
+
+  /* Test the entire primitive. */
+
+  glPushName ( baseName ) ;
+  glBegin  ( gltype ) ;
+
+  for ( i = 0 ; i < num_vertices ; i++ )
+    glVertex3fv ( vx [ i ] ) ;
+ 
+  glEnd     () ;
+
+  /* Then test each vertex in turn */
+
+  for ( i = 0 ; i < num_vertices ; i++ )
+  {
+    glLoadName  ( baseName + i + 1 ) ;
+    glBegin  ( GL_POINTS ) ;
+    glVertex3fv ( vx [ i ] ) ;
+    glEnd     () ;
+  }
+
+  glPopName () ;
 }
 
 
