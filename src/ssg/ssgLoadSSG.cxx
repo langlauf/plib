@@ -5,6 +5,8 @@ static int _ssgInstanceListLength = 0 ;
 static ssgBase **_ssgInstanceList = NULL ;
 static int _ssgNextInstanceKey = 0 ;
 
+int _ssgFileVersionNumber = 0 ;
+
 int _ssgGetNextInstanceKey ()
 {
   return ++_ssgNextInstanceKey ;
@@ -71,8 +73,39 @@ ssgEntity *ssgLoadSSG ( char *fname, ssgHookFunc hookfunc )
     return NULL ;
   }
 
+  int magic ;
   int t ;
   ssgEntity *kid ;
+
+  _ssgReadInt ( fd, & magic ) ;
+
+  if ( ( magic & 0xFFFFFF00 ) != ( SSG_FILE_MAGIC_NUMBER & 0xFFFFFF00 ) )
+  {
+    if ( ( magic & 0x0000FF ) == ( SSG_FILE_MAGIC_NUMBER & 0xFF000000 ) &&
+         ( magic & 0x00FF00 ) == ( SSG_FILE_MAGIC_NUMBER & 0x00FF0000 ) &&
+         ( magic & 0xFF0000 ) == ( SSG_FILE_MAGIC_NUMBER & 0x0000FF00 ) ) 
+      fprintf ( stderr, "ssgLoadSSG: File appears to be byte swapped!\n" ) ;
+    else
+      fprintf ( stderr, "ssgLoadSSG: File has incorrect magic number!\n" ) ;
+
+    return NULL ;
+  }
+
+  /*
+    Save the old version number so we can do recursive loads
+  */
+
+  int oldFileVersion = _ssgFileVersionNumber ;
+
+  _ssgFileVersionNumber = ( magic & 0xFF ) ;
+
+  if ( _ssgFileVersionNumber > SSG_FILE_VERSION )
+  {
+    fprintf ( stderr,
+            "ssgLoadSSG: This version of SSG is to old to load this file!\n" ) ;
+    _ssgFileVersionNumber = oldFileVersion ;
+    return NULL ;
+  }
 
   _ssgReadInt ( fd, & t ) ;
 
@@ -90,6 +123,7 @@ ssgEntity *ssgLoadSSG ( char *fname, ssgHookFunc hookfunc )
   {
     fprintf ( stderr,
       "loadSSG: Unrecognised Entity type 0x%08x\n", t ) ;
+    _ssgFileVersionNumber = oldFileVersion ;
     return NULL ;
   }
 
@@ -97,12 +131,14 @@ ssgEntity *ssgLoadSSG ( char *fname, ssgHookFunc hookfunc )
   {
     fprintf ( stderr,
       "loadSSG: Failed to read child object.\n" ) ;
+    _ssgFileVersionNumber = oldFileVersion ;
     return NULL ;
   }
 
   kid -> recalcBSphere () ;
 
   fclose ( fd ) ;
+  _ssgFileVersionNumber = oldFileVersion ;
   return kid ;
 }
 
@@ -138,6 +174,7 @@ int ssgSaveSSG ( char *fname, ssgEntity *ent )
     return FALSE ;
   }
 
+  _ssgWriteInt ( fd, SSG_FILE_MAGIC_NUMBER ) ;
   _ssgWriteInt ( fd, ent->getType() ) ;
 
   if ( ! ent -> save ( fd ) )

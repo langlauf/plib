@@ -21,6 +21,7 @@ extern char  *_ssgTexturePath ;
 
 extern sgMat4 _ssgOpenGLAxisSwapMatrix ;
 extern int    _ssgIsHotTest ;
+extern int    _ssgFileVersionNumber ;
 
 void _ssgForceLineState () ;
 

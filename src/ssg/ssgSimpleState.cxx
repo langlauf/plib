@@ -16,7 +16,7 @@ void _ssgForceLineState ()
 ssgSimpleState::ssgSimpleState ( int /* I_am_currstate */ )
 {
   type |= SSG_TYPE_SIMPLESTATE ;
-
+  filename  = NULL ;
   dont_care = 0xFFFFFFFF ;
   disable ( GL_TEXTURE_2D  ) ;
   enable  ( GL_CULL_FACE   ) ;
@@ -31,10 +31,14 @@ ssgSimpleState::ssgSimpleState (void)
 {
   type |= SSG_TYPE_SIMPLESTATE ;
 
+  filename  = NULL ;
   dont_care = 0xFFFFFFFF ;
 }
 
-ssgSimpleState::~ssgSimpleState (void) {}
+ssgSimpleState::~ssgSimpleState (void)
+{
+  delete filename ;
+}
 
 void ssgSimpleState::apply (void)
 {
@@ -347,17 +351,26 @@ void ssgSimpleState::enable  ( GLenum mode )
 
 int ssgSimpleState::load ( FILE *fd )
 {
+  delete filename ;
+
   _ssgReadInt   ( fd, & dont_care            ) ;
   _ssgReadInt   ( fd, & enables              ) ;
-  _ssgReadUInt  ( fd, & texture_handle       ) ;
+  _ssgReadString( fd, & filename             ) ;
+  _ssgReadInt   ( fd, & wrapu                ) ;
+  _ssgReadInt   ( fd, & wrapv                ) ;
   _ssgReadInt   ( fd, & colour_material_mode ) ;
   _ssgReadVec4  ( fd, specular_colour        ) ;
   _ssgReadVec4  ( fd, emission_colour        ) ;
   _ssgReadVec4  ( fd, ambient_colour         ) ;
   _ssgReadVec4  ( fd, diffuse_colour         ) ;
-  _ssgReadInt   ( fd, (int *) (& shade_model)) ;
+  _ssgReadInt   ( fd, (int *)(& shade_model) ) ;
   _ssgReadFloat ( fd, & shininess            ) ;
   _ssgReadFloat ( fd, & alpha_clamp          ) ;
+
+  if ( filename != NULL && filename[0] != '\0' )
+    setTexture ( filename, wrapu, wrapv ) ;
+  else
+    texture_handle = 0 ;
 
   return ssgState::load(fd) ;
 }
@@ -367,7 +380,9 @@ int ssgSimpleState::save ( FILE *fd )
 {
   _ssgWriteInt   ( fd, dont_care            ) ;
   _ssgWriteInt   ( fd, enables              ) ;
-  _ssgWriteUInt  ( fd, texture_handle       ) ;
+  _ssgWriteString( fd, filename             ) ;
+  _ssgWriteInt   ( fd, wrapu                ) ;
+  _ssgWriteInt   ( fd, wrapv                ) ;
   _ssgWriteInt   ( fd, colour_material_mode ) ;
   _ssgWriteVec4  ( fd, specular_colour      ) ;
   _ssgWriteVec4  ( fd, emission_colour      ) ;
@@ -380,5 +395,25 @@ int ssgSimpleState::save ( FILE *fd )
   return ssgState::save(fd) ;
 }
 
+void ssgSimpleState::setTextureFilename ( char *fname )
+{
+  delete filename ;
+
+  if ( fname == NULL )
+    filename = NULL ;
+  else
+  {
+    filename = new char [ strlen(fname)+1 ] ;
+    strcpy ( filename, fname ) ;
+  }
+}
+
+void ssgSimpleState::setTexture ( char *fname, int _wrapu, int _wrapv )
+{
+  wrapu = _wrapu ; wrapv = _wrapv ;
+  ssgTexture *tex = new ssgTexture ( fname, wrapu, wrapv ) ;
+  setTexture ( tex ) ;
+  delete tex ;
+}
 
 

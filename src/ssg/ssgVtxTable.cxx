@@ -540,10 +540,10 @@ int ssgVtxTable::load ( FILE *fd )
   if ( ! ssgLeaf::load(fd) )
     return FALSE ;
 
-  vertices  = new ssgVertexArray   () ;
-  normals   = new ssgNormalArray   () ;
-  texcoords = new ssgTexCoordArray () ;
-  colours   = new ssgColourArray   () ;
+  vertices  = new ssgVertexArray   () ; vertices  -> ref () ;
+  normals   = new ssgNormalArray   () ; normals   -> ref () ;
+  texcoords = new ssgTexCoordArray () ; texcoords -> ref () ;
+  colours   = new ssgColourArray   () ; colours   -> ref () ;
 
   if ( ! vertices  -> load ( fd ) ||
        ! normals   -> load ( fd ) ||

@@ -2,6 +2,25 @@
 PLIB Change Log.
 ================
 
+PLIB v1.1.9  (Jan 28th 2000)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Fixed bug that caused the ref counts of the
+    various vertex arrays in an ssgVtxTable to
+    be incorrectly set to zero when that VtxTable
+    is loaded from an '.ssg' format file.
+    This tended to crash SSG with an assertion
+    failure whenever you deleted an object
+    loaded from a '.ssg' file.
+
+  * Added the current texture map filename to
+    ssgSimpleState and ssgStateSelector - which
+    means that...
+
+  * The SSG file format finally works correctly.
+    Note that any SSG files you might have created
+    before this release won't work anymore...but
+    then they didn't work correctly before.
+
 PLIB v1.1.8  (Jan 23rd 2000)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * Added ssgContext.  This makes it a lot easier

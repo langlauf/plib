@@ -81,6 +81,8 @@ class ssgRoot          ;
 #define SSG_TYPE_SIMPLESTATE   0x00000008
 #define SSG_TYPE_STATESELECTOR 0x00000010
 
+#define SSG_FILE_VERSION       0x00
+#define SSG_FILE_MAGIC_NUMBER  (('S'<<24)+('S'<<16)+('G'<<8)+SSG_FILE_VERSION)
 
 inline int ssgTypeBase         () { return SSG_TYPE_BASE ; }
 inline int ssgTypeEntity       () { return SSG_TYPE_ENTITY    | ssgTypeBase    () ; }
@@ -365,12 +367,12 @@ public:
     glBindTextureEXT ( GL_TEXTURE_2D, handle ) ;
 #endif
 
-    filename = new char [ strlen(fname)+1 ] ;
-    strcpy ( filename, fname ) ;
+    filename = NULL ;
+    setFilename ( fname ) ;
 
     ssgImageLoader loader ;
 
-    loader . loadTexture ( fname ) ;
+    loader . loadTexture ( getFilename() ) ;
 
     glTexEnvi ( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE ) ;
 
@@ -387,6 +389,21 @@ public:
   }
 
   GLuint getHandle () { return handle ; }
+
+  char *getFilename(void) { return filename ; }
+  void  setFilename(char *fname)
+  {
+    delete filename ;
+
+    if ( fname == NULL )
+      filename = NULL ;
+    else
+    {
+      filename = new char [ strlen(fname)+1 ] ;
+      strcpy ( filename, fname ) ;
+    }
+  }
+
   virtual void print ( FILE *fd = stderr, char *indent = "" ) ;
   virtual int load ( FILE *fd ) ;
   virtual int save ( FILE *fd ) ;
@@ -425,6 +442,9 @@ _SSG_PUBLIC:
   int    dont_care ; 
   int    enables   ; 
   GLuint texture_handle ;
+  char  *filename  ;
+  int    wrapu ;
+  int    wrapv ;
 
   int colour_material_mode ;
   sgVec4 specular_colour ;
@@ -457,12 +477,11 @@ public:
   virtual void set       ( GLenum mode, int val )
                                  { val ? enable(mode) : disable(mode) ; }
 
-  virtual void setTexture ( char *fname, int wrapu = TRUE, int wrapv = TRUE )
-  {
-    ssgTexture *tex = new ssgTexture ( fname, wrapu, wrapv ) ;
-    setTexture ( tex ) ;
-    delete tex ;
-  }
+  virtual char *getTextureFilename(void) { return filename ; }
+  virtual void  setTextureFilename ( char *fname ) ;
+  virtual void  setTexture ( char *fname,
+                             int _wrapu = TRUE,
+                             int _wrapv = TRUE ) ;
 
   virtual GLuint getTextureHandle (void)
   {
@@ -471,13 +490,22 @@ public:
 
   virtual void setTexture ( ssgTexture *tex )
   {
-    setTexture ( tex -> getHandle () ) ;
+    /* Don't change the order of these two statements! */
+    setTexture         ( tex -> getHandle   () ) ;
+    setTextureFilename ( tex -> getFilename () ) ;
   }
+
+  /*
+    WARNING - THIS FORM OF setTexture IS DEPRECATED
+    BECAUSE IT PREVENTS ssgSave FROM SAVING THE
+    TEXTURE FILENAME!
+  */
 
   virtual void setTexture ( GLuint tex )
   {
     texture_handle = tex ;
     care_about ( SSG_GL_TEXTURE ) ;
+    setTextureFilename ( NULL ) ;
   }
 
   virtual void setColourMaterial ( GLenum which )
@@ -586,10 +614,19 @@ public:
   void   disable   ( GLenum mode ) ;
   void   enable    ( GLenum mode ) ;
 
-  void   setTexture ( char *fname, int wrapu = TRUE, int wrapv = TRUE ) ;
+  char *getTextureFilename(void) ;
+  void  setTextureFilename(char *fname) ;
 
+  void   setTexture ( char *fname, int _wrapu = TRUE, int _wrapv = TRUE ) ;
   GLuint getTextureHandle (void)   ; 
   void   setTexture ( ssgTexture *tex ) ; 
+
+  /*
+    WARNING - THIS FORM OF setTexture IS DEPRECATED
+    BECAUSE IT PREVENTS ssgSave FROM SAVING THE
+    TEXTURE FILENAME!
+  */
+
   void   setTexture ( GLuint      tex ) ; 
   void   setColourMaterial(GLenum which); 
   void   setMaterial ( GLenum which, float r, float g,

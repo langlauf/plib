@@ -97,9 +97,19 @@ void ssgStateSelector::enable ( GLenum mode )
 }
 
 
-void ssgStateSelector::setTexture ( char *fname, int wrapu, int wrapv )
+void ssgStateSelector::setTexture ( char *fname, int _wrapu, int _wrapv )
 {
-  getCurrentStep()->setTexture ( fname, wrapu, wrapv ) ;
+  getCurrentStep()->setTexture ( fname, _wrapu, _wrapv ) ;
+}
+
+char *ssgStateSelector::getTextureFilename (void)  
+{
+  return getCurrentStep()->getTextureFilename();
+}
+
+void ssgStateSelector::setTextureFilename ( char *fname )  
+{
+  getCurrentStep()->setTextureFilename ( fname ) ;
 }
 
 GLuint ssgStateSelector::getTextureHandle (void)  
