@@ -594,57 +594,62 @@ int do_refs     ( char *s )
   if ( nrefs == 0 )
     return PARSE_POP ;
 
-  sgVec3 *vlist = new sgVec3 [ nrefs ] ;
-  sgVec2 *tlist = new sgVec2 [ nrefs ] ;
+  ssgVertexArray   *vlist = new ssgVertexArray ( nrefs ) ;
+  ssgTexCoordArray *tlist = new ssgTexCoordArray ( nrefs ) ;
  
   for ( int i = 0 ; i < nrefs ; i++ )
   {
     fgets ( buffer, 1024, loader_fd ) ;
 
     int vtx ;
+    sgVec2 tc ;
 
     if ( sscanf ( buffer, "%d %f %f", &vtx,
-                                      &tlist[i][0],
-                                      &tlist[i][1] ) != 3 )
+                                      &tc[0],
+                                      &tc[1] ) != 3 )
     {
       fprintf ( stderr, "ac_to_gl: Illegal ref record.\n" ) ;
       exit ( 1 ) ;
     }
 
-    tlist[i][0] *= texrep[0] ;
-    tlist[i][1] *= texrep[1] ;
-    tlist[i][0] += texoff[0] ;
-    tlist[i][1] += texoff[1] ;
+    tc[0] *= texrep[0] ;
+    tc[1] *= texrep[1] ;
+    tc[0] += texoff[0] ;
+    tc[1] += texoff[1] ;
 
-    sgCopyVec3 ( vlist [ i ], vtab [ vtx ] ) ;
+    tlist -> add ( tc ) ;
+    vlist -> add ( vtab[vtx] ) ;
   }
 
   if ( nrefs < 3 )
   {
-    delete [] vlist ;
-    delete [] tlist ;
+    delete vlist ;
+    delete tlist ;
     return PARSE_POP ;
   }
 
-  sgVec3 *nrm = new sgVec3 [ 1 ] ;
-  sgVec4 *col = new sgVec4 [ 1 ] ;
+  ssgNormalArray *nrm = new ssgNormalArray ( 1 ) ;
+  ssgColourArray *col = new ssgColourArray ( 1 ) ;
 
-  sgCopyVec4 ( col [ 0 ], *current_colour ) ;
+  col -> add ( *current_colour ) ;
 
-  sgMakeNormal ( nrm [ 0 ], vlist [ 0 ], vlist [ 1 ], vlist [ 2 ] ) ;
+  sgVec3 nm ;
+  sgMakeNormal ( nm, vlist->get(0), vlist->get(1), vlist->get(2) ) ;
 
-  ssgVTable *vl ;
+  nrm -> add ( nm ) ;
+
+  ssgVtxTable *vl ;
 
   switch ( current_flags & 0x0F )
   {
-    case 0 : vl = new ssgVTable ( GL_TRIANGLE_FAN,
-                   nrefs, vlist, 1, nrm, nrefs, tlist, 1, col ) ; 
+    case 0 : vl = new ssgVtxTable ( GL_TRIANGLE_FAN,
+                   vlist, nrm, tlist, col ) ; 
              break ;
-    case 1 : vl = new ssgVTable ( GL_LINE_LOOP,
-                   nrefs, vlist, 1, nrm, nrefs, tlist, 1, col ) ; 
+    case 1 : vl = new ssgVtxTable ( GL_LINE_LOOP,
+                   vlist, nrm, tlist, col ) ; 
              break ;
-    case 2 : vl = new ssgVTable ( GL_LINE_STRIP,
-                   nrefs, vlist, 1, nrm, nrefs, tlist, 1, col ) ; 
+    case 2 : vl = new ssgVtxTable ( GL_LINE_STRIP,
+                   vlist, nrm, tlist, col ) ; 
              break ;
     default : vl = NULL ; break ;
   }

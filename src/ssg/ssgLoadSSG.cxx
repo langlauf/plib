@@ -77,6 +77,7 @@ ssgEntity *ssgLoadSSG ( char *fname, ssgHookFunc hookfunc )
   _ssgReadInt ( fd, & t ) ;
 
   if ( t == ssgTypeVTable       () ) kid = new ssgVTable       () ; else
+  if ( t == ssgTypeVtxTable     () ) kid = new ssgVtxTable     () ; else
   if ( t == ssgTypeBranch       () ) kid = new ssgBranch       () ; else
   if ( t == ssgTypeTransform    () ) kid = new ssgTransform    () ; else
   if ( t == ssgTypeTexTrans     () ) kid = new ssgTexTrans     () ; else

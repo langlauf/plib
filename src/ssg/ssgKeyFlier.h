@@ -148,6 +148,7 @@ public:
     fprintf ( fd, "F  : Faster - Make rotational    controls more sensitive.\n" ) ;
     fprintf ( fd, "s  : Slower - Make translational controls less sensitive.\n" ) ;
     fprintf ( fd, "S  : Slower - Make rotational    controls less sensitive.\n" ) ;
+    fprintf ( fd, "*,/: Same as 'f' and 's'.\n" ) ;
     fprintf ( fd, "r/R: Reset  - Reset eyepoint to pre-defined position.\n" ) ;
     fprintf ( fd, "h/H: Help   - Display this help message.\n" ) ;
     fprintf ( fd, "^C :        - Exit.\n" ) ;
@@ -169,8 +170,10 @@ public:
     {
       case  'h' :
       case  'H' : show_help  () ; break ;
+      case  '/' :
       case  'f' : tscale *= 2.0 ; break ;
       case  'F' : rscale *= 2.0 ; break ;
+      case  '*' :
       case  's' : tscale /= 2.0 ; break ;
       case  'S' : rscale /= 2.0 ; break ;
 

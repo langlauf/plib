@@ -4,7 +4,7 @@
 #include <windows.h>
 #endif
 
-#include <GL/glut.h>
+#include <GL/gl.h>
 
 ssgTexTrans::ssgTexTrans ( sgCoord *c )
 {

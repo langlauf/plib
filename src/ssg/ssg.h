@@ -44,6 +44,7 @@ class ssgBase          ;
 class ssgEntity        ;
 class ssgLeaf          ;
 class ssgVTable        ;
+class ssgVtxTable      ;
 class ssgBranch        ;
 class ssgInvisible     ;
 class ssgBaseTransform ;
@@ -73,6 +74,7 @@ class ssgRoot          ;
 #define SSG_TYPE_CUTOUT        0x00000800
 #define SSG_TYPE_RANGESELECTOR 0x00001000
 #define SSG_TYPE_INVISIBLE     0x00002000
+#define SSG_TYPE_VTXTABLE      0x00004000
 
 /* ssgStates */
 #define SSG_TYPE_STATE         0x00000004
@@ -86,6 +88,7 @@ inline int ssgTypeEntity       () { return SSG_TYPE_ENTITY    | ssgTypeBase    (
 
 inline int ssgTypeLeaf         () { return SSG_TYPE_LEAF      | ssgTypeEntity  () ; }
 inline int ssgTypeVTable       () { return SSG_TYPE_VTABLE    | ssgTypeLeaf    () ; }
+inline int ssgTypeVtxTable     () { return SSG_TYPE_VTXTABLE  | ssgTypeLeaf    () ; }
 inline int ssgTypeBranch       () { return SSG_TYPE_BRANCH    | ssgTypeEntity  () ; }
 inline int ssgTypeBaseTransform() { return SSG_TYPE_BASETRANSFORM | ssgTypeBranch  () ; }
 inline int ssgTypeTransform    () { return SSG_TYPE_TRANSFORM | ssgTypeBaseTransform () ; }
@@ -216,6 +219,113 @@ public:
   virtual void print ( FILE *fd = stderr, char *indent = "" ) ;
   virtual int load ( FILE *fd ) ;
   virtual int save ( FILE *fd ) ;
+} ;
+
+
+class ssgSimpleList : public ssgBase
+{
+protected:
+  unsigned int total ;  /* The total number of things in the list */
+  unsigned int limit ;  /* The current limit on number of things  */
+  unsigned int size_of ;
+  char *list ;  /* The list. */
+
+  void sizeChk (void)
+  {
+    if ( total >= limit )
+    {
+      limit += limit ;
+      char *nlist = new char [ limit * size_of ] ;
+      memmove ( nlist, list, total * size_of ) ;
+      delete [] list ;
+      list = nlist ;
+    }
+  }
+
+
+public:
+
+  ssgSimpleList ( int sz, int init = 3 )
+  {
+    limit = init ;
+    size_of = sz ;
+    total = 0 ;
+    list = new char [ limit * size_of ] ;
+  }
+
+  virtual ~ssgSimpleList (void)
+  {
+    delete [] list ;
+  } ;
+
+  char *raw_get ( unsigned int n )
+  {
+    return ( n >= total ) ? ((char *) 0) : & list [ n * size_of ] ;
+  }
+
+  void raw_add ( char *thing )
+  {
+    sizeChk () ;
+    memcpy ( & list [ size_of * total++ ], thing, size_of ) ;
+  } ;
+
+  void removeLast ()
+  {
+    if ( total > 0 )
+      total-- ;
+  }
+
+  void removeAll ()
+  {
+    delete [] list ;
+    list = NULL ;
+    limit = total = 0 ;
+  }
+
+  int getNum (void) { return total ; }
+
+  virtual int load ( FILE *fd ) ;
+  virtual int save ( FILE *fd ) ;
+} ;
+
+
+class ssgVertexArray : public ssgSimpleList
+{
+public:
+
+  ssgVertexArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec3), init ) {} 
+  float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
+  void   add ( sgVec3   thing ) { raw_add ( (char *) thing ) ; } ;
+} ;
+
+
+class ssgNormalArray : public ssgSimpleList
+{
+public:
+
+  ssgNormalArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec3), init ) {} 
+  float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
+  void   add ( sgVec3   thing ) { raw_add ( (char *) thing ) ; } ;
+} ;
+
+
+class ssgTexCoordArray : public ssgSimpleList
+{
+public:
+
+  ssgTexCoordArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec2), init ) {} 
+  float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
+  void   add ( sgVec2   thing ) { raw_add ( (char *) thing ) ; } ;
+} ;
+
+
+class ssgColourArray : public ssgSimpleList
+{
+public:
+
+  ssgColourArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec4), init ) {} 
+  float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
+  void   add ( sgVec4   thing ) { raw_add ( (char *) thing ) ; } ;
 } ;
 
 
@@ -570,6 +680,11 @@ public:
 } ;
 
 
+typedef int (*ssgCallback)( ssgEntity * ) ;
+#define SSG_CALLBACK_PREDRAW   1
+#define SSG_CALLBACK_POSTDRAW  2
+
+
 class ssgLeaf : public ssgEntity
 {
   int cull_face ;
@@ -577,10 +692,13 @@ class ssgLeaf : public ssgEntity
 
 protected:
 
+  ssgCallback  preDrawCB ;
+  ssgCallback postDrawCB ;
+
   GLuint dlist ;
   virtual void draw_geometry () = 0 ;
 
-  void preDraw () ;
+  int preDraw () ;
 
 public:
   ssgLeaf (void) ;
@@ -595,6 +713,20 @@ public:
 
   int  isTranslucent () { return state ? state->isTranslucent() : FALSE ; }
   int       hasState () { return state != NULL ; }
+
+  ssgCallback getCallback ( int cb_type )
+  {
+    return ( cb_type == SSG_CALLBACK_PREDRAW ) ? preDrawCB : postDrawCB ;
+  }
+
+  void setCallback ( int cb_type, ssgCallback cb )
+  {
+    if ( cb_type == SSG_CALLBACK_PREDRAW )
+      preDrawCB = cb ;
+    else
+      postDrawCB = cb ;
+  }
+
   ssgState *getState () { return state ; }
   void      setState ( ssgState *st ) { state = st ; }
 
@@ -624,10 +756,11 @@ public:
   virtual void draw  () = 0 ;
 } ;
 
-extern sgVec3 _tfVertex000   ;
-extern sgVec4 _tfColourWhite ;
-extern sgVec3 _tfNormalUp    ;
-extern sgVec2 _tfTexCoord00  ;
+extern sgVec3 _ssgVertex000   ;
+extern sgVec4 _ssgColourWhite ;
+extern sgVec3 _ssgNormalUp    ;
+extern sgVec2 _ssgTexCoord00  ;
+
 
 class ssgVTable : public ssgLeaf
 {
@@ -690,21 +823,88 @@ public:
   }
 
   float *getVertex  (int i){ if(i>=num_vertices)i=num_vertices-1;
-                             return (num_vertices<=0) ? _tfVertex000 :
+                             return (num_vertices<=0) ? _ssgVertex000 :
                                     ((indexed)?vertices [v_index[i]]:vertices [i]);}
   float *getColour  (int i){ if(i>=num_colours)i=num_colours-1;
-                             return (num_colours<=0) ? _tfColourWhite :
+                             return (num_colours<=0) ? _ssgColourWhite :
                                     ((indexed)?colours  [c_index[i]]:colours  [i]);}
   float *getNormal  (int i){ if(i>=num_normals)i=num_normals-1;
-                             return (num_normals<=0) ? _tfNormalUp :
+                             return (num_normals<=0) ? _ssgNormalUp :
                                     ((indexed)?normals  [n_index[i]]:normals  [i]);}
   float *getTexCoord(int i){ if(i>=num_texcoords)i=num_texcoords-1;
-                             return (num_texcoords<=0) ? _tfTexCoord00 :
+                             return (num_texcoords<=0) ? _ssgTexCoord00 :
                                     ((indexed)?texcoords[t_index[i]]:texcoords[i]);}
 
   GLenum getGLtype () { return gltype ; }
 
   virtual ~ssgVTable (void) ;
+
+  virtual char *getTypeName(void) ;
+  virtual void recalcBSphere () ;
+  virtual void draw () ;
+
+  virtual void isect_triangles ( sgSphere  *s, sgMat4 m, int test_needed ) ;
+  virtual void hot_triangles   ( sgVec3     s, sgMat4 m, int test_needed ) ;
+  virtual void print ( FILE *fd = stderr, char *indent = "" ) ;
+  virtual int load ( FILE *fd ) ;
+  virtual int save ( FILE *fd ) ;
+} ;
+
+
+class ssgVtxTable : public ssgLeaf
+{
+protected:
+  sgBox bbox ;
+  GLenum gltype ;
+
+  ssgVertexArray   *vertices  ;
+  ssgNormalArray   *normals   ;
+  ssgTexCoordArray *texcoords ;
+  ssgColourArray   *colours   ;
+
+  virtual void draw_geometry () ;
+public:
+  ssgVtxTable () ;
+
+  ssgVtxTable ( GLenum ty, ssgVertexArray   *vl,
+                           ssgNormalArray   *nl,
+                           ssgTexCoordArray *tl,
+                           ssgColourArray   *cl ) ;
+
+  virtual void transform ( sgMat4 m ) ;
+
+  void setPrimitiveType ( GLenum ty ) { gltype = ty ; }
+  GLenum getPrimitiveType () { return gltype ; }
+
+  int getNumVertices  () { return vertices  -> getNum () ; }
+  int getNumNormals   () { return normals   -> getNum () ; }
+  int getNumColours   () { return colours   -> getNum () ; }
+  int getNumTexCoords () { return texcoords -> getNum () ; }
+
+  int getNumTriangles () ;
+  void getTriangle ( int n, short *v1, short *v2, short *v3 ) ;
+
+  void getVertexList   ( void **list ) { *list = vertices  -> get ( 0 ) ; }
+  void getNormalList   ( void **list ) { *list = normals   -> get ( 0 ) ; } 
+  void getTexCoordList ( void **list ) { *list = texcoords -> get ( 0 ) ; } 
+  void getColourList   ( void **list ) { *list = colours   -> get ( 0 ) ; } 
+
+  float *getVertex  (int i){ if(i>=getNumVertices())i=getNumVertices()-1;
+                             return (getNumVertices()<=0) ?
+				      _ssgVertex000 : vertices->get(i);}
+  float *getNormal  (int i){ if(i>=getNumNormals())i=getNumNormals()-1;
+			     return (getNumNormals()<=0) ?
+				    _ssgNormalUp    : normals->get(i);}
+  float *getTexCoord(int i){ if(i>=getNumTexCoords())i=getNumTexCoords()-1;
+                             return (getNumTexCoords()<=0) ?
+                                    _ssgTexCoord00  : texcoords->get(i);}
+  float *getColour  (int i){ if(i>=getNumColours())i=getNumColours()-1;
+			     return (getNumColours()<=0) ?
+				    _ssgColourWhite : colours->get(i);}
+
+  GLenum getGLtype () { return gltype ; }
+
+  virtual ~ssgVtxTable (void) ;
 
   virtual char *getTypeName(void) ;
   virtual void recalcBSphere () ;
@@ -1197,10 +1397,25 @@ public:    /* Yuk!  Need to hide some of this public stuff! */
 
 
 void ssgInit () ;
+
 void ssgSetFOV      ( float w, float h ) ;
 void ssgSetNearFar  ( float n, float f ) ;
+
+void ssgGetFOV      ( float *w, float *h ) ;
+void ssgGetNearFar  ( float *n, float *f ) ;
+
+void ssgGetProjectionMatrix ( sgMat4 dst ) ;
+void ssgGetModelviewMatrix  ( sgMat4 dst ) ;
+
+void ssgLoadProjectionMatrix () ;
+void ssgLoadProjectionMatrix ( sgFrustum *f ) ;
+
+void ssgLoadModelviewMatrix  () ;
+void ssgLoadModelviewMatrix  ( sgMat4 m ) ;
+
 void ssgSetCamera   ( sgCoord *coord ) ;
 void ssgSetCamera   ( sgMat4 m ) ;
+
 void ssgCullAndDraw ( ssgRoot *root ) ;
 void ssgForceBasicState () ;
 int  ssgIsect       ( ssgRoot *root, sgSphere *s, sgMat4 m, ssgHit **results ) ;
@@ -1229,7 +1444,8 @@ ssgLight *ssgGetLight ( int i ) ;
 
 int ssgGetNumTexelsLoaded () ;
 
-void ssgOverrideTexture ( int on_off ) ;
+void ssgOverrideTexture  ( int on_off ) ;
+void ssgOverrideCullface ( int on_off ) ;
 
 void ssgSetAppStateCallback ( ssgState *(*cb)(char *) ) ;
 

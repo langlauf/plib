@@ -164,7 +164,8 @@ void ssgVTable::recalcBSphere ()
 
 void ssgVTable::draw ()
 {
-  preDraw () ;
+  if ( ! preDraw () )
+    return ;
 
   if ( hasState () ) getState () -> apply () ;
 
@@ -175,6 +176,9 @@ void ssgVTable::draw ()
     glCallList ( dlist ) ;
   else
     draw_geometry () ;
+
+  if ( postDrawCB != NULL )
+    (*postDrawCB)(this) ;
 }
 
 void ssgVTable::draw_geometry ()

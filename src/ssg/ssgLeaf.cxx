@@ -7,6 +7,8 @@ ssgLeaf::ssgLeaf (void)
   state = NULL ;
   type |= SSG_TYPE_LEAF ;
   dlist = 0 ;
+   preDrawCB = NULL ;
+  postDrawCB = NULL ;
 }
 
 ssgLeaf::~ssgLeaf (void)
@@ -82,9 +84,12 @@ void ssgLeaf::print ( FILE *fd, char *indent )
 }
 
 
-void ssgLeaf::preDraw ()
+int ssgLeaf::preDraw ()
 {
-  if ( cull_face != _ssgCurrentCullFace )
+  if ( preDrawCB != NULL && ! (*preDrawCB)(this) )
+    return FALSE ;
+    
+  if ( cull_face != _ssgCurrentCullFace && ! _ssgOverrideCullface )
   {
     _ssgCurrentCullFace = cull_face ;
 
@@ -93,6 +98,8 @@ void ssgLeaf::preDraw ()
     else
       glDisable ( GL_CULL_FACE ) ;
   }
+
+  return TRUE ;
 }
 
 

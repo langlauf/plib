@@ -7,7 +7,7 @@
 #include <windows.h>
 #endif
 
-#include <GL/glut.h>
+#include <GL/gl.h>
 
 #define _SSG_PUBLIC  public
 
@@ -18,7 +18,8 @@ extern void (*__ssgDisableTable[64])() ;
 
 extern sgMat4 _ssgOpenGLAxisSwapMatrix ;
 extern int    _ssgCurrentCullFace ;
-extern int    _ssgOverrideTexture ;
+extern int    _ssgOverrideTexture  ;
+extern int    _ssgOverrideCullface ;
 extern int    _ssgIsHotTest ;
 
 extern char *_ssgModelPath ;

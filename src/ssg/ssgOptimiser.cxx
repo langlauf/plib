@@ -95,7 +95,7 @@ public:
               sgVec3 v3, sgVec2 t3, sgVec4 c3 ) ;
   short add ( sgVec3 v, sgVec2 t, sgVec4 c ) ;
   short add ( short v1, short v2, short v3 ) ;
-  void  add ( ssgVTable *vt ) ;
+  void  add ( ssgVtxTable *vt ) ;
 
   void makeNormals () ;
 
@@ -285,7 +285,7 @@ short OptVertexList::add ( sgVec3 v, sgVec2 t, sgVec4 c )
   return vnum++ ;
 } 
 
-void OptVertexList::add ( ssgVTable *vt )
+void OptVertexList::add ( ssgVtxTable *vt )
 {
   int j ;
 
@@ -470,7 +470,7 @@ void ssgStripify ( ssgEntity *ent )
 {
   /*
     Walk down until we find a leaf node, then
-    back up one level, collect all the ssgVTables
+    back up one level, collect all the ssgVtxTables
     into one big heap and triangulate them.
   */
 
@@ -491,7 +491,7 @@ void ssgStripify ( ssgEntity *ent )
   for ( ssgEntity *k = b_ent -> getKid ( 0 ) ; k != NULL ;
 				 k = b_ent -> getNextKid () )
   {
-    if ( k -> isAKindOf ( ssgTypeVTable () ) )
+    if ( k -> isAKindOf ( ssgTypeVtxTable () ) )
     {
       int i ;
       ssgState *s = ((ssgLeaf *) k ) -> getState() ;
@@ -514,7 +514,7 @@ void ssgStripify ( ssgEntity *ent )
   }
 
   /*
-    Now, for each unique state, grab all the VTable leaf nodes
+    Now, for each unique state, grab all the VtxTable leaf nodes
     and smoosh them into one.
   */
 
@@ -533,11 +533,11 @@ void ssgStripify ( ssgEntity *ent )
     
     while ( k != NULL )
     {
-      if ( k -> isAKindOf ( ssgTypeVTable () ) &&
+      if ( k -> isAKindOf ( ssgTypeVtxTable () ) &&
            ((ssgLeaf *) k ) -> getState() == slist [ i ] &&
            ((ssgLeaf *) k ) -> getCullFace() == cflist [ i ] )
       {
-        list . add ( (ssgVTable *) k ) ;
+        list . add ( (ssgVtxTable *) k ) ;
         b_ent -> removeKid ( k ) ;
         k = b_ent -> getKid ( 0 ) ;
       }
@@ -602,25 +602,23 @@ void ssgStripify ( ssgEntity *ent )
       else
         fprintf ( stderr, "Tleast doesn't contain nleast!\n" ) ;
 
-      sgVec3 *new_coords    = new sgVec3 [ new_vc ] ;
-      sgVec3 *new_normals   = new sgVec3 [ new_vc ] ;
-      sgVec2 *new_texcoords = new sgVec2 [ new_vc ] ;
-      sgVec4 *new_colours   = new sgVec4 [ new_vc ] ;
+      ssgVertexArray   *new_coords    = new ssgVertexArray   ( new_vc ) ;
+      ssgNormalArray   *new_normals   = new ssgNormalArray   ( new_vc ) ;
+      ssgTexCoordArray *new_texcoords = new ssgTexCoordArray ( new_vc ) ;
+      ssgColourArray   *new_colours   = new ssgColourArray   ( new_vc ) ;
 
       for ( int m = 0 ; m < new_vc ; m++ )
       {
-        sgCopyVec3 ( new_coords   [m], list.vlist[new_vlist[m]]->vertex   ) ;
-        sgCopyVec3 ( new_normals  [m], list.vlist[new_vlist[m]]->normal   ) ;
-        sgCopyVec2 ( new_texcoords[m], list.vlist[new_vlist[m]]->texcoord ) ;
-        sgCopyVec4 ( new_colours  [m], list.vlist[new_vlist[m]]->colour   ) ;
+        new_coords   -> add ( list.vlist[new_vlist[m]]->vertex   ) ;
+        new_normals  -> add ( list.vlist[new_vlist[m]]->normal   ) ;
+        new_texcoords-> add ( list.vlist[new_vlist[m]]->texcoord ) ;
+        new_colours  -> add ( list.vlist[new_vlist[m]]->colour   ) ;
       }
 
       delete new_vlist ;
 
-      ssgVTable *new_vtable = new ssgVTable ( GL_TRIANGLE_STRIP, new_vc, new_coords,
-                                                                 new_vc, new_normals,
-                                                                 new_vc, new_texcoords,
-                                                                 new_vc, new_colours ) ;
+      ssgVtxTable *new_vtable = new ssgVtxTable ( GL_TRIANGLE_STRIP,
+                    new_coords, new_normals, new_texcoords, new_colours ) ;
       new_vtable -> setState ( list.state ) ;
       new_vtable -> setCullFace ( list.cullface ) ;
 

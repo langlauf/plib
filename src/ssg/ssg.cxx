@@ -9,16 +9,17 @@ sgMat4 _ssgOpenGLAxisSwapMatrix =
   {  0.0f,  0.0f,  0.0f,  1.0f }
 } ;
 
-sgVec3 _tfVertex000   = { 0.0f, 0.0f, 0.0f } ;
-sgVec4 _tfColourWhite = { 1.0f, 1.0f, 1.0f, 1.0f } ;
-sgVec3 _tfNormalUp    = { 0.0f, 0.0f, 1.0f } ;
-sgVec2 _tfTexCoord00  = { 0.0f, 0.0f } ;
+sgVec3 _ssgVertex000   = { 0.0f, 0.0f, 0.0f } ;
+sgVec4 _ssgColourWhite = { 1.0f, 1.0f, 1.0f, 1.0f } ;
+sgVec3 _ssgNormalUp    = { 0.0f, 0.0f, 1.0f } ;
+sgVec2 _ssgTexCoord00  = { 0.0f, 0.0f } ;
 
-sgFrustum *_ssgCurrentFrustum  = NULL ;
+sgFrustum *_ssgCurrentFrustum   = NULL ;
 sgMat4     _ssgCurrentCameraMatrix ;
-int        _ssgCurrentCullFace = TRUE ;
-int        _ssgOverrideTexture = FALSE ;
-int        _ssgIsHotTest       = FALSE ;
+int        _ssgCurrentCullFace  = TRUE ;
+int        _ssgOverrideTexture  = FALSE ;
+int        _ssgOverrideCullface = FALSE ;
+int        _ssgIsHotTest        = FALSE ;
 
 ssgLight   _ssgLights [ 8 ] ;
 
@@ -60,6 +61,11 @@ void ssgOverrideTexture ( int on_off )
   _ssgOverrideTexture = on_off ;
 }
 
+void ssgOverrideCullface ( int on_off )
+{
+  _ssgOverrideCullface = on_off ;
+}
+
 void ssgInit ()
 {
   ssgTexturePath ( "." ) ;
@@ -80,10 +86,25 @@ void ssgInit ()
     _ssgLights [ i ] . off   () ;
   }
 
-  _ssgCurrentCullFace = TRUE ;
-  glEnable ( GL_CULL_FACE ) ;
-  
+  if ( ! _ssgOverrideCullface )
+  {
+    _ssgCurrentCullFace = TRUE ;
+    glEnable ( GL_CULL_FACE ) ;
+  }
+ 
   _ssgInitState () ;
+}
+
+
+void ssgGetNearFar ( float *n, float *f )
+{
+  _ssgCurrentFrustum -> getNearFar ( n, f ) ;
+}
+
+
+void ssgGetFOV ( float *w, float *h )
+{
+  _ssgCurrentFrustum -> getFOV ( w, h ) ;
 }
 
 
@@ -123,7 +144,12 @@ void ssgSetCamera ( sgCoord *coord )
 }
 
 
-void _ssgLoadProjectionMatrix ( sgFrustum *f )
+void ssgLoadProjectionMatrix ()
+{
+  ssgLoadProjectionMatrix ( _ssgCurrentFrustum ) ;
+}
+
+void ssgLoadProjectionMatrix ( sgFrustum *f )
 {
   glLoadIdentity () ;
   glFrustum ( f -> getLeft() , f -> getRight(),
@@ -132,7 +158,24 @@ void _ssgLoadProjectionMatrix ( sgFrustum *f )
 }
 
 
-void _ssgLoadModelViewMatrix ( sgMat4 mat )
+void ssgGetProjectionMatrix ( sgMat4 dst )
+{
+  _ssgCurrentFrustum -> getMat4 ( dst ) ;
+}
+
+
+void ssgGetModelviewMatrix ( sgMat4 dst )
+{
+  sgCopyMat4 ( dst, _ssgCurrentCameraMatrix ) ;
+}
+
+
+void ssgLoadModelviewMatrix ()
+{
+  ssgLoadModelviewMatrix ( _ssgCurrentCameraMatrix ) ;
+}
+
+void ssgLoadModelviewMatrix ( sgMat4 mat )
 {
   glLoadMatrixf ( (float *) mat ) ;
 }
@@ -151,7 +194,7 @@ void ssgCullAndDraw ( ssgRoot *r )
   ssgForceBasicState () ;
 
   glMatrixMode ( GL_PROJECTION ) ;
-  _ssgLoadProjectionMatrix ( _ssgCurrentFrustum ) ;
+  ssgLoadProjectionMatrix ( _ssgCurrentFrustum ) ;
 
   glMatrixMode ( GL_MODELVIEW ) ;
   glLoadIdentity () ;
@@ -162,7 +205,7 @@ void ssgCullAndDraw ( ssgRoot *r )
     if ( _ssgLights [ i ] . isHeadlight () )
       _ssgLights [ i ] . setup () ;
 
-  _ssgLoadModelViewMatrix  ( _ssgCurrentCameraMatrix ) ;
+  ssgLoadModelviewMatrix  ( _ssgCurrentCameraMatrix ) ;
 
   for ( i = 0 ; i < 8 ; i++ )
     if ( ! _ssgLights [ i ] . isHeadlight () )
@@ -202,6 +245,7 @@ char *ssgStateSelector::getTypeName (void) { return "ssgStateSelector" ; }
 char *ssgEntity       ::getTypeName (void) { return "ssgEntity"        ; }
 char *ssgLeaf         ::getTypeName (void) { return "ssgLeaf"          ; }
 char *ssgVTable       ::getTypeName (void) { return "ssgVTable"        ; }
+char *ssgVtxTable     ::getTypeName (void) { return "ssgVtxTable"      ; }
 char *ssgBranch       ::getTypeName (void) { return "ssgBranch"        ; }
 char *ssgSelector     ::getTypeName (void) { return "ssgSelector"      ; }
 char *ssgRangeSelector::getTypeName (void) { return "ssgRangeSelector" ; }

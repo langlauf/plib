@@ -855,6 +855,8 @@ public:
     update () ;
   } 
 
+  void     getMat4 ( sgMat4 dst ) { sgCopyMat4 ( dst, mat ) ; }
+
   SGfloat  getHFOV (void) const { return hfov  ; }
   SGfloat  getVFOV (void) const { return vfov  ; }
   SGfloat  getNear (void) const { return nnear ; }
