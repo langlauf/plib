@@ -2,7 +2,21 @@
 PLIB Change Log.
 ================
 
-PLIB v1.1.6  (Dec ??th 1999)
+PLIB v1.1.7  (Jan 20th 2000)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Ooops!  1.1.6 accidentally went out set up to
+    REQUIRE the 'freeglut' library instead of the
+    original GLUT.  That's fixed now - it'll pick
+    up on whichever you have installed and use
+    freeglut if you have both. (This only really
+    selects which header PLIB will use - you can
+    still link your application against either
+    GLUT)
+
+    freeglut is here:
+      http://freeglut.sourceforge.net
+
+PLIB v1.1.6  (Jan 19th 2000)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * Changed ssgSaveSSG and ssgSaveAC to return
     TRUE on success, FALSE otherwise. Neither

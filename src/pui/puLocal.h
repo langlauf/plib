@@ -11,7 +11,15 @@
 #include <math.h>
 
 #ifndef PU_NOT_USING_GLUT
-#include <GL/freeglut.h>
+#  ifdef FREEGLUT_IS_PRESENT
+#    include <GL/freeglut.h>
+#  else
+#    ifdef GLUT_IS_PRESENT
+#      include <GL/glut.h>
+#    else
+        /* No GLUT?!? */
+#    endif
+#  endif
 #endif
 #include "pu.h"
 

@@ -6,14 +6,22 @@
 #include <string.h>
 
 #ifdef PU_NOT_USING_GLUT
-#include <windows.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
+#  include <windows.h>
+#  include <GL/gl.h>
+#  include <GL/glu.h>
 #else
-#ifdef WIN32
-#include <windows.h>
-#endif
-#include <GL/freeglut.h>
+#  ifdef WIN32
+#    include <windows.h>
+#  endif
+#  ifdef FREEGLUT_IS_PRESENT
+#    include <GL/freeglut.h>
+#  else
+#    ifdef GLUT_IS_PRESENT
+#      include <GL/glut.h>
+#    else
+       /* No GLUT?!? */
+#    endif
+#  endif
 #endif
 
 #include "sg.h"
