@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgaShapes.cxx,v 1.14 2001/04/12 03:38:54 deca Exp $
+*/
+
 
 #include "ssgAux.h"
 
@@ -6,6 +29,7 @@ void ssgaShape::copy_from ( ssgaShape *src, int clone_flags )
 {
   ssgBranch::copy_from ( src, clone_flags ) ;
   if ( src -> isCorrupt () ) makeCorrupt () ;
+  sgCopyVec4 ( colour, src->colour ) ;
   sgCopyVec3 ( center, src->center ) ;
   sgCopyVec3 ( size  , src->size   ) ;
   ntriangles    = src -> ntriangles ;
@@ -72,6 +96,7 @@ void ssgaShape::init ()
   type |= SSGA_TYPE_SHAPE ;
   corrupted = FALSE ;
   sgZeroVec3 ( center ) ;
+  sgSetVec4 ( colour, 1.0f, 1.0f, 1.0f, 1.0f ) ;
   sgSetVec3 ( size, 1.0f, 1.0f, 1.0f ) ;
   kidState      = NULL ;
   kidPreDrawCB  = NULL ;
@@ -129,6 +154,9 @@ void ssgaCube    ::regenerate ()
 {
   removeAllKids () ;
 
+  if ( ntriangles == 0 )
+    return ;
+
   ssgVtxTable     *vt0 = new ssgVtxTable () ;         ssgVtxTable     *vt1 = new ssgVtxTable () ;
 
   ssgVertexArray   *v0 = new ssgVertexArray   ( 8 ) ; ssgVertexArray   *v1 = new ssgVertexArray   ( 8 ) ;
@@ -148,48 +176,46 @@ void ssgaCube    ::regenerate ()
   vt0 -> setCallback ( SSG_CALLBACK_POSTDRAW, getKidPostDrawCB () ) ;
   vt1 -> setCallback ( SSG_CALLBACK_POSTDRAW, getKidPostDrawCB () ) ;
 
-  sgVec3 v ; sgVec3 n ; sgVec2 t ; sgVec4 c ;
-
-  sgSetVec4 ( c, 1, 1, 1, 1 ) ;
+  sgVec3 v ; sgVec3 n ; sgVec2 t ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]-size[1]/2.0f, center[2]+size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,          1            ,          0            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          0                       ,                1                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]-size[1]/2.0f, center[2]-size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,          1            ,          0            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          0                       ,                0                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]+size[1]/2.0f, center[2]+size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,          1            ,          0            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          1                       ,                1                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]+size[1]/2.0f, center[2]-size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,          1            ,          0            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          1                       ,                0                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]+size[1]/2.0f, center[2]+size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,          0            ,          1            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          2                       ,                1                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]+size[1]/2.0f, center[2]-size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,          0            ,          1            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          2                       ,                0                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]-size[1]/2.0f, center[2]+size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,         -1            ,          0            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          3                       ,                1                    ) ; t0->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]-size[1]/2.0f, center[2]-size[2]/2.0f ) ; v0->add ( v ) ;
   sgSetVec3 ( n,         -1            ,          0            ,          0             ) ; n0->add ( n ) ;
-  c0->add ( c ) ;
+  c0->add ( colour ) ;
   sgSetVec2 ( t,          3                       ,                0                    ) ; t0->add ( t ) ;
 
   vt0 -> setVertices  ( v0 ) ;
@@ -201,42 +227,42 @@ void ssgaCube    ::regenerate ()
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]+size[1]/2.0f, center[2]-size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,          0            ,         -1             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          0                       ,                0                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]+size[1]/2.0f, center[2]-size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,          0            ,         -1             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          1                       ,                0                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]-size[1]/2.0f, center[2]-size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,          0            ,         -1             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          0                       ,                1                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]-size[1]/2.0f, center[2]-size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,          0            ,         -1             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          1                       ,                1                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]-size[1]/2.0f, center[2]+size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,         -1            ,          0             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          0                       ,                2                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]-size[1]/2.0f, center[2]+size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,         -1            ,          0             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          1                       ,                2                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]-size[0]/2.0f, center[1]+size[1]/2.0f, center[2]+size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,          0            ,          1             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          0                       ,                3                    ) ; t1->add ( t ) ;
 
   sgSetVec3 ( v, center[0]+size[0]/2.0f, center[1]+size[1]/2.0f, center[2]+size[2]/2.0f ) ; v1->add ( v ) ;
   sgSetVec3 ( n,          0            ,          0            ,          1             ) ; n1->add ( n ) ;
-  c1->add ( c ) ;
+  c1->add ( colour ) ;
   sgSetVec2 ( t,          1                       ,                3                    ) ; t1->add ( t ) ;
 
   vt1 -> setVertices  ( v1 ) ;
@@ -299,8 +325,6 @@ static Triangle icosahedron [ 20 ] =
 
 void ssgaSphere::regenerateTessellatedIcosahedron ()
 {
-  removeAllKids () ;
-
   int tris_per_strip = 1 ;
   int nstrips = 1 ;
   int nt = 20 ;
@@ -362,9 +386,7 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
       vt -> setCallback ( SSG_CALLBACK_PREDRAW , getKidPreDrawCB  () ) ;
       vt -> setCallback ( SSG_CALLBACK_POSTDRAW, getKidPostDrawCB () ) ;
 
-      sgVec3 v ; sgVec3 n ; sgVec2 t ; sgVec4 c ;
-
-      sgSetVec4 ( c, 1, 1, 1, 1 ) ;
+      sgVec3 v ; sgVec3 n ; sgVec2 t ;
 
       vt -> setPrimitiveType ( GL_TRIANGLE_STRIP ) ;
 
@@ -386,7 +408,7 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
                      size[2]*v0[2] ) ;
       sgNormalizeVec3 ( n ) ;
       sgSetVec2 ( t, atan2(n[0],n[1])/(SG_PI*2.0f)+0.5f, 0.5f+v0[2]/2.0f ) ;
-      vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+      vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
     
       sgSetVec3 ( v, center[0]+size[0]*v1[0],
                      center[1]+size[1]*v1[1],
@@ -396,7 +418,7 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
                      size[2]*v1[2] ) ;
       sgNormalizeVec3 ( n ) ;
       sgSetVec2 ( t, atan2(n[0],n[1])/(SG_PI*2.0f)+0.5f, 0.5f+v1[2]/2.0f ) ;
-      vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+      vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
       for ( int j = 0 ; j < i ; j++ )
       {
@@ -413,7 +435,7 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
 		       size[2]*va[2] ) ;
 	sgNormalizeVec3 ( n ) ;
         sgSetVec2 ( t, atan2(n[0],n[1])/(SG_PI*2.0f)+0.5f, 0.5f+va[2]/2.0f ) ;
-	vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+	vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
 	sgSetVec3 ( v, center[0]+size[0]*vb[0],
 		       center[1]+size[1]*vb[1],
@@ -423,7 +445,7 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
 		       size[2]*vb[2] ) ;
 	sgNormalizeVec3 ( n ) ;
         sgSetVec2 ( t, atan2(n[0],n[1])/(SG_PI*2.0f)+0.5f, 0.5f+vb[2]/2.0f ) ;
-	vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+	vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
       }
  
       sgSetVec3 ( v, center[0]+size[0]*v2[0],
@@ -434,7 +456,7 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
                      size[2]*v2[2] ) ;
       sgNormalizeVec3 ( n ) ;
       sgSetVec2 ( t, atan2(n[0],n[1])/(SG_PI*2.0f)+0.5f, 0.5f+v2[2]/2.0f ) ;
-      vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+      vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
       vt -> setVertices  ( vv ) ;
       vt -> setNormals   ( nn ) ;
@@ -457,8 +479,6 @@ void ssgaSphere::regenerateLatLong ()
   if ( stacks < 2 ) stacks = 2 ;
   if ( slices < 3 ) slices = 3 ;
 
-  removeAllKids () ;
-
   for ( int i = 0 ; i < stacks ; i++ )
   {
     ssgVtxTable      *vt = new ssgVtxTable ;
@@ -473,9 +493,7 @@ void ssgaSphere::regenerateLatLong ()
     vt -> setCallback ( SSG_CALLBACK_PREDRAW , getKidPreDrawCB  () ) ;
     vt -> setCallback ( SSG_CALLBACK_POSTDRAW, getKidPostDrawCB () ) ;
 
-    sgVec3 v ; sgVec3 n ; sgVec2 t ; sgVec4 c ;
-
-    sgSetVec4 ( c, 1, 1, 1, 1 ) ;
+    sgVec3 v ; sgVec3 n ; sgVec2 t ;
 
     if ( i == stacks-1 )   /* North Pole */
     {
@@ -484,7 +502,7 @@ void ssgaSphere::regenerateLatLong ()
       sgSetVec3 ( v, center[0], center[1], center[2]+size[2]/2.0f ) ;
       sgSetVec3 ( n, 0, 0, 1 ) ;
       sgSetVec2 ( t, 0.5f, 1 ) ;
-      vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+      vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
       for ( int j = slices ; j >= 0 ; j-- )
       {
@@ -494,12 +512,12 @@ void ssgaSphere::regenerateLatLong ()
 	sgSetVec3 ( v, center[0] + size[0]*sin(a)*sin(b)/2.0f,
                        center[1] + size[1]*cos(a)*sin(b)/2.0f,
                        center[2] - size[2]*       cos(b)/2.0f ) ;
-	sgSetVec3 ( n, -sin(a)*sin(b)*size[0],
-                       -cos(a)*sin(b)*size[1],
+	sgSetVec3 ( n, sin(a)*sin(b)*size[0],
+                       cos(a)*sin(b)*size[1],
                        -cos(b)*size[2] ) ;
         sgNormalizeVec3 ( n ) ;
 	sgSetVec2 ( t, (float)j/(float)slices, (float) i /(float)stacks ) ;
-	vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+	vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
         
       }
     }
@@ -511,7 +529,7 @@ void ssgaSphere::regenerateLatLong ()
       sgSetVec3 ( v, center[0], center[1], center[2]-size[2]/2.0f ) ;
       sgSetVec3 ( n, 0, 0, -1 ) ;
       sgSetVec2 ( t, 0.5, 0 ) ;
-      vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+      vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
       for ( int j = 0 ; j < slices+1 ; j++ )
       {
@@ -521,13 +539,13 @@ void ssgaSphere::regenerateLatLong ()
 	sgSetVec3 ( v, center[0] + size[0]*sin(a)*sin(b)/2.0f,
                        center[1] + size[1]*cos(a)*sin(b)/2.0f,
                        center[2] - size[2]*       cos(b)/2.0f ) ;
-	sgSetVec3 ( n, -sin(a)*sin(b)*size[0],
-                       -cos(a)*sin(b)*size[1],
+	sgSetVec3 ( n, sin(a)*sin(b)*size[0],
+                       cos(a)*sin(b)*size[1],
                        -cos(b)*size[2] ) ;
         sgNormalizeVec3 ( n ) ;
 	sgSetVec2 ( t, (float)j/(float)slices,
                        (float)(i+1)/(float)stacks ) ;
-	vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+	vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
       }
     }
     else
@@ -543,24 +561,24 @@ void ssgaSphere::regenerateLatLong ()
 	sgSetVec3 ( v, center[0] + size[0]*sin(a)*sin(b0)/2.0f,
                        center[1] + size[1]*cos(a)*sin(b0)/2.0f,
                        center[2] - size[2]*       cos(b0)/2.0f ) ;
-	sgSetVec3 ( n, -sin(a)*sin(b0)*size[0],
-                       -cos(a)*sin(b0)*size[1],
+	sgSetVec3 ( n, sin(a)*sin(b0)*size[0],
+                       cos(a)*sin(b0)*size[1],
                        -cos(b0)*size[2] ) ;
         sgNormalizeVec3 ( n ) ;
 	sgSetVec2 ( t, (float)j/(float)slices,
                        (float)i/(float)stacks ) ;
-	vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+	vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
 	sgSetVec3 ( v, center[0] + size[0]*sin(a)*sin(b1)/2.0f,
                        center[1] + size[1]*cos(a)*sin(b1)/2.0f,
                        center[2] - size[2]*       cos(b1)/2.0f ) ;
-	sgSetVec3 ( n, -sin(a)*sin(b1)*size[0],
-                       -cos(a)*sin(b1)*size[1],
+	sgSetVec3 ( n, sin(a)*sin(b1)*size[0],
+                       cos(a)*sin(b1)*size[1],
                        -cos(b1)*size[2] ) ;
         sgNormalizeVec3 ( n ) ;
 	sgSetVec2 ( t, (float)j/(float)slices,
                        (float)(i+1)/(float)stacks ) ;
-	vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+	vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
         
       }
     }
@@ -579,6 +597,11 @@ void ssgaSphere::regenerateLatLong ()
 
 void ssgaSphere::regenerate ()
 {
+  removeAllKids () ;
+
+  if ( ntriangles == 0 )
+    return ;
+
   if ( latlong_style )
     regenerateLatLong () ;
   else
@@ -589,11 +612,14 @@ void ssgaSphere::regenerate ()
 
 void ssgaCylinder::regenerate ()
 {
+  removeAllKids () ;
+
+  if ( ntriangles == 0 )
+    return ;
+
   int slices = 1 + ntriangles / 4 ;
 
   if ( slices < 3 ) slices = 3 ;
-
-  removeAllKids () ;
 
   ssgVtxTable      *vt = new ssgVtxTable ;
   ssgVertexArray   *vv = new ssgVertexArray   ( (slices+1)*2 ) ;
@@ -607,9 +633,7 @@ void ssgaCylinder::regenerate ()
   vt -> setCallback ( SSG_CALLBACK_PREDRAW , getKidPreDrawCB  () ) ;
   vt -> setCallback ( SSG_CALLBACK_POSTDRAW, getKidPostDrawCB () ) ;
 
-  sgVec3 v ; sgVec3 n ; sgVec2 t ; sgVec4 c ;
-
-  sgSetVec4 ( c, 1, 1, 1, 1 ) ;
+  sgVec3 v ; sgVec3 n ; sgVec2 t ;
 
   vt -> setPrimitiveType ( GL_TRIANGLE_STRIP ) ;
 
@@ -623,7 +647,7 @@ void ssgaCylinder::regenerate ()
     sgSetVec3 ( n, -sin(a) * size[0], -cos(a) * size[1], 0 ) ;
     sgNormalizeVec3 ( n ) ;
     sgSetVec2 ( t, (float)j/(float)slices, 0 ) ;
-    vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+    vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
 
     sgSetVec3 ( v, center[0] + size[0]*sin(a)/2.0f,
 		   center[1] + size[1]*cos(a)/2.0f,
@@ -631,7 +655,7 @@ void ssgaCylinder::regenerate ()
     sgSetVec3 ( n, -sin(a) * size[0], -cos(a) * size[1], 0 ) ;
     sgNormalizeVec3 ( n ) ;
     sgSetVec2 ( t, (float)j/(float)slices, 1 ) ;
-    vv->add(v) ; nn->add(n) ; cc->add(c) ; tt->add(t) ;
+    vv->add(v) ; nn->add(n) ; cc->add(colour) ; tt->add(t) ;
     
   }
 
@@ -667,9 +691,7 @@ void ssgaCylinder::regenerate ()
     vt1 -> setCallback ( SSG_CALLBACK_PREDRAW , getKidPreDrawCB  () ) ;
     vt1 -> setCallback ( SSG_CALLBACK_POSTDRAW, getKidPostDrawCB () ) ;
 
-    sgVec3 v ; sgVec3 n ; sgVec2 t ; sgVec4 c ;
-
-    sgSetVec4 ( c, 1, 1, 1, 1 ) ;
+    sgVec3 v ; sgVec3 n ; sgVec2 t ;
 
     vt0 -> setPrimitiveType ( GL_TRIANGLE_FAN ) ;
     vt1 -> setPrimitiveType ( GL_TRIANGLE_FAN ) ;
@@ -686,7 +708,7 @@ void ssgaCylinder::regenerate ()
 		     center[2] + size[2] / 2.0f ) ;
       sgSetVec3 ( n, 0, 0, 1 ) ;
       sgSetVec2 ( t, 0.5 + sin(a0)/2.0f, 0.5 + cos(a0)/2.0f ) ;
-      vv0->add(v) ; nn0->add(n) ; cc0->add(c) ; tt0->add(t) ;
+      vv0->add(v) ; nn0->add(n) ; cc0->add(colour) ; tt0->add(t) ;
 
       /* Bottom */
 
@@ -695,7 +717,7 @@ void ssgaCylinder::regenerate ()
 		     center[2] - size[2] / 2.0f ) ;
       sgSetVec3 ( n, 0, 0, -1 ) ;
       sgSetVec2 ( t, 0.5 + sin(a1)/2.0f, 0.5 + cos(a1)/2.0f ) ;
-      vv1->add(v) ; nn1->add(n) ; cc1->add(c) ; tt1->add(t) ;
+      vv1->add(v) ; nn1->add(n) ; cc1->add(colour) ; tt1->add(t) ;
     }
 
     vt0 -> setVertices  ( vv0 ) ; vt1 -> setVertices  ( vv1 ) ;
@@ -710,3 +732,59 @@ void ssgaCylinder::regenerate ()
 
 
 
+// XXX really need these (and ssgLocal.h is not accessible):
+extern int _ssgLoadObject ( FILE *, ssgBase **, int ) ;
+extern int _ssgSaveObject ( FILE *, ssgBase * ) ;
+
+
+#define load_field(fp, name) (fread(&(name), 1, sizeof(name), fp) == sizeof(name))
+#define save_field(fp, name) (fwrite(&(name), 1, sizeof(name), fp) == sizeof(name))
+
+
+int ssgaShape::load ( FILE *fp )
+{
+   return ( load_field ( fp, corrupted ) && 
+	    load_field ( fp, colour ) &&
+	    load_field ( fp, center ) &&
+	    load_field ( fp, size ) &&
+	    load_field ( fp, ntriangles ) &&
+	    _ssgLoadObject ( fp, (ssgBase **) &kidState, ssgTypeState () ) &&
+	    ssgBranch::load ( fp ) ) ;
+}
+
+int ssgaShape::save ( FILE *fp )
+{
+   return ( save_field ( fp, corrupted ) &&
+	    save_field ( fp, colour ) &&
+	    save_field ( fp, center ) &&
+	    save_field ( fp, size ) &&
+	    save_field ( fp, ntriangles ) &&
+	    _ssgSaveObject ( fp, kidState ) &&
+	    ssgBranch::save ( fp ) ) ;
+}
+
+
+int ssgaSphere::load ( FILE *fp )
+{
+   return ( load_field ( fp, latlong_style ) &&
+	    ssgaShape::load ( fp ) ) ;
+}
+
+int ssgaSphere::save ( FILE *fp )
+{
+   return ( save_field ( fp, latlong_style ) &&
+	    ssgaShape::save ( fp ) ) ;
+}
+
+
+int ssgaCylinder::load ( FILE *fp )
+{
+   return ( load_field ( fp, capped ) &&
+	    ssgaShape::load ( fp ) ) ;
+}
+
+int ssgaCylinder::save ( FILE *fp )
+{
+   return ( save_field ( fp, capped ) &&
+	    ssgaShape::save ( fp ) ) ;
+}

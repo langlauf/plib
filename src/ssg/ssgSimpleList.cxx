@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgSimpleList.cxx,v 1.9 2001/04/12 03:38:15 deca Exp $
+*/
+
 
 #include "ssgLocal.h"
 
@@ -51,9 +74,12 @@ ssgBase *ssgColourArray::clone ( int clone_flags )
 
 
  
-void ssgVertexArray::print ( FILE *fd, char *indent )
+void ssgVertexArray::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgSimpleList::print ( fd, indent ) ;
+  ssgSimpleList::print ( fd, indent, how_much ) ;
+
+  if ( how_much < 4 )
+    return;
 
   for ( unsigned int i = 0 ; i < total ; i++ )
     fprintf ( fd, "%s  V%d) { %f, %f, %f }\n", indent, i,
@@ -63,9 +89,12 @@ void ssgVertexArray::print ( FILE *fd, char *indent )
 
 
  
-void ssgNormalArray::print ( FILE *fd, char *indent )
+void ssgNormalArray::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgSimpleList::print ( fd, indent ) ;
+  ssgSimpleList::print ( fd, indent, how_much ) ;
+
+  if ( how_much < 4 )
+    return;
 
   for ( unsigned int i = 0 ; i < total ; i++ )
     fprintf ( fd, "%s  N%d) { %f, %f, %f }\n", indent, i,
@@ -75,9 +104,12 @@ void ssgNormalArray::print ( FILE *fd, char *indent )
 
 
  
-void ssgTexCoordArray::print ( FILE *fd, char *indent )
+void ssgTexCoordArray::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgSimpleList::print ( fd, indent ) ;
+  ssgSimpleList::print ( fd, indent, how_much ) ;
+
+  if ( how_much < 4 )
+    return;
 
   for ( unsigned int i = 0 ; i < total ; i++ )
     fprintf ( fd, "%s  T%d) { S=%f, T=%f }\n", indent, i,
@@ -87,9 +119,12 @@ void ssgTexCoordArray::print ( FILE *fd, char *indent )
 
 
  
-void ssgColourArray::print ( FILE *fd, char *indent )
+void ssgColourArray::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgSimpleList::print ( fd, indent ) ;
+  ssgSimpleList::print ( fd, indent, how_much ) ;
+
+  if ( how_much < 4 )
+    return;
 
   for ( unsigned int i = 0 ; i < total ; i++ )
     fprintf ( fd, "%s  C%d) { R=%f, G=%f, B=%f, A=%f }\n", indent, i,
@@ -98,11 +133,15 @@ void ssgColourArray::print ( FILE *fd, char *indent )
  
 
 
-void ssgSimpleList::print ( FILE *fd, char *indent )
+void ssgSimpleList::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgBase::print ( fd, indent ) ;
+  ssgBase::print ( fd, indent, how_much ) ;
 
   fprintf ( fd, "%s  Total # items = %d\n", indent, total ) ;
+
+  if ( how_much < 3 )
+    return;
+
   fprintf ( fd, "%s  Size of items = %d bytes\n", indent, size_of ) ;
 }
  
@@ -115,7 +154,15 @@ int ssgSimpleList::load ( FILE *fd )
   _ssgReadUInt ( fd, &total   ) ;
   limit = total ;
   list = new char [ limit * size_of ] ;
-  _ssgReadFloat ( fd, limit * size_of / sizeof(float), (float *)list ) ;
+  assert(list!=NULL);
+  // wk: The old code:
+  //_ssgReadFloat ( fd, limit * size_of / sizeof(float), (float *)list ) ;
+  // doesn't work since some ssgSimpleLists consist of shorts, so
+  // limit * size_of may not be divisible by sizeof(float).
+  // The new code works, but I am not 100% sure what we want in
+  // the event that there are machines with another sizeof(float).
+  _ssgReadBytes   ( fd, limit * size_of , list) ;
+
   return ! _ssgReadError () ;
 }
 
@@ -125,7 +172,9 @@ int ssgSimpleList::save ( FILE *fd )
 {
   _ssgWriteUInt ( fd, size_of ) ;
   _ssgWriteUInt ( fd, total   ) ;
-  _ssgWriteFloat( fd, limit * size_of / sizeof(float), (float *)list ) ;
+  // see comment in ssgSimpleList::load
+  // _ssgWriteFloat( fd, total * size_of / sizeof(float), (float *)list ) ;
+  _ssgWriteBytes ( fd, total * size_of, list);
   return ! _ssgWriteError () ;
 }
 

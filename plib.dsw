@@ -35,6 +35,22 @@ Package=<4>
 
 ###############################################################################
 
+Project: "net"=.\src\net\net.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+    begin source code control
+    net
+    .\src\net
+    end source code control
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "plib"=.\plib.dsp - Package Owner=<4>
 
 Package=<5>
@@ -67,6 +83,12 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name ul
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ssgAux
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name net
     End Project Dependency
 }}}
 
@@ -130,6 +152,22 @@ Package=<5>
     begin source code control
     ssg
     .\src\ssg
+    end source code control
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "ssgAux"=.\src\ssgAux\ssgAux.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+    begin source code control
+    ssgAux
+    .\src\ssgaux
     end source code control
 }}}
 

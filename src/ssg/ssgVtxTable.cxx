@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgVtxTable.cxx,v 1.17 2001/05/21 03:44:24 sjbaker Exp $
+*/
+
 
 #include "ssgLocal.h"
 
@@ -127,7 +150,7 @@ ssgVtxTable::~ssgVtxTable ()
 
 void ssgVtxTable::getTriangle ( int n, short *v1, short *v2, short *v3 )
 {
-  switch ( getGLtype () )
+  switch ( getPrimitiveType () )
   {
     case GL_POLYGON :
     case GL_TRIANGLE_FAN :
@@ -171,7 +194,7 @@ void ssgVtxTable::getTriangle ( int n, short *v1, short *v2, short *v3 )
 
 int ssgVtxTable::getNumTriangles ()
 {
-  switch ( getGLtype () )
+  switch ( getPrimitiveType () )
   {
     case GL_POLYGON :
     case GL_TRIANGLE_FAN :
@@ -188,15 +211,82 @@ int ssgVtxTable::getNumTriangles ()
 
     case GL_QUAD_STRIP :
       return ( ( getNumVertices() - 2 ) / 2 ) * 2 ;
-
     default : break ;
   }
 
-  return 0 ;   /* Should never get here...but you never know! */
+  return 0 ;   /* Should never get here...but you never know! 
+	                wk: Yes it does, for GL_POINTS      
+										GL_LINES       
+										GL_LINE_LOOP   
+										GL_LINE_STRIP  
+										*/
 }
 
+int ssgVtxTable::getNumLines ()
+{
+  switch ( getPrimitiveType () )
+  {
+    case GL_POLYGON :
+    case GL_TRIANGLE_FAN :
+    case GL_TRIANGLES :
+    case GL_TRIANGLE_STRIP :
+    case GL_QUADS :
+    case GL_QUAD_STRIP :
+    case GL_POINTS :
+      return 0;
+		case GL_LINES :   
+			// wk: FIXME: check the 3 following formulas. I don't have an OpenGL bokk at hand currently :-(
+			return getNumVertices()/2;
+    case GL_LINE_LOOP :
+    	return getNumVertices();
+    case GL_LINE_STRIP :
+    	return getNumVertices()-1;
+    default : break ;
+  }
+  assert(false); /* Should never get here  */
+  return 0 ;   
+}
 
-void ssgVtxTable::transform ( sgMat4 m )
+void ssgVtxTable::getLine ( int n, short *v1, short *v2 )
+{ 
+	assert( n>=0 );
+  switch ( getPrimitiveType () )
+  {
+    case GL_POLYGON :
+    case GL_TRIANGLE_FAN :
+    case GL_TRIANGLES :
+    case GL_TRIANGLE_STRIP :
+    case GL_QUADS :
+    case GL_QUAD_STRIP :
+    case GL_POINTS :
+      assert(false);
+		case GL_LINES :   
+			// wk: FIXME: check the 3 following formulas. I don't have an OpenGL bokk at hand currently :-(
+			assert ( 2*n+1 < getNumVertices() );
+			*v1 = 2*n;
+			*v2 = 2*n+1 ;
+			return ;
+    case GL_LINE_LOOP :
+			assert ( n < getNumVertices() );
+			*v1 = n;
+			if ( n == getNumVertices()-1 )
+			  *v2 = 0;
+			else
+				*v2 = n+1;
+			return ;
+    case GL_LINE_STRIP :
+    	assert ( n < getNumVertices()-1 );
+			*v1 = n;
+			*v2 = n+1;
+			return;
+    default :
+			break ;
+  }
+  assert(false); /* Should never get here  */
+  return ;   
+}
+
+void ssgVtxTable::transform ( const sgMat4 m )
 {
   int i ;
 
@@ -304,7 +394,6 @@ void ssgVtxTable::draw ()
 }
 
 
-#ifdef _SSG_USE_PICK
 void ssgVtxTable::pick ( int baseName )
 {
   int i ;
@@ -334,7 +423,6 @@ void ssgVtxTable::pick ( int baseName )
 
   glPopName () ;
 }
-#endif // #ifdef _SSG_USE_PICK
 
 
 void ssgVtxTable::draw_geometry ()
@@ -564,13 +652,21 @@ void ssgVtxTable::isect_triangles ( sgSphere *s, sgMat4 m, int test_needed )
 }
 
 
-void ssgVtxTable::print ( FILE *fd, char *indent )
+void ssgVtxTable::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgLeaf  ::print ( fd, indent ) ;
-  vertices ->print ( fd, indent ) ;
-  normals  ->print ( fd, indent ) ;
-  texcoords->print ( fd, indent ) ;
-  colours  ->print ( fd, indent ) ;
+  char in [ 100 ] ;
+
+  if ( how_much == 0 ) 
+    return ;
+  
+  sprintf ( in, "%s  ", indent );
+	
+  ssgLeaf  ::print ( fd, indent, how_much ) ;
+		
+  vertices  -> print ( fd, in, how_much ) ;
+  normals   -> print ( fd, in, how_much ) ;
+  texcoords -> print ( fd, in, how_much ) ;
+  colours   -> print ( fd, in, how_much ) ;
 }
 
 
@@ -586,20 +682,17 @@ int ssgVtxTable::load ( FILE *fd )
   if ( ! ssgLeaf::load(fd) )
     return FALSE ;
 
-  vertices  = new ssgVertexArray   () ; vertices  -> ref () ;
-  normals   = new ssgNormalArray   () ; normals   -> ref () ;
-  texcoords = new ssgTexCoordArray () ; texcoords -> ref () ;
-  colours   = new ssgColourArray   () ; colours   -> ref () ;
-
-  if ( ! vertices  -> load ( fd ) ||
-       ! normals   -> load ( fd ) ||
-       ! texcoords -> load ( fd ) ||
-       ! colours   -> load ( fd ) )
-  {
-    ulSetError ( UL_WARNING, "loadSSG: Failed to read vertex array." ) ;
+  if ( ! _ssgLoadObject ( fd, (ssgBase **)&vertices,  ssgTypeVertexArray ()   ) ||
+       ! _ssgLoadObject ( fd, (ssgBase **)&normals,   ssgTypeNormalArray ()   ) ||
+       ! _ssgLoadObject ( fd, (ssgBase **)&texcoords, ssgTypeTexCoordArray () ) ||
+       ! _ssgLoadObject ( fd, (ssgBase **)&colours,   ssgTypeColourArray ()   ) )
     return FALSE ;
-  }
 
+  if ( vertices  != NULL ) vertices  -> ref () ;
+  if ( normals   != NULL ) normals   -> ref () ;
+  if ( texcoords != NULL ) texcoords -> ref () ;
+  if ( colours   != NULL ) colours   -> ref () ;
+     
   return TRUE ;
 }
 
@@ -610,19 +703,14 @@ int ssgVtxTable::save ( FILE *fd )
   _ssgWriteVec3  ( fd, bbox.getMax() ) ;
   _ssgWriteInt   ( fd, (int) gltype ) ;
 
-  ssgLeaf::save(fd) ;
-
-  if ( ! vertices  -> save ( fd ) ||
-       ! normals   -> save ( fd ) ||
-       ! texcoords -> save ( fd ) ||
-       ! colours   -> save ( fd ) )
-  {
-    ulSetError ( UL_WARNING, "saveSSG: Failed to write vertex array" ) ;
+  if ( ! ssgLeaf::save(fd) )
     return FALSE ;
-  }
+
+  if ( ! _ssgSaveObject ( fd, vertices  ) ||
+       ! _ssgSaveObject ( fd, normals   ) ||
+       ! _ssgSaveObject ( fd, texcoords ) ||
+       ! _ssgSaveObject ( fd, colours   ) )
+    return FALSE ;
 
   return TRUE ;
 }
-
-
-

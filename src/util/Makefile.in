@@ -236,6 +236,8 @@ distdir: $(DISTFILES)
 ul.o: ul.cxx ul.h
 ulClock.o: ulClock.cxx ul.h
 ulError.o: ulError.cxx ul.h
+ulNet.o: ulNet.cxx ul.h
+ulRTTI.o: ulRTTI.cxx ulRTTI.h
 
 info-am:
 info: info-am

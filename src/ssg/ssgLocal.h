@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgLocal.h,v 1.16 2001/04/12 03:38:15 deca Exp $
+*/
+
 
 #define _SSG_PUBLIC  public
 
@@ -5,9 +28,6 @@
 
 extern void (*__ssgEnableTable[64])() ;
 extern void (*__ssgDisableTable[64])() ;
-
-extern char  *_ssgModelPath ;
-extern char  *_ssgTexturePath ;
 
 extern sgMat4 _ssgOpenGLAxisSwapMatrix ;
 extern int    _ssgIsHotTest ;
@@ -64,6 +84,8 @@ void _ssgReadUShort  ( FILE *fd, const unsigned int n,       unsigned short *var
 void _ssgWriteUShort ( FILE *fd, const unsigned int n, const unsigned short *var ) ;
 void _ssgReadShort   ( FILE *fd, const unsigned int n,                short *var ) ;
 void _ssgWriteShort  ( FILE *fd, const unsigned int n, const          short *var ) ;
+void _ssgReadBytes   ( FILE *fd, const unsigned int n,                 void *var ) ;
+void _ssgWriteBytes  ( FILE *fd, const unsigned int n, const           void *var ) ;
 
 void _ssgReadString  ( FILE *fd,       char **var ) ;
 void _ssgWriteString ( FILE *fd, const char  *var ) ;
@@ -81,9 +103,12 @@ void _ssgWriteMat4   ( FILE *fd, const sgMat4 var ) ;
 int _ssgReadError    ( void ) ;
 int _ssgWriteError   ( void ) ;
 
-int _ssgStrNEqual ( const char *s1, const char *s2, int len ) ;
 
-ssgBase *_ssgGetFromList ( int key ) ;
-void     _ssgAddToList   ( int key, ssgBase *b ) ;
-int      _ssgGetNextInstanceKey  () ;
-
+/*
+  Routines for storing arbitrary ssgBase derived objects within SSG files. 
+  Both functions return 1 on success, and 0 on failure.
+  If an object is encountered that is not derived from type_mask, then
+  the loading is aborted and 0 returned.
+*/
+int _ssgSaveObject ( FILE * , ssgBase * ) ;
+int _ssgLoadObject ( FILE * , ssgBase ** , int type_mask = 0 ) ;

@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: sg.h,v 1.15 2001/05/21 03:44:24 sjbaker Exp $
+*/
+
 
 #ifndef SG_H
 #define SG_H  1
@@ -692,6 +715,10 @@ inline void sgMakeIdentMat4 ( sgMat4 dst )
   sgSetVec4 ( dst[3], SG_ZERO, SG_ZERO, SG_ZERO, SG_ONE  ) ;
 }
 
+
+extern void sgMakePickMatrix( sgMat4 mat, sgFloat x, sgFloat y,
+                    sgFloat width, sgFloat height, sgVec4 viewport ) ;
+
 extern int  sgCompare3DSqdDist ( const sgVec3 a, const sgVec3 b, const SGfloat sqd_dist ) ;
 extern void sgMakeTransMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const SGfloat z ) ;
 extern void sgMakeTransMat4 ( sgMat4 m, const sgVec3 xyz ) ;
@@ -752,8 +779,7 @@ inline void sgMakePlane ( sgVec4 dst, const sgVec3 a, const sgVec3 b, const sgVe
   dst [ 3 ] = - sgScalarProductVec3 ( dst, a ) ;
 }
 
-
-
+float sgTriArea( sgVec3 p0, sgVec3 p1, sgVec3 p2 );
 
 class sgSphere
 {
@@ -780,7 +806,11 @@ public:
   int isEmpty (void) const { return radius <  SG_ZERO ; }
   void empty  (void)	   { radius = - SG_ONE ; }
 
-  void orthoXform ( const sgMat4 m ) { sgXformPnt3 ( center, center, m ) ; }
+  void orthoXform ( const sgMat4 m )
+  {
+    sgXformPnt3 ( center, center, m ) ;
+    // radius *= sgLengthVec3 ( m[0] ) ;  -- degrades performance for non-scaled matrices ...
+  }
 
   void extend ( const sgSphere *s ) ;
   void extend ( const sgBox    *b ) ;
@@ -1953,7 +1983,11 @@ public:
   int isEmpty (void) const { return radius <  SGD_ZERO ; }
   void empty  (void)       { radius = - SGD_ONE ; }
 
-  void orthoXform ( const sgdMat4 m ) { sgdXformPnt3 ( center, center, m ) ; }
+  void orthoXform ( const sgdMat4 m )
+  {
+    sgdXformPnt3 ( center, center, m ) ;
+    // radius *= sgdLengthVec3 ( m[0] ) ;
+  }
 
   void extend ( const sgdSphere *s ) ;
   void extend ( const sgdBox    *b ) ;

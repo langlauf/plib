@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: slMODinst.cxx,v 1.5 2001/04/12 03:37:36 deca Exp $
+*/
+
 
 #include "slMODPrivate.h"
 
@@ -190,9 +213,9 @@ void _MOD_instHirevLoop ( InstHirevInfo *ihip )
 
     if ( l8 <= 0 ) 
     {
-      fprintf ( stderr, "bug: restF=%u\n",restF ) ;
-      fprintf ( stderr, "end-ptr=%d w=%u\n",ihi.end-ihi.ptr,ihi.w ) ;
-      fprintf ( stderr, "wAcc = %u\n",ihi.wAcc ) ;
+      ulSetError ( UL_WARNING, "bug: restF=%u",restF ) ;
+      ulSetError ( UL_WARNING, "end-ptr=%d w=%u",ihi.end-ihi.ptr,ihi.w ) ;
+      ulSetError ( UL_WARNING, "wAcc = %u",ihi.wAcc ) ;
     }
 
     l0 = ihi.w - 1 - ihi.wAcc ;
@@ -215,13 +238,12 @@ void _MOD_instHirevLoop ( InstHirevInfo *ihip )
 
     if ( ihi.ptr < ihi.end || ihi.end <= ihi.ptr - ( ihi.wAcc >> 16 ) ) 
     {
-      fprintf ( stderr, "SL: Internal Error in _MOD_instHirevLoop.\n" ) ;
+      ulSetError ( UL_FATAL, "SL: Internal Error in _MOD_instHirevLoop." ) ;
 /*
-      fprintf ( stderr, "bug: restS = %u restF=%u end-ptr = %d, ptr=%p\n",
+      ulSetError ( UL_DEBUG, "bug: restS = %u restF=%u end-ptr = %d, ptr=%p",
           restS, restF, ihi.end-ihi.ptr, ihi.ptr ) ;
-      fprintf ( stderr, "last ptr=%p\n", ( ihi.ptr - ( ihi.wAcc >> 16 ) ) ) ;
+      ulSetError ( UL_DEBUG, "last ptr=%p", ( ihi.ptr - ( ihi.wAcc >> 16 ) ) ) ;
 */
-      exit ( 1 ) ;
     }
 
     restF -= restS ;
@@ -453,8 +475,7 @@ static void addPerFrameWork(void (*f)(void))
 {
   if (instp->pfw.n >= PFW_MAX)
   {
-    fprintf(stderr, "Too many PFWs\n");
-    exit(1);
+    ulSetError ( UL_FATAL, "Too many PFWs");
   }
 
   instp->pfw.func[instp->pfw.n++] = f;

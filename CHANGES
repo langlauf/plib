@@ -2,6 +2,36 @@
 PLIB Change Log.
 ================
 
+PLIB v1.3.2 (June 13th 2001)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+  * This CHANGES file has regrettably not been well maintained,
+    hence there a numerous changes not listed here.
+
+  * File loaders now require app to pass 'ssgLoaderOptions'
+    rather than other ad-hoc callback function hooks.
+
+  * Added Active Widget Implementation (pui)
+
+  * Added puFilePicker  
+
+  * Added Ref Counting to ssgState
+
+  * Added puBiSlider and puTriSlider
+
+  * Added some missing 'AUTHORS' entries.
+
+  * puDial widget (was actually in 1.3.1 but got
+    missed in the 'CHANGES' file)
+
+  * Fixed a problem in the configure.in that prevented
+    ssgAux from building.
+
+  * Moved the 'name' and 'user_data' (with associated
+    set/get member functions) from ssgEntity down into
+    ssgBase so that these functions will work with ssgState
+    and ssgTexture objects.  This is needed for PrettyPoly.
+
 PLIB v1.3.1 (Sept 15th 2000)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

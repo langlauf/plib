@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgLoadMD2.cxx,v 1.7 2001/04/12 03:38:15 deca Exp $
+*/
+
 /***************************************************************************
                           ssgloadmd2.cpp  -  description
                              -------------------
@@ -11,6 +34,7 @@
  *******************************************************/
 
 #include "ssgLocal.h"
+#include "ssgLoaderWriterStuff.h"
 
 //defaults
 #define FRAME_DELAY 3
@@ -163,6 +187,7 @@ typedef struct
 
 static int is_little_endian;
 
+static const ssgLoaderOptions* current_options = NULL ;
 static FILE *loader_fd;
 
 static t_tcoord *uvs;
@@ -218,10 +243,11 @@ void read_skins(int offset)
 		//strip off the preciding path, and the trailing ext
 		//replacing it with rgb.
 			char * start = strrchr(buffer, '/');
+			assert ( start != NULL );
 			start++;
-			start[strlen(start)-1] = 'b';
+			/*start[strlen(start)-1] = 'b';
 			start[strlen(start)-2] = 'g';
-			start[strlen(start)-3] = 'r';
+			start[strlen(start)-3] = 'r';*/
 			
 			strcpy(skins[i], start);
 	}
@@ -230,7 +256,6 @@ void read_glcommands(int offset)
 {
 	fseek(loader_fd, offset, SEEK_SET);
 }
-
 
 /* Converts the MD2 structure to one palatable by ssg.
  * Mainly, this involves duplicating vertices so that
@@ -257,10 +282,9 @@ ssgEntity * convert_to_ssg()
 	
 	for(i=0; i<header.numSkins; i++){
 		stated = true;
-		strcpy( filepath, _ssgTexturePath);
-    strcat( filepath, "/" );
-    strcat( filepath, skins[i] );
 
+		ssgFindOptConvertTexture( filepath, skins[i] ) ;
+		
 		ssgSimpleState *state = new ssgSimpleState();
 		state ->  enable ( GL_TEXTURE_2D );
 		state ->  setTexture( filepath );
@@ -339,23 +363,16 @@ ssgEntity * convert_to_ssg()
 }
 
 
-ssgEntity * ssgLoadMD2( const char *filename, ssgHookFunc hookfunc)
+ssgEntity * ssgLoadMD2( const char *filename, const ssgLoaderOptions* options)
 {
- 
+  ssgSetCurrentOptions ( (ssgLoaderOptions*)options ) ;
+  current_options = ssgGetCurrentOptions () ;
+
   int j = 1 ;
   is_little_endian = *((char *) &j );
 
-  char *filepath;
-  
-  if (filename[0] != '/' && _ssgModelPath[0] != '\0') {
-    filepath = new char[strlen(filename) + strlen(_ssgModelPath) + 2];
-    strcpy( filepath, _ssgModelPath);
-    strcat( filepath, "/" );
-    strcat( filepath, filename );
-  } else {
-    filepath = new char[strlen(filename) + 1];
-    strcpy(filepath, filename);
-  }
+  char filepath [ 1024 ] ;
+  current_options -> makeModelPath ( filepath, filename ) ;
   
   loader_fd = fopen ( filepath, "rb" );
 
@@ -386,5 +403,4 @@ ssgEntity * ssgLoadMD2( const char *filename, ssgHookFunc hookfunc)
 	delete[] vertices;
 
 	return model;
-
 }

@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgSimpleState.cxx,v 1.20 2001/04/12 03:38:15 deca Exp $
+*/
+
 
 #include "ssgLocal.h"
 
@@ -5,13 +28,20 @@ void ssgSimpleState::copy_from ( ssgSimpleState *src, int clone_flags )
 {
   ssgState::copy_from ( src, clone_flags ) ;
 
-  setTextureFilename ( src -> getTextureFilename () ) ;
+  ssgTexture *tex = src -> getTexture () ;
+
+  ssgDeRefDelete(texture); 
+  
+  if ( tex != NULL && ( clone_flags & SSG_CLONE_TEXTURE ) )
+    texture = (ssgTexture *)( tex -> clone ( clone_flags ) ) ;
+  else
+    texture = tex ;
+  
+  if (texture != NULL)  
+    texture->ref(); 
 
   dont_care      = src -> dont_care ;
   enables        = src -> enables   ;
-  texture_handle = src -> texture_handle ;
-  wrapu          = src -> wrapu ;
-  wrapv          = src -> wrapv ;
 
   colour_material_mode = src -> colour_material_mode ;
 
@@ -48,7 +78,7 @@ void _ssgForceLineState ()
 ssgSimpleState::ssgSimpleState ( int /* I_am_currstate */ )
 {
   type |= SSG_TYPE_SIMPLESTATE ;
-  filename  = NULL ;
+  texture  = NULL ;
   dont_care = 0xFFFFFFFF ;
   disable ( GL_TEXTURE_2D  ) ;
   enable  ( GL_CULL_FACE   ) ;
@@ -63,34 +93,50 @@ ssgSimpleState::ssgSimpleState (void)
 {
   type |= SSG_TYPE_SIMPLESTATE ;
 
-  filename  = NULL ;
+  texture  = NULL ;
   dont_care = 0xFFFFFFFF ;
 }
 
 ssgSimpleState::~ssgSimpleState (void)
 {
-  delete filename ;
+  ssgDeRefDelete ( texture ) ;
 }
 
 void ssgSimpleState::apply (void)
 {
-  if ( ~ dont_care & ( (1<<SSG_GL_COLOR_MATERIAL) |
-                       (1<<SSG_GL_DIFFUSE       ) |
+  int turn_off = ~dont_care & ~enables & _ssgCurrentContext->getState()->enables & 0x3F ;
+  (*(__ssgDisableTable[turn_off]))() ;
+  _ssgCurrentContext->getState()->enables &= ~turn_off ;
+
+  if ( ~ dont_care & ( (1<<SSG_GL_COLOR_MATERIAL_EN) |
+		       (1<<SSG_GL_COLOR_MATERIAL   ) ) )
+  {
+    int indeterminate = turn_off & (1<<SSG_GL_COLOR_MATERIAL_EN) ;
+
+    if ( ~ dont_care & (1<<SSG_GL_COLOR_MATERIAL ) &&
+	 _ssgCurrentContext->getState()->colour_material_mode != colour_material_mode )
+    {
+      glColorMaterial ( GL_FRONT_AND_BACK, (GLenum) colour_material_mode ) ;
+      _ssgCurrentContext->getState()->colour_material_mode = colour_material_mode ;
+      indeterminate |= _ssgCurrentContext->getState()->enables & (1<<SSG_GL_COLOR_MATERIAL_EN) ;
+    }
+
+    if ( indeterminate )
+    {
+      /* invalidate the material colours */
+      sgSetVec3 ( _ssgCurrentContext->getState()->specular_colour, -1.0f, -1.0f, -1.0f ) ;
+      sgSetVec3 ( _ssgCurrentContext->getState()->emission_colour, -1.0f, -1.0f, -1.0f ) ;
+      sgSetVec3 ( _ssgCurrentContext->getState()->ambient_colour, -1.0f, -1.0f, -1.0f ) ;
+      sgSetVec4 ( _ssgCurrentContext->getState()->diffuse_colour, -1.0f, -1.0f, -1.0f, -1.0f ) ;
+    }
+  }
+
+  if ( ~ dont_care & ( (1<<SSG_GL_DIFFUSE       ) |
                        (1<<SSG_GL_AMBIENT       ) |
                        (1<<SSG_GL_SPECULAR      ) |
                        (1<<SSG_GL_EMISSION      ) |
                        (1<<SSG_GL_SHININESS     ) ) )
   {
-    int switched_modes = FALSE ;
-
-    if ( ~ dont_care & (1<<SSG_GL_COLOR_MATERIAL ) &&
-      _ssgCurrentContext->getState()->colour_material_mode != colour_material_mode )
-    {
-      glColorMaterial ( GL_FRONT_AND_BACK, (GLenum) colour_material_mode ) ;
-      _ssgCurrentContext->getState()->colour_material_mode = colour_material_mode ;
-      switched_modes = TRUE ;
-    }
-
     if ( ( ~ dont_care & (1<<SSG_GL_SHININESS) ) &&
       _ssgCurrentContext->getState()->shininess != shininess )
     {
@@ -99,58 +145,45 @@ void ssgSimpleState::apply (void)
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_SPECULAR) ) &&
-      ( switched_modes ||
-        ! sgEqualVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ) )
+         ! sgEqualVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_SPECULAR, specular_colour ) ;
       sgCopyVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_EMISSION) ) &&
-      ( switched_modes ||
-      ! sgEqualVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ) )
+         ! sgEqualVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_EMISSION, emission_colour ) ;
       sgCopyVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_AMBIENT) ) &&
-      ( switched_modes ||
-      ! sgEqualVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ) )
+         ! sgEqualVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_AMBIENT, ambient_colour ) ;
       sgCopyVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_DIFFUSE) ) &&
-      ( switched_modes ||
-      ! sgEqualVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ) )
+         ! sgEqualVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_colour ) ;
       sgCopyVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ;
     }
   }
 
-  int turn_on  = ~dont_care &  enables & ~_ssgCurrentContext->getState()->enables & 0x3F ;
-  int turn_off = ~dont_care & ~enables &  _ssgCurrentContext->getState()->enables & 0x3F ;
-
-  (*(__ssgEnableTable [turn_on ]))() ;
-  (*(__ssgDisableTable[turn_off]))() ;
-
-  _ssgCurrentContext->getState()->enables |=  turn_on  ;
-  _ssgCurrentContext->getState()->enables &= ~turn_off ;
-
   if ( ( ~ dont_care & (1<<SSG_GL_TEXTURE) ) && 
-    _ssgCurrentContext->getState()->texture_handle != texture_handle )
+    _ssgCurrentContext->getState()->getTexture() != getTexture() )
   {
     stats_bind_textures++ ;
 #ifdef GL_VERSION_1_1
-    glBindTexture ( GL_TEXTURE_2D, texture_handle ) ;
+    glBindTexture ( GL_TEXTURE_2D, getTextureHandle() ) ;
 #else
     /* For ancient SGI machines */
-    glBindTextureEXT ( GL_TEXTURE_2D, texture_handle ) ;
+    glBindTextureEXT ( GL_TEXTURE_2D, getTextureHandle() ) ;
 #endif
-    _ssgCurrentContext->getState()->texture_handle = texture_handle ;
+    _ssgCurrentContext->getState()->setTexture ( getTexture () ) ;
   }
 
   if ( ( ~ dont_care & (1<<SSG_GL_SHADE_MODEL) ) &&
@@ -166,22 +199,24 @@ void ssgSimpleState::apply (void)
     glAlphaFunc ( GL_GREATER, alpha_clamp ) ;
     _ssgCurrentContext->getState()->alpha_clamp = alpha_clamp ;
   }
+
+  int turn_on = ~dont_care & enables & ~_ssgCurrentContext->getState()->enables & 0x3F ;
+  (*(__ssgEnableTable [turn_on ]))() ;
+  _ssgCurrentContext->getState()->enables |= turn_on ;
 }
 
 void ssgSimpleState::force (void)
 {
-/*
-  glMaterialf ( GL_FRONT_AND_BACK, GL_SHININESS, shininess ) ;
-  _ssgCurrentContext->getState()->shininess = shininess ;
-  glMaterialfv ( GL_FRONT_AND_BACK, GL_SPECULAR, specular_colour ) ;
-  sgCopyVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ;
-  glMaterialfv ( GL_FRONT_AND_BACK, GL_EMISSION, emission_colour ) ;
-  sgCopyVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ;
-  glMaterialfv ( GL_FRONT_AND_BACK, GL_AMBIENT, ambient_colour ) ;
-  sgCopyVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ;
-  glMaterialfv ( GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_colour ) ;
-  sgCopyVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ;
-*/
+  int turn_off = ~dont_care & ~enables & 0x3F ;
+  (*(__ssgDisableTable[turn_off]))() ;
+  _ssgCurrentContext->getState()->enables &= ~turn_off ;
+
+  /* invalidate the material colours, since we do not know what the current mode is */
+  sgSetVec3 ( _ssgCurrentContext->getState()->specular_colour, -1.0f, -1.0f, -1.0f ) ;
+  sgSetVec3 ( _ssgCurrentContext->getState()->emission_colour, -1.0f, -1.0f, -1.0f ) ;
+  sgSetVec3 ( _ssgCurrentContext->getState()->ambient_colour, -1.0f, -1.0f, -1.0f ) ;
+  sgSetVec4 ( _ssgCurrentContext->getState()->diffuse_colour, -1.0f, -1.0f, -1.0f, -1.0f ) ;
+
   if ( ~ dont_care & ( (1<<SSG_GL_COLOR_MATERIAL ) |
                        (1<<SSG_GL_DIFFUSE        ) |
                        (1<<SSG_GL_AMBIENT        ) |
@@ -226,25 +261,16 @@ void ssgSimpleState::force (void)
     }
   }
 
-  int turn_on  = ~dont_care &  enables & 0x3F ;
-  int turn_off = ~dont_care & ~enables & 0x3F ;
-
-  (*(__ssgEnableTable [turn_on ]))() ;
-  (*(__ssgDisableTable[turn_off]))() ;
-
-  _ssgCurrentContext->getState()->enables |=  turn_on  ;
-  _ssgCurrentContext->getState()->enables &= ~turn_off ;
-
   if ( ~ dont_care & (1<<SSG_GL_TEXTURE ) )
   {
     stats_bind_textures++ ;
 #ifdef GL_VERSION_1_1
-    glBindTexture ( GL_TEXTURE_2D, texture_handle ) ;
+    glBindTexture ( GL_TEXTURE_2D, getTextureHandle() ) ;
 #else
     /* For ancient SGI machines */
-    glBindTextureEXT ( GL_TEXTURE_2D, texture_handle ) ;
+    glBindTextureEXT ( GL_TEXTURE_2D, getTextureHandle() ) ;
 #endif
-    _ssgCurrentContext->getState()->texture_handle = texture_handle ;
+    _ssgCurrentContext->getState()->setTexture ( getTexture () ) ;
   }
 
   if ( ~ dont_care & (1<<SSG_GL_SHADE_MODEL ) )
@@ -258,6 +284,10 @@ void ssgSimpleState::force (void)
     glAlphaFunc ( GL_GREATER, alpha_clamp ) ;
     _ssgCurrentContext->getState()->alpha_clamp = alpha_clamp ;
   }
+
+  int turn_on = ~dont_care & enables & 0x3F ;
+  (*(__ssgEnableTable [turn_on ]))() ;
+  _ssgCurrentContext->getState()->enables |= turn_on ;
 }
 
 
@@ -377,13 +407,8 @@ void ssgSimpleState::enable  ( GLenum mode )
 
 int ssgSimpleState::load ( FILE *fd )
 {
-  delete filename ;
-
   _ssgReadInt   ( fd, & dont_care            ) ;
   _ssgReadInt   ( fd, & enables              ) ;
-  _ssgReadString( fd, & filename             ) ;
-  _ssgReadInt   ( fd, & wrapu                ) ;
-  _ssgReadInt   ( fd, & wrapv                ) ;
   _ssgReadInt   ( fd, & colour_material_mode ) ;
   _ssgReadVec4  ( fd, specular_colour        ) ;
   _ssgReadVec4  ( fd, emission_colour        ) ;
@@ -392,11 +417,12 @@ int ssgSimpleState::load ( FILE *fd )
   _ssgReadInt   ( fd, (int *)(& shade_model) ) ;
   _ssgReadFloat ( fd, & shininess            ) ;
   _ssgReadFloat ( fd, & alpha_clamp          ) ;
+  
+  if ( ! _ssgLoadObject ( fd, (ssgBase **) &texture, ssgTypeTexture () ) )
+    return FALSE ;
 
-  if ( filename != NULL && filename[0] != '\0' )
-    setTexture ( filename, wrapu, wrapv ) ;
-  else
-    texture_handle = 0 ;
+  if ( texture != NULL )
+    texture -> ref () ;
 
   return ssgState::load(fd) ;
 }
@@ -406,9 +432,6 @@ int ssgSimpleState::save ( FILE *fd )
 {
   _ssgWriteInt   ( fd, dont_care            ) ;
   _ssgWriteInt   ( fd, enables              ) ;
-  _ssgWriteString( fd, filename             ) ;
-  _ssgWriteInt   ( fd, wrapu                ) ;
-  _ssgWriteInt   ( fd, wrapv                ) ;
   _ssgWriteInt   ( fd, colour_material_mode ) ;
   _ssgWriteVec4  ( fd, specular_colour      ) ;
   _ssgWriteVec4  ( fd, emission_colour      ) ;
@@ -418,33 +441,31 @@ int ssgSimpleState::save ( FILE *fd )
   _ssgWriteFloat ( fd, shininess            ) ;
   _ssgWriteFloat ( fd, alpha_clamp          ) ;
 
+  if ( ! _ssgSaveObject ( fd, texture ) )
+    return FALSE ;
+
   return ssgState::save(fd) ;
 }
 
-void ssgSimpleState::setTextureFilename ( char *fname )
+/*
+wk: not implemented yet
+Is ssgSimpleState the right place to do this?
+use gkGetTexParamiv or so.
+
+int ssgSimpleState::getWrapU()
 {
-  delete filename ;
+int    wrapu = TRUE, wrapv = TRUE ;
 
-  if ( fname == NULL )
-    filename = NULL ;
-  else
-  {
-    filename = new char [ strlen(fname)+1 ] ;
-    strcpy ( filename, fname ) ;
-  }
+	if ( filename == NULL )
+		return TRUE;
+	if ( filename[0] == 0 )
+		return TRUE;
+	GLuint texture_handle = getTextureHandle ();
+	
 }
-
-void ssgSimpleState::setTexture ( char *fname, int _wrapu, int _wrapv,
-				  int _mipmap )
-{
-  wrapu = _wrapu ; wrapv = _wrapv ; mipmap = _mipmap ;
-  ssgTexture *tex = new ssgTexture ( fname, wrapu, wrapv, mipmap ) ;
-  setTexture ( tex ) ;
-  delete tex ;
-}
+*/
 
 
- 
 static void printStateString ( FILE *fd, unsigned int bits )
 {
   if ( bits & (1<<SSG_GL_TEXTURE_EN) ) fprintf ( fd, "TEXTURE2D " ) ;
@@ -456,10 +477,13 @@ static void printStateString ( FILE *fd, unsigned int bits )
 }
 
  
-void ssgSimpleState::print ( FILE *fd, char *indent )
+void ssgSimpleState::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgState::print ( fd, indent ) ;
+  ssgState::print ( fd, indent, how_much ) ;
  
+	if ( how_much < 2 )
+		return;
+
   fprintf ( fd, "%s  Don't Care   = ", indent ) ;
              printStateString ( fd, dont_care ) ;
              fprintf ( fd, "\n" ) ;
@@ -467,12 +491,9 @@ void ssgSimpleState::print ( FILE *fd, char *indent )
              printStateString ( fd, enables ) ;
              fprintf ( fd, "\n" ) ;
 
-  fprintf ( fd, "%s  TexHandle    = %d\n", indent, texture_handle ) ;
+  fprintf ( fd, "%s  TexHandle    = %d\n", indent, getTextureHandle() ) ;
   fprintf ( fd, "%s  TexFilename  = '%s'\n", indent,
-                           (filename==NULL) ? "<none>" : filename ) ;
-  fprintf ( fd, "%s  TexWrap U/V  = %s/%s\n", indent,
-                          wrapu ? "True" : "False",
-                          wrapv ? "True" : "False" ) ;
+                           (getTextureFilename()==NULL) ? "<none>" : getTextureFilename() ) ;
   fprintf ( fd, "%s  Shade Model  = %d\n", indent, shade_model ) ;
   fprintf ( fd, "%s  Shininess    = %f\n", indent, shininess ) ;
   fprintf ( fd, "%s  AlphaClamp   = %f\n", indent, alpha_clamp ) ;
@@ -497,3 +518,115 @@ void ssgSimpleState::print ( FILE *fd, char *indent )
                             emission_colour[2], emission_colour[3] ) ;
 }
 
+// ***********************************************************************
+// ******************** class ssgSimpleStateArray ************************
+// ***********************************************************************
+ 
+
+int ssgSimpleStateArray::findIndex ( ssgSimpleState* st )
+{
+  for ( int i = 0; i < getNum (); i++ )
+    if ( get (i) == st )
+      return i ;
+  return -1 ;
+}
+
+
+void ssgSimpleStateArray::collect ( ssgEntity *e )
+{
+  removeAll () ;
+	collect_recursive (e);
+}
+
+
+void ssgSimpleStateArray::collect_recursive ( ssgEntity *e )
+{
+  if ( e -> isAKindOf ( SSG_TYPE_BRANCH ) )
+  {
+    ssgBranch *br = (ssgBranch *) e ;
+
+    for ( int i = 0 ; i < br -> getNumKids () ; i++ )
+      collect_recursive ( br -> getKid ( i ) ) ;
+  }
+  else
+  if ( e -> isAKindOf ( SSG_TYPE_VTXTABLE ) )
+  {
+    ssgVtxTable* vt = (ssgVtxTable *) e ;
+    ssgState* st = vt -> getState () ;
+    if ( st && st -> isAKindOf ( SSG_TYPE_SIMPLESTATE ) )
+    {
+      ssgSimpleState* ss = (ssgSimpleState*) vt -> getState () ;
+      if ( findIndex ( ss ) == -1 )
+        add ( ss ) ;
+    }
+  }
+}
+
+
+void ssgSimpleStateArray::add ( ssgSimpleState* ss )
+{
+  if ( ss )
+  {
+    ss -> ref () ;
+    raw_add ( (char *) &ss ) ;
+  }
+}
+
+
+void ssgSimpleStateArray::removeAll ()
+{
+  for ( int i = 0; i < getNum (); i++ )
+    ssgDeRefDelete ( get (i) ) ;
+  ssgSimpleList::removeAll () ;
+}
+
+
+ssgSimpleState* ssgSimpleStateArray::findMatch ( ssgSimpleState* st )
+{
+  if ( st == NULL )
+     return NULL ;
+
+  for ( int i = 0; i < getNum (); i++ )
+  {
+    ssgSimpleState *st2 = get (i) ;
+
+    if ( st == st2 )
+      return NULL ; //same pointer -- don't change state
+
+    if ( st->isEnabled ( GL_TEXTURE_2D ) != st2->isEnabled ( GL_TEXTURE_2D ) )
+      continue ;
+
+    if ( st->isEnabled ( GL_TEXTURE_2D ) &&
+       st -> getTextureHandle () != st2 -> getTextureHandle () )
+      continue ;
+
+    if ( st->getCareAbout (SSG_GL_SPECULAR) != st2->getCareAbout (SSG_GL_SPECULAR) ||
+      st->getCareAbout (SSG_GL_EMISSION) != st2->getCareAbout (SSG_GL_EMISSION) ||
+      st->getCareAbout (SSG_GL_AMBIENT) != st2->getCareAbout (SSG_GL_AMBIENT) ||
+      st->getCareAbout (SSG_GL_DIFFUSE) != st2->getCareAbout (SSG_GL_DIFFUSE) )
+      continue ;
+
+    if ( ! st->getCareAbout (SSG_GL_SPECULAR) &&
+       ! sgEqualVec4 ( st->getMaterial (GL_SPECULAR), st2->getMaterial (GL_SPECULAR) ) )
+      continue ;
+
+    if ( ! st->getCareAbout (SSG_GL_EMISSION) &&
+       ! sgEqualVec4 ( st->getMaterial (GL_EMISSION), st2->getMaterial (GL_EMISSION) ) )
+      continue ;
+
+    if ( ! st->getCareAbout (SSG_GL_AMBIENT) &&
+       ! sgEqualVec4 ( st->getMaterial (GL_AMBIENT), st2->getMaterial (GL_AMBIENT) ) )
+      continue ;
+
+    if ( ! st->getCareAbout (SSG_GL_DIFFUSE) &&
+       ! sgEqualVec4 ( st->getMaterial (GL_DIFFUSE), st2->getMaterial (GL_DIFFUSE) ) )
+      continue ;
+
+    if ( st -> isTranslucent () != st2 -> isTranslucent () ||
+         st -> getShininess () != st2 -> getShininess () )
+      continue ;
+
+    return st2 ;
+  }
+  return NULL ;
+}

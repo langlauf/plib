@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: sgd.cxx,v 1.8 2001/04/12 03:36:47 deca Exp $
+*/
+
 
 #include "sg.h"
 
@@ -324,7 +347,7 @@ void sgdFrustum::update ()
 {
   if ( fabs ( ffar - nnear ) < 0.1 )
   {
-    fprintf ( stderr, "sgdFrustum: Can't support depth of view <0.1 units.\n");
+    ulSetError ( UL_WARNING, "sgdFrustum: Can't support depth of view <0.1 units.");
     return ;
   }
 
@@ -332,7 +355,7 @@ void sgdFrustum::update ()
   {
     if ( fabs ( hfov ) < 0.1 || fabs ( vfov ) < 0.1 )
     {
-      fprintf ( stderr, "sgdFrustum: Can't support fields of view narrower than 0.1 degrees.\n");
+      ulSetError ( UL_WARNING, "sgdFrustum: Can't support fields of view narrower than 0.1 degrees.");
       return ;
     }
 
@@ -515,7 +538,7 @@ int sgdFrustum::contains ( const sgdSphere *s ) const
 
 void sgdMakeCoordMat4 ( sgdMat4 m, const SGDfloat x, const SGDfloat y, const SGDfloat z, const SGDfloat h, const SGDfloat p, const SGDfloat r )
 {
-  double ch, sh, cp, sp, cr, sr, srsp, crsp, srcp ;
+  SGDfloat ch, sh, cp, sp, cr, sr, srsp, crsp, srcp ;
 
   if ( h == SGD_ZERO )
   {
@@ -608,7 +631,7 @@ void sgdSetCoord ( sgdCoord *dst, const sgdMat4 src )
 
   if ( s <= 0.00001 )
   {
-    fprintf ( stderr, "sgdMat4ToCoord: ERROR - Bad Matrix.\n" ) ;
+    ulSetError ( UL_WARNING, "sgdMat4ToCoord: ERROR - Bad Matrix." ) ;
     sgdSetVec3 ( dst -> hpr, SGD_ZERO, SGD_ZERO, SGD_ZERO ) ;
     return ;
   }
@@ -771,7 +794,7 @@ void sgdInvertMat4 ( sgdMat4 dst, const sgdMat4 src )
     // if ( val == SG_ZERO)
     if ( fabs(val) <= DBL_EPSILON )
     {
-      fprintf ( stderr, "sg: ERROR - Singular matrix, no inverse!\n" ) ;
+      ulSetError ( UL_WARNING, "sg: ERROR - Singular matrix, no inverse!" ) ;
       sgdMakeIdentMat4 ( dst ) ;  /* Do *something* */
       return;
     }
@@ -1085,15 +1108,15 @@ void sgdEulerToQuat(sgdQuat quat, sgdVec3 ypr )
 
 void sgdQuatToEuler( sgdVec3 euler, const sgdQuat quat )
 {
-  float matrix[3][3];
-  float cx,sx;
-  float cy,sy,yr;
-  float cz,sz;
+  SGDfloat matrix[3][3];
+  SGDfloat cx,sx;
+  SGDfloat cy,sy,yr;
+  SGDfloat cz,sz;
 
   // CONVERT QUATERNION TO MATRIX - I DON'T REALLY NEED ALL OF IT
 
   matrix[0][0] = SGD_ONE - (SGD_TWO * quat[SGD_Y] * quat[SGD_Y])
-                        - (SGD_TWO * quat[SGD_Z] * quat[SGD_Z]);
+                         - (SGD_TWO * quat[SGD_Z] * quat[SGD_Z]);
 //matrix[0][1] = (SGD_TWO * quat->x * quat->y) - (SGD_TWO * quat->w * quat->z);
 //matrix[0][2] = (SGD_TWO * quat->x * quat->z) + (SGD_TWO * quat->w * quat->y);
 
@@ -1174,7 +1197,7 @@ void sgdQuatToMatrix ( sgdMat4 dst, sgdQuat q )
 //from gamasutra.com
 //by nb@netcom.ca 
 void sgdMakeRotMat42( sgdMat4 m, sgdQuat quat ){
-  float wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
+  SGDfloat wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
 
   // calculate coefficients
   x2 = quat[SGD_X] + quat[SGD_X]; y2 = quat[SGD_Y] + quat[SGD_Y]; 
@@ -1200,10 +1223,10 @@ void sgdMakeRotMat42( sgdMat4 m, sgdQuat quat ){
 
 //from gamasutra.com
 //by nb@netcom.ca 
-void sgdSlerpQuat2( sgdQuat dst, const sgdQuat from, const sgdQuat to, const float t )
+void sgdSlerpQuat2( sgdQuat dst, const sgdQuat from, const sgdQuat to, const SGDfloat t )
 {
-	float           to1[4];
-	double        omega, cosom, sinom, scale0, scale1;
+	SGDfloat           to1[4];
+	SGDfloat        omega, cosom, sinom, scale0, scale1;
 
         // calc cosine
         cosom = from[SGD_X] * to[SGD_X] + from[SGD_Y] * to[SGD_Y] + from[SGD_Z] * to[SGD_Z]

@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgaShapes.h,v 1.7 2001/04/12 03:38:54 deca Exp $
+*/
+
 
 #ifndef _SSGASHAPES_H_
 #define _SSGASHAPES_H_  1
@@ -11,6 +34,7 @@ class ssgaShape : public ssgBranch
 protected:
   virtual void copy_from ( ssgaShape *src, int clone_flags ) ;
 
+  sgVec4 colour ;
   sgVec3 center ;
   sgVec3 size   ;
 
@@ -41,6 +65,7 @@ public:
   float *getCenter () { return center ; }
   float *getSize   () { return size   ; }
 
+  void setColour  ( sgVec4 c ) { sgCopyVec4 ( colour, c ) ; regenerate () ; }
   void setCenter  ( sgVec3 c ) { sgCopyVec3 ( center, c ) ; regenerate () ; }
   void setSize    ( sgVec3 s ) { sgCopyVec3 ( size  , s ) ; regenerate () ; }
   void setSize    ( float  s ) { sgSetVec3  ( size,s,s,s) ; regenerate () ; }
@@ -66,6 +91,9 @@ public:
   }
 
   virtual void regenerate () = 0 ;
+
+  virtual int load ( FILE * ) ;
+  virtual int save ( FILE * ) ;
 } ;
 
 
@@ -103,6 +131,9 @@ public:
 
   void setLatLongStyle ( int ll ) { latlong_style = ll ; regenerate () ; }
   int  isLatLongStyle  ()         { return latlong_style ; }
+
+  virtual int load ( FILE * ) ;
+  virtual int save ( FILE * ) ;
 } ;
 
 
@@ -123,6 +154,9 @@ public:
 
   void makeCapped ( int c ) { capped = c ; regenerate () ; }
   int  isCapped   ()        { return capped ; }
+
+  virtual int load ( FILE * ) ;
+  virtual int save ( FILE * ) ;
 } ;
 
 #endif

@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgLoadAC.cxx,v 1.19 2001/06/13 17:47:17 sjbaker Exp $
+*/
+
 
 #include "ssgLocal.h"
 
@@ -14,7 +37,7 @@ struct _ssgMaterial
 static int num_materials = 0 ;
 static sgVec3 *vtab = NULL ;
 
-static ssgHookFunc      current_hookFunc = NULL ;
+static ssgLoaderOptions* current_options = NULL ;
 static _ssgMaterial    *current_material = NULL ;
 static sgVec4          *current_colour   = NULL ;
 static ssgBranch       *current_branch   = NULL ;
@@ -97,7 +120,7 @@ int search ( Tag *tags, char *s )
   skip_spaces ( & s ) ;
 
   for ( int i = 0 ; tags[i].token != NULL ; i++ )
-    if ( _ssgStrNEqual ( tags[i].token, s, strlen(tags[i].token) ) )
+    if ( ulStrNEqual ( tags[i].token, s, strlen(tags[i].token) ) )
     {
       s += strlen ( tags[i].token ) ;
 
@@ -170,8 +193,14 @@ int do_obj_light ( char * ) { return OBJ_LIGHT ; }
 int last_num_kids    = -1 ;
 int current_flags    = -1 ;
 
-static ssgSimpleState *get_state ( _ssgMaterial *mat )
+static ssgState *get_state ( _ssgMaterial *mat )
 {
+  if (current_tfname != NULL) {
+    ssgState *st = current_options -> createState ( current_tfname ) ;
+    if ( st != NULL )
+      return st ;
+  }
+
   ssgSimpleState *st = new ssgSimpleState () ;
 
   st -> setMaterial ( GL_SPECULAR, mat -> spec ) ;
@@ -194,6 +223,13 @@ static ssgSimpleState *get_state ( _ssgMaterial *mat )
   {
     st -> disable ( GL_BLEND ) ;
     st -> setOpaque () ;
+  }
+
+  if (current_tfname != NULL) {
+    st -> setTexture( current_options -> createTexture(current_tfname) ) ;
+    st -> enable( GL_TEXTURE_2D ) ;
+  } else {
+    st -> disable( GL_TEXTURE_2D ) ;
   }
 
   return st ;
@@ -314,18 +350,16 @@ int do_data     ( char *s )
 
   fgetc ( loader_fd ) ;  /* Final RETURN */
 
-  if ( current_hookFunc != NULL )
+  ssgBranch *br = current_options -> createBranch ( current_data ) ;
+
+  if ( br != NULL )
   {
-    ssgBranch *br = (*current_hookFunc) ( current_data ) ;
-
-    if ( br != NULL )
-    {
-      current_branch -> addKid ( br ) ;
-      current_branch = br ;
-    }
-
-    current_data = NULL ;
+    current_branch -> addKid ( br ) ;
+    current_branch = br ;
   }
+
+  /* delete [] current_data ; */
+  current_data = NULL ;
 
   return PARSE_CONT ;
 }
@@ -507,20 +541,17 @@ int do_refs     ( char *s )
     vlist -> add ( vtab[vtx] ) ;
   }
 
-  if ( nrefs < 3 )
-  {
-    delete vlist ;
-    delete tlist ;
-    return PARSE_POP ;
-  }
-
   ssgNormalArray *nrm = new ssgNormalArray ( 1 ) ;
   ssgColourArray *col = new ssgColourArray ( 1 ) ;
 
   col -> add ( *current_colour ) ;
 
   sgVec3 nm ;
-  sgMakeNormal ( nm, vlist->get(0), vlist->get(1), vlist->get(2) ) ;
+
+  if ( nrefs < 3 )
+    sgSetVec3 ( nm, 0.0f, 0.0f, 1.0f ) ;
+  else
+    sgMakeNormal ( nm, vlist->get(0), vlist->get(1), vlist->get(2) ) ;
 
   nrm -> add ( nm ) ;
 
@@ -538,28 +569,15 @@ int do_refs     ( char *s )
                break ;
     }
 
-    ssgCreateData *data = new ssgCreateData ;
-    data->gltype = gltype ;
-    data->vl = vlist ;
-    data->nl = nrm ;
-    data->tl = tlist ;
-    data->cl = col ;
-    data->st = get_state ( current_material ) ;
+    ssgVtxTable* vtab = new ssgVtxTable ( gltype,
+      vlist, nrm, tlist, col ) ;
+    vtab -> setState ( get_state ( current_material ) ) ;
+    vtab -> setCullFace ( ! ( (current_flags>>4) & 0x02 ) ) ;
 
-    if ( current_tfname != NULL )
-    {
-      data->tfname = new char [ strlen ( current_tfname ) + 1 ] ;
-      strcpy ( data->tfname, current_tfname ) ;
-    }
-    else
-      data->tfname = NULL ;
+    ssgLeaf* leaf = current_options -> createLeaf ( vtab, 0 ) ;
 
-    data->cull_face = ! ( (current_flags>>4) & 0x02 ) ;
-   
-    ssgLeaf* vtab = (*_ssgCreateFunc) ( data ) ;
-
-    if ( vtab )
-       current_branch -> addKid ( vtab ) ;
+    if ( leaf )
+       current_branch -> addKid ( leaf ) ;
   }
 
   return PARSE_POP ;
@@ -573,9 +591,9 @@ int do_kids ( char *s )
 }
 
 
-ssgEntity *ssgLoadAC3D ( const char *fname, ssgHookFunc hookfunc )
+ssgEntity *ssgLoadAC3D ( const char *fname, const ssgLoaderOptions* options )
 {
-  ssgEntity *obj = ssgLoadAC ( fname, hookfunc ) ;
+  ssgEntity *obj = ssgLoadAC ( fname, options ) ;
 
   if ( obj == NULL )
     return NULL ;
@@ -593,23 +611,13 @@ ssgEntity *ssgLoadAC3D ( const char *fname, ssgHookFunc hookfunc )
   Original function for backwards compatibility...
 */
 
-ssgEntity *ssgLoadAC ( const char *fname, ssgHookFunc hookfunc )
+ssgEntity *ssgLoadAC ( const char *fname, const ssgLoaderOptions* options )
 {
-  current_hookFunc = hookfunc ;
-  (*_ssgCreateFunc) ( 0 ) ;  //reset
+  ssgSetCurrentOptions ( (ssgLoaderOptions*)options ) ;
+  current_options = ssgGetCurrentOptions () ;
 
   char filename [ 1024 ] ;
-
-  if ( fname [ 0 ] != '/' &&
-       _ssgModelPath != NULL &&
-       _ssgModelPath [ 0 ] != '\0' )
-  {
-    strcpy ( filename, _ssgModelPath ) ;
-    strcat ( filename, "/" ) ;
-    strcat ( filename, fname ) ;
-  }
-  else
-    strcpy ( filename, fname ) ;
+  current_options -> makeModelPath ( filename, fname ) ;
 
   num_materials = 0 ;
   vtab = NULL ;
@@ -652,7 +660,7 @@ ssgEntity *ssgLoadAC ( const char *fname, ssgHookFunc hookfunc )
     {
       firsttime = FALSE ;
 
-      if ( ! _ssgStrNEqual ( s, "AC3D", 4 ) )
+      if ( ! ulStrNEqual ( s, "AC3D", 4 ) )
       {
         fclose ( loader_fd ) ;
         ulSetError ( UL_WARNING, "ssgLoadAC: '%s' is not in AC3D format.", filename ) ;
@@ -663,7 +671,6 @@ ssgEntity *ssgLoadAC ( const char *fname, ssgHookFunc hookfunc )
       search ( top_tags, s ) ;
   }
 
-  (*_ssgCreateFunc) ( 0 ) ;  //reset
   delete current_tfname ;
   current_tfname = NULL ;
   delete [] vtab ;

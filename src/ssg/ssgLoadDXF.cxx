@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgLoadDXF.cxx,v 1.16 2001/04/12 03:38:15 deca Exp $
+*/
+
 //
 // DXF import for SSG/PLIB
 // Ported from IVCON by Dave McClurg (dpm@efn.org) in March-2000
@@ -12,7 +35,7 @@
 
 enum Modes { MODE_NONE, MODE_LINE, MODE_FACE, MODE_POLYLINE, MODE_VERTEX };
 
-static ssgHookFunc      current_hookFunc = NULL ;
+static const ssgLoaderOptions* current_options = NULL ;
 static ssgBranch       *current_branch   = NULL ;
 
 static int num_line;
@@ -428,23 +451,15 @@ initialize lists
   return TRUE;
 }
 
-ssgEntity *ssgLoadDXF ( const char *fname, ssgHookFunc hookfunc )
+ssgEntity *ssgLoadDXF ( const char *fname, const ssgLoaderOptions* options )
 {
-  current_hookFunc = hookfunc ;
+  ssgSetCurrentOptions ( (ssgLoaderOptions*)options ) ;
+  current_options = ssgGetCurrentOptions () ;
+
   current_branch   = NULL ;
 
   char filename [ 1024 ] ;
-
-  if ( fname [ 0 ] != '/' &&
-       _ssgModelPath != NULL &&
-       _ssgModelPath [ 0 ] != '\0' )
-  {
-    strcpy ( filename, _ssgModelPath ) ;
-    strcat ( filename, "/" ) ;
-    strcat ( filename, fname ) ;
-  }
-  else
-    strcpy ( filename, fname ) ;
+  current_options -> makeModelPath ( filename, fname ) ;
 
   FILE *loader_fd = fopen ( filename, "ra" ) ;
 

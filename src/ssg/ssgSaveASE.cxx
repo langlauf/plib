@@ -1,22 +1,40 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgSaveASE.cxx,v 1.10 2001/04/12 03:38:15 deca Exp $
+*/
+
 //
 // ASE ( 3DSMAX ASCII EXPORT Version 2.00 ) export for SSG/PLIB
 // Written by Dave McClurg (dpm@efn.org) in Feb-2000
 //
 
 #include "ssgLocal.h"
-
+#include "ssgLoaderWriterStuff.h"
 
 static FILE *save_fd ;
+static ssgSimpleStateArray gSSL;
 
-#define MAX_STATES 1000
-static ssgSimpleState** states ;
-static int num_states ;
-
-
-static void save_state ( int istate )
+static void save_state ( ssgSimpleState* st, int istate )
 {
-  ssgSimpleState* st = states[ istate ] ;
-
+  
   float* amb = st -> getMaterial ( GL_AMBIENT ) ;
   float* diff = st -> getMaterial ( GL_DIFFUSE ) ;
   float* spec = st -> getMaterial ( GL_SPECULAR ) ;
@@ -74,55 +92,31 @@ static void save_state ( int istate )
 static void save_states ()
 {
   fprintf ( save_fd, "*MATERIAL_LIST {\n" ) ;
-  fprintf ( save_fd, "  *MATERIAL_COUNT %d\n", num_states ) ;
+  fprintf ( save_fd, "  *MATERIAL_COUNT %d\n", gSSL.getNum() ) ;
   
-  for ( int i=0; i<num_states; i++ )
-    save_state ( i ) ;
+  for ( int i=0; i < gSSL.getNum(); i++ )
+    save_state ( gSSL.get(i) , i ) ;
   
   fprintf ( save_fd, "}\n" );
 }
 
 
-static int find_state ( ssgState* st )
+static void save_vtx_table ( ssgVtxTable *vt )
 {
-  for ( int i=0; i<num_states; i++ )
-    if ( states[ i ] == st )
-      return i ;
-  return -1 ;
-}
-
-
-static void get_states ( ssgEntity *e )
-{
-  if ( e -> isAKindOf ( SSG_TYPE_BRANCH ) )
+  GLenum mode = vt -> getPrimitiveType () ;
+  if ( mode != GL_TRIANGLES &&
+    mode != GL_TRIANGLE_FAN &&
+    mode != GL_TRIANGLE_STRIP )
   {
-    ssgBranch *br = (ssgBranch *) e ;
-
-    for ( int i = 0 ; i < br -> getNumKids () ; i++ )
-      get_states ( br -> getKid ( i ) ) ;
+    //only triangle export
+    return;
   }
-  else
-  if ( e -> isAKindOf ( SSG_TYPE_VTXTABLE ) )
-  {
-    ssgVtxTable* vt = (ssgVtxTable *) e ;
-    ssgState* st = vt -> getState () ;
-    if ( st && st -> isAKindOf ( SSG_TYPE_SIMPLESTATE ) )
-    {
-      ssgSimpleState* ss = (ssgSimpleState*) vt -> getState () ;
-      if ( find_state ( ss ) == -1 )
-        states[ num_states++ ] = ss ;
-    }
-  }
-}
 
-
-static void save_mesh ( ssgVtxTable *vt )
-{
   const char* name = vt->getPrintableName() ;
   int j ;
 
-  int istate = find_state ( vt->getState () ) ;
-  ssgSimpleState* st = ( istate != -1 )? states[ istate ]: 0;
+  int istate = gSSL.findIndex ( (ssgSimpleState*)vt->getState () ) ;
+  ssgSimpleState* st = ( istate != -1 )? gSSL.get( istate ): 0;
 
 /*
   Begin the big geometry block.
@@ -192,7 +186,8 @@ static void save_mesh ( ssgVtxTable *vt )
 /*
   Item MESH_NUMTVERTEX.
 */
-  if ( st && st -> isEnabled ( GL_TEXTURE_2D ) )
+  if ( st && st -> isEnabled ( GL_TEXTURE_2D ) &&
+    vt -> getNumTexCoords () == num_vert )
   {
     fprintf ( save_fd, "    *MESH_NUMTVERTEX %d\n", num_vert );
     fprintf ( save_fd, "    *MESH_TVERTLIST {\n" );
@@ -201,7 +196,7 @@ static void save_mesh ( ssgVtxTable *vt )
       sgVec2 tv ;
       sgCopyVec2 ( tv, vt->getTexCoord ( j ) ) ;
       fprintf ( save_fd, "      *MESH_TVERT %d %f %f %f\n",
-        j, tv[0], tv[1], 1.0f );
+        j, tv[0], 1.0f - tv[1], 1.0f );
     }
     fprintf ( save_fd, "    }\n" );
     fprintf ( save_fd, "    *MESH_NUMTVFACES %d\n", num_face );
@@ -260,7 +255,7 @@ static void save_mesh ( ssgVtxTable *vt )
   fprintf ( save_fd, "  *PROP_RECVSHADOW 1\n" );
   
   if ( st )
-    fprintf ( save_fd, "  *MATERIAL_REF %d\n", find_state ( st ) );
+    fprintf ( save_fd, "  *MATERIAL_REF %d\n", gSSL.findIndex ( st ) );
 
 /*
   Close the GEOM object.
@@ -275,14 +270,21 @@ static void save_geom ( ssgEntity *e )
   {
     ssgBranch *br = (ssgBranch *) e ;
 
-    for ( int i = 0 ; i < br -> getNumKids () ; i++ )
-      save_geom ( br -> getKid ( i ) ) ;
+    if ( br -> isAKindOf ( SSG_TYPE_SELECTOR ) )
+    {
+      save_geom ( br -> getKid ( 0 ) ) ;
+    }
+    else
+    {
+      for ( int i = 0 ; i < br -> getNumKids () ; i++ )
+        save_geom ( br -> getKid ( i ) ) ;
+    }
   }
   else
   if ( e -> isAKindOf ( SSG_TYPE_VTXTABLE ) )
   {
     ssgVtxTable *vt = (ssgVtxTable *) e ;
-    save_mesh ( vt ) ;
+    save_vtx_table ( vt ) ;
   }
 }
 
@@ -310,18 +312,13 @@ int ssgSaveASE ( FILE* fileout, ssgEntity *ent )
   fprintf ( save_fd, "  *SCENE_AMBIENT_STATIC 0.0431 0.0431 0.0431\n" );
   fprintf ( save_fd, "}\n" );
 
-  states = new ssgSimpleState*[ MAX_STATES ] ;
-  num_states = 0 ;
-
-  get_states ( ent ) ;
+  
+  gSSL.collect ( ent ) ;
   save_states () ;
   save_geom ( ent ) ;  
-  
+	gSSL.removeAll();  
+
   fflush ( save_fd ) ;
-  
-  delete[] states ;
-  states = 0 ;
-  num_states = 0 ;
   
   return TRUE ;
 }

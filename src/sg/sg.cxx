@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: sg.cxx,v 1.14 2001/05/21 03:44:24 sjbaker Exp $
+*/
+
 
 #include "sg.h"
 
@@ -59,7 +82,43 @@ void sgMakeRotMat4( sgMat4 mat, const SGfloat angle, const sgVec3 axis )
   mat[3][3] = SG_ONE ;
 }
 
-void sgMakeLookAtMat4 ( sgMat4 dst, const sgVec3 eye, const sgVec3 center, const sgVec3 up )
+
+
+ 
+void sgMakePickMatrix( sgMat4 mat, sgFloat x, sgFloat y,
+                       sgFloat width, sgFloat height, sgVec4 viewport )
+{
+   sgFloat sx =   viewport[2] / width  ;
+   sgFloat sy =   viewport[3] / height ;
+   sgFloat tx = ( viewport[2] + SG_TWO * (viewport[0] - x) ) / width  ;
+   sgFloat ty = ( viewport[3] + SG_TWO * (viewport[1] - y) ) / height ;
+ 
+   mat[0][0] =    sx   ;
+   mat[0][1] = SG_ZERO ;
+   mat[0][2] = SG_ZERO ;
+   mat[0][3] = SG_ZERO ;
+
+   mat[1][0] = SG_ZERO ;
+   mat[1][1] =    sy   ;
+   mat[1][2] = SG_ZERO ;
+   mat[1][3] = SG_ZERO ;
+
+   mat[2][0] = SG_ZERO ;
+   mat[2][1] = SG_ZERO ;
+   mat[2][2] = SG_ONE  ;
+   mat[2][3] = SG_ZERO ;
+
+   mat[3][0] =    tx   ;
+   mat[3][1] =    ty   ;
+   mat[3][2] = SG_ZERO ;
+   mat[3][3] = SG_ONE  ;
+}                                                                               
+
+
+
+void sgMakeLookAtMat4 ( sgMat4 dst, const sgVec3 eye,
+                                    const sgVec3 center,
+                                    const sgVec3 up )
 {
   // Caveats:
   // 1) In order to compute the line of sight, the eye point must not be equal
@@ -88,13 +147,49 @@ void sgMakeLookAtMat4 ( sgMat4 dst, const sgVec3 eye, const sgVec3 center, const
   sgNormaliseVec3 ( z ) ;
 
   /* Build the matrix */
-#define M(row,col)  dst[row][col]
-  M(0,0) = x[0];    M(0,1) = x[1];    M(0,2) = x[2];    M(0,3) = 0.0;
-  M(1,0) = y[0];    M(1,1) = y[1];    M(1,2) = y[2];    M(1,3) = 0.0;
-  M(2,0) = z[0];    M(2,1) = z[1];    M(2,2) = z[2];    M(2,3) = 0.0;
-  M(3,0) = eye[0];  M(3,1) = eye[1];  M(3,2) = eye[2];  M(3,3) = 1.0;
-#undef M
+  sgSetVec4 ( dst[0], x[0], x[1], x[2], SG_ZERO ) ;
+  sgSetVec4 ( dst[1], y[0], y[1], y[2], SG_ZERO ) ;
+  sgSetVec4 ( dst[2], z[0], z[1], z[2], SG_ZERO ) ;
+  sgSetVec4 ( dst[3], eye[0], eye[1], eye[2], SG_ONE ) ;
 }
+
+// -dw- inconsistent linkage!
+float sgTriArea( sgVec3 p0, sgVec3 p1, sgVec3 p2 )
+{
+  /* 
+    From comp.graph.algorithms FAQ
+	2A(P) = abs(N.(sum_{i=0}^{n-1}(v_i x v_{i+1})))
+	This is an optimized version for a triangle
+	but easily extended for planar polygon's with more sides
+	by passing in the number of sides and the vv array
+	sgTriArea( int nsides, float **vv )
+	and changing the normal calculation and the for loop appropriately
+	sgMakeNormal( norm, vv[0], vv[1], vv[2] )
+	for( int i=0; i<n; i++ )
+  */
+
+	sgVec3 sum;
+	sgZeroVec3( sum );
+
+	sgVec3 norm;
+	sgMakeNormal( norm, p0, p1, p2 );
+
+	float *vv[3];
+	vv[0] = p0;
+	vv[1] = p1;
+	vv[2] = p2;
+
+	for( int i=0; i<3; i++ ) {
+		int ii = (i+1) % 3;
+		sum[0] += (vv[i][1] * vv[ii][2] - vv[i][2] * vv[ii][1]) ;
+		sum[1] += (vv[i][2] * vv[ii][0] - vv[i][0] * vv[ii][2]) ;
+		sum[2] += (vv[i][0] * vv[ii][1] - vv[i][1] * vv[ii][0]) ;
+	}
+
+	float area = sgAbs(sgScalarProductVec3( norm, sum ));
+	return( area / 2.0f );
+}
+
 
 /*********************\
 *    sgBox routines   *
@@ -360,7 +455,7 @@ void sgFrustum::update ()
 {
   if ( fabs ( ffar - nnear ) < 0.1 )
   {
-    fprintf ( stderr, "sgFrustum: Can't support depth of view <0.1 units.\n");
+    ulSetError ( UL_WARNING, "sgFrustum: Can't support depth of view <0.1 units.");
     return ;
   }
 
@@ -368,7 +463,7 @@ void sgFrustum::update ()
   {
     if ( fabs ( hfov ) < 0.1 || fabs ( vfov ) < 0.1 )
     {
-      fprintf ( stderr, "sgFrustum: Can't support fields of view narrower than 0.1 degrees.\n");
+      ulSetError ( UL_WARNING, "sgFrustum: Can't support fields of view narrower than 0.1 degrees.");
       return ;
     }
 
@@ -551,7 +646,7 @@ int sgFrustum::contains ( const sgSphere *s ) const
 
 void sgMakeCoordMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const SGfloat z, const SGfloat h, const SGfloat p, const SGfloat r )
 {
-  double ch, sh, cp, sp, cr, sr, srsp, crsp, srcp ;
+  SGfloat ch, sh, cp, sp, cr, sr, srsp, crsp, srcp ;
 
   if ( h == SG_ZERO )
   {
@@ -560,8 +655,8 @@ void sgMakeCoordMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const SGfloat
   }
   else
   {
-    sh = (SGfloat) sin( (double)( h * SG_DEGREES_TO_RADIANS )) ;
-    ch = (SGfloat) cos( (double)( h * SG_DEGREES_TO_RADIANS )) ;
+    sh = (SGfloat) sin( h * SG_DEGREES_TO_RADIANS ) ;
+    ch = (SGfloat) cos( h * SG_DEGREES_TO_RADIANS ) ;
   }
 
   if ( p == SG_ZERO )
@@ -571,8 +666,8 @@ void sgMakeCoordMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const SGfloat
   }
   else
   {
-    sp = sin( (double)( p * SG_DEGREES_TO_RADIANS )) ;
-    cp = cos( (double)( p * SG_DEGREES_TO_RADIANS )) ;
+    sp = (SGfloat) sin( p * SG_DEGREES_TO_RADIANS ) ;
+    cp = (SGfloat) cos( p * SG_DEGREES_TO_RADIANS ) ;
   }
 
   if ( r == SG_ZERO )
@@ -585,8 +680,8 @@ void sgMakeCoordMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const SGfloat
   }
   else
   {
-    sr   = sin( (double)( r * SG_DEGREES_TO_RADIANS )) ;
-    cr   = cos( (double)( r * SG_DEGREES_TO_RADIANS )) ;
+    sr   = (SGfloat) sin( r * SG_DEGREES_TO_RADIANS ) ;
+    cr   = (SGfloat) cos( r * SG_DEGREES_TO_RADIANS ) ;
     srsp = sr * sp ;
     crsp = cr * sp ;
     srcp = sr * cp ;
@@ -644,7 +739,7 @@ void sgSetCoord ( sgCoord *dst, const sgMat4 src )
 
   if ( s <= 0.00001 )
   {
-    fprintf ( stderr, "sgMat4ToCoord: ERROR - Bad Matrix.\n" ) ;
+    ulSetError ( UL_WARNING, "sgMat4ToCoord: ERROR - Bad Matrix." ) ;
     sgSetVec3 ( dst -> hpr, SG_ZERO, SG_ZERO, SG_ZERO ) ;
     return ;
   }
@@ -808,7 +903,7 @@ void sgInvertMat4 ( sgMat4 dst, const sgMat4 src )
     // if ( val == SG_ZERO)
     if ( fabs(val) <= FLT_EPSILON )
     {
-      fprintf ( stderr, "sg: ERROR - Singular matrix, no inverse!\n" ) ;
+      ulSetError ( UL_WARNING, "sg: ERROR - Singular matrix, no inverse!" ) ;
       sgMakeIdentMat4 ( dst ) ;  /* Do *something* */
       return;
     }
@@ -845,17 +940,17 @@ void sgXformVec3 ( sgVec3 dst, const sgVec3 src, const sgMat4 mat )
   SGfloat t1 = src[ 1 ] ;
   SGfloat t2 = src[ 2 ] ;
 
-  dst[0] = ( t0 * mat[ 0 ][ 0 ] +
-             t1 * mat[ 1 ][ 0 ] +
-             t2 * mat[ 2 ][ 0 ] ) ;
+  dst[0] = t0 * mat[ 0 ][ 0 ] +
+           t1 * mat[ 1 ][ 0 ] +
+           t2 * mat[ 2 ][ 0 ] ;
 
-  dst[1] = ( t0 * mat[ 0 ][ 1 ] +
-             t1 * mat[ 1 ][ 1 ] +
-             t2 * mat[ 2 ][ 1 ] ) ;
+  dst[1] = t0 * mat[ 0 ][ 1 ] +
+           t1 * mat[ 1 ][ 1 ] +
+           t2 * mat[ 2 ][ 1 ] ;
 
-  dst[2] = ( t0 * mat[ 0 ][ 2 ] +
-             t1 * mat[ 1 ][ 2 ] +
-             t2 * mat[ 2 ][ 2 ] ) ;
+  dst[2] = t0 * mat[ 0 ][ 2 ] +
+           t1 * mat[ 1 ][ 2 ] +
+           t2 * mat[ 2 ][ 2 ] ;
 }
 
 
@@ -865,20 +960,20 @@ void sgXformPnt3 ( sgVec3 dst, const sgVec3 src, const sgMat4 mat )
   SGfloat t1 = src[ 1 ] ;
   SGfloat t2 = src[ 2 ] ;
 
-  dst[0] = ( t0 * mat[ 0 ][ 0 ] +
-             t1 * mat[ 1 ][ 0 ] +
-             t2 * mat[ 2 ][ 0 ] +
-                  mat[ 3 ][ 0 ] ) ;
+  dst[0] = t0 * mat[ 0 ][ 0 ] +
+           t1 * mat[ 1 ][ 0 ] +
+           t2 * mat[ 2 ][ 0 ] +
+                mat[ 3 ][ 0 ] ;
 
-  dst[1] = ( t0 * mat[ 0 ][ 1 ] +
-             t1 * mat[ 1 ][ 1 ] +
-             t2 * mat[ 2 ][ 1 ] +
-                  mat[ 3 ][ 1 ] ) ;
+  dst[1] = t0 * mat[ 0 ][ 1 ] +
+           t1 * mat[ 1 ][ 1 ] +
+           t2 * mat[ 2 ][ 1 ] +
+                mat[ 3 ][ 1 ] ;
 
-  dst[2] = ( t0 * mat[ 0 ][ 2 ] +
-             t1 * mat[ 1 ][ 2 ] +
-             t2 * mat[ 2 ][ 2 ] +
-                  mat[ 3 ][ 2 ] ) ;
+  dst[2] = t0 * mat[ 0 ][ 2 ] +
+           t1 * mat[ 1 ][ 2 ] +
+           t2 * mat[ 2 ][ 2 ] +
+                mat[ 3 ][ 2 ] ;
 }
 
 
@@ -889,25 +984,25 @@ void sgXformPnt4 ( sgVec4 dst, const sgVec4 src, const sgMat4 mat )
   SGfloat t2 = src[ 2 ] ;
   SGfloat t3 = src[ 3 ] ;
 
-  dst[0] = ( t0 * mat[ 0 ][ 0 ] +
-             t1 * mat[ 1 ][ 0 ] +
-             t2 * mat[ 2 ][ 0 ] +
-             t3 * mat[ 3 ][ 0 ] ) ;
+  dst[0] = t0 * mat[ 0 ][ 0 ] +
+           t1 * mat[ 1 ][ 0 ] +
+           t2 * mat[ 2 ][ 0 ] +
+           t3 * mat[ 3 ][ 0 ] ;
 
-  dst[1] = ( t0 * mat[ 0 ][ 1 ] +
-             t1 * mat[ 1 ][ 1 ] +
-             t2 * mat[ 2 ][ 1 ] +
-             t3 * mat[ 3 ][ 1 ] ) ;
+  dst[1] = t0 * mat[ 0 ][ 1 ] +
+           t1 * mat[ 1 ][ 1 ] +
+           t2 * mat[ 2 ][ 1 ] +
+           t3 * mat[ 3 ][ 1 ] ;
 
-  dst[2] = ( t0 * mat[ 0 ][ 2 ] +
-             t1 * mat[ 1 ][ 2 ] +
-             t2 * mat[ 2 ][ 2 ] +
-             t3 * mat[ 3 ][ 2 ] ) ;
+  dst[2] = t0 * mat[ 0 ][ 2 ] +
+           t1 * mat[ 1 ][ 2 ] +
+           t2 * mat[ 2 ][ 2 ] +
+           t3 * mat[ 3 ][ 2 ] ;
 
-  dst[3] = ( t0 * mat[ 0 ][ 3 ] +
-             t1 * mat[ 1 ][ 3 ] +
-             t2 * mat[ 2 ][ 3 ] +
-             t3 * mat[ 3 ][ 3 ] ) ;
+  dst[3] = t0 * mat[ 0 ][ 3 ] +
+           t1 * mat[ 1 ][ 3 ] +
+           t2 * mat[ 2 ][ 3 ] +
+           t3 * mat[ 3 ][ 3 ] ;
 }
 
 
@@ -1031,7 +1126,7 @@ void sgMatrixToQuat( sgQuat quat, sgMat4 m )
     if (m[2][2] > m[i][i]) i = 2;
     j = nxt[i];
     k = nxt[j];
-    s = sqrt ((m[i][i] - (m[j][j] + m[k][k])) + SG_ONE);
+    s = (SGfloat) sqrt ((m[i][i] - (m[j][j] + m[k][k])) + SG_ONE);
     q[i] = s * SG_HALF;
             
     if (s != SG_ZERO) s = SG_HALF / s;
@@ -1122,10 +1217,10 @@ void sgEulerToQuat(sgQuat quat, sgVec3 ypr )
 
 void sgQuatToEuler( sgVec3 euler, const sgQuat quat )
 {
-  float matrix[3][3];
-  float cx,sx;
-  float cy,sy,yr;
-  float cz,sz;
+  SGfloat matrix[3][3];
+  SGfloat cx,sx;
+  SGfloat cy,sy,yr;
+  SGfloat cz,sz;
 
   // CONVERT QUATERNION TO MATRIX - I DON'T REALLY NEED ALL OF IT
 
@@ -1148,7 +1243,7 @@ void sgQuatToEuler( sgVec3 euler, const sgQuat quat )
                         - (SG_TWO * quat[SG_Y] * quat[SG_Y]);
 
   sy = -matrix[2][0];
-  cy = sqrt(SG_ONE - (sy * sy));
+  cy = (SGfloat)sqrt(SG_ONE - (sy * sy));
   yr = (SGfloat)atan2(sy,cy);
   euler[1] = yr * SG_RADIANS_TO_DEGREES ;
 
@@ -1211,7 +1306,7 @@ void sgQuatToMatrix ( sgMat4 dst, sgQuat q )
 //from gamasutra.com
 //by nb@netcom.ca 
 void sgMakeRotMat42( sgMat4 m, sgQuat quat ){
-  float wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
+ SGfloat wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
 
   // calculate coefficients
   x2 = quat[SG_X] + quat[SG_X]; y2 = quat[SG_Y] + quat[SG_Y]; 
@@ -1233,53 +1328,61 @@ void sgMakeRotMat42( sgMat4 m, sgQuat quat ){
   m[3][2] = 0;			m[3][3] = 1;
 }
 
-
-
 //from gamasutra.com
 //by nb@netcom.ca 
-void sgSlerpQuat2( sgQuat dst, const sgQuat from, const sgQuat to, const float t )
+
+void sgSlerpQuat2( sgQuat dst, const sgQuat from, const sgQuat to, const SGfloat t )
 {
-	float           to1[4];
-	double        omega, cosom, sinom, scale0, scale1;
+  SGfloat to1[4];
+  SGfloat omega, cosom, sinom, scale0, scale1;
 
-        // calc cosine
-        cosom = from[SG_X] * to[SG_X] + from[SG_Y] * to[SG_Y] + from[SG_Z] * to[SG_Z]
-			       + from[SG_W] * to[SG_W];
+  // calc cosine
+  cosom = from[SG_X] * to[SG_X] +
+          from[SG_Y] * to[SG_Y] +
+          from[SG_Z] * to[SG_Z] +
+          from[SG_W] * to[SG_W];
 
-        // adjust signs (if necessary)
-        if ( cosom <SG_ZERO  ){ 
-			cosom = -cosom; 
-			to1[0] = - to[SG_X];
-		to1[1] = - to[SG_Y];
-		to1[2] = - to[SG_Z];
-		to1[3] = - to[SG_W];
-        } else  {
-		to1[0] = to[SG_X];
-		to1[1] = to[SG_Y];
-		to1[2] = to[SG_Z];
-		to1[3] = to[SG_W];
-        }
+  // adjust signs (if necessary)
 
-        // calculate coefficients
+  if ( cosom < SG_ZERO )
+  { 
+    cosom = -cosom; 
+    to1[0] = - to[SG_X];
+    to1[1] = - to[SG_Y];
+    to1[2] = - to[SG_Z];
+    to1[3] = - to[SG_W];
+  }
+  else
+  {
+    to1[0] = to[SG_X];
+    to1[1] = to[SG_Y];
+    to1[2] = to[SG_Z];
+    to1[3] = to[SG_W];
+  }
+
+  // calculate coefficients
 #define DELTA SG_ZERO 
-       if ( (SG_ONE- cosom) > DELTA ) {
-                // standard case (slerp)
-                omega = acos(cosom);
-                sinom = sin(omega);
-                scale0 = sin((SG_ONE- t) * omega) / sinom;
-                scale1 = sin(t * omega) / sinom;
-
-        } else {        
+  if ( (SG_ONE- cosom) > DELTA )
+  {
+    // standard case (slerp)
+    omega = (SGfloat) acos(cosom);
+    sinom = (SGfloat) sin(omega);
+    scale0 = (SGfloat) sin((SG_ONE- t) * omega) / sinom;
+    scale1 = (SGfloat) sin(t * omega) / sinom;
+  }
+  else
+  {        
     // "from" and "to" quaternions are very close 
-	    //  ... so we can do a linear interpolation
-                scale0 = SG_ONE- t;
-                scale1 = t;
-        }
-	// calculate final values
-	dst[SG_X] = scale0 * from[SG_X] + scale1 * to1[0];
-	dst[SG_Y] = scale0 * from[SG_Y] + scale1 * to1[1];
-	dst[SG_Z] = scale0 * from[SG_Z] + scale1 * to1[2];
-	dst[SG_W] = scale0 * from[SG_W] + scale1 * to1[3];
+    //  ... so we can do a linear interpolation
+    scale0 = SG_ONE- t;
+    scale1 = t;
+  }
+
+  // calculate final values
+  dst[SG_X] = scale0 * from[SG_X] + scale1 * to1[0];
+  dst[SG_Y] = scale0 * from[SG_Y] + scale1 * to1[1];
+  dst[SG_Z] = scale0 * from[SG_Z] + scale1 * to1[2];
+  dst[SG_W] = scale0 * from[SG_W] + scale1 * to1[3];
 }
 
 void sgSlerpQuat( sgQuat dst, const sgQuat from, const sgQuat to, const SGfloat t )

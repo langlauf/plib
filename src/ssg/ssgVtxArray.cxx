@@ -1,7 +1,53 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgVtxArray.cxx,v 1.18 2001/05/21 03:44:24 sjbaker Exp $
+*/
+
 
 #include "ssgLocal.h"
 
 #define HL_DELTA 0.04f
+
+void ssgVtxArray::copy_from ( ssgVtxArray *src, int clone_flags )
+{
+  ssgVtxTable::copy_from ( src, clone_flags ) ;
+
+  ssgDeRefDelete ( indices ) ;
+
+  if ( src->indices != NULL && ( clone_flags & SSG_CLONE_GEOMETRY ) )
+    indices = (ssgIndexArray *)( src -> indices -> clone ( clone_flags )) ;
+  else
+    indices = src -> indices ;
+
+  if ( indices != NULL )
+    indices -> ref () ;
+}
+
+ssgBase *ssgVtxArray::clone ( int clone_flags )
+{
+  ssgVtxArray *b = new ssgVtxArray ;
+  b -> copy_from ( this, clone_flags ) ;
+  return b ;
+}
+
 
 ssgVtxArray::ssgVtxArray () : ssgVtxTable()
 {
@@ -95,7 +141,6 @@ void ssgVtxArray::drawHighlight ( sgVec4 colour, int i )
 
 
 
-#ifdef _SSG_USE_PICK
 void ssgVtxArray::pick ( int baseName )
 {
   int i ;
@@ -126,7 +171,6 @@ void ssgVtxArray::pick ( int baseName )
 
   glPopClientAttrib ( ) ;
 }
-#endif // #ifdef _SSG_USE_PICK
 
 
 void ssgVtxArray::draw_geometry ()
@@ -184,7 +228,7 @@ void ssgVtxArray::getTriangle ( int n, short *v1, short *v2, short *v3 )
 
 int ssgVtxArray::getNumTriangles ()
 {
-  switch ( getGLtype () )
+  switch ( getPrimitiveType () )
   {
     case GL_POLYGON :
     case GL_TRIANGLE_FAN :
@@ -205,30 +249,97 @@ int ssgVtxArray::getNumTriangles ()
     default : break ;
   }
 
-  return 0 ;   /* Should never get here...but you never know! */
+  return 0 ;   
+}
+
+int  ssgVtxArray::getNumLines ()
+{
+  switch ( getPrimitiveType () )
+  {
+    case GL_POLYGON :
+    case GL_TRIANGLE_FAN :
+    case GL_TRIANGLES :
+    case GL_TRIANGLE_STRIP :
+    case GL_QUADS :
+    case GL_QUAD_STRIP :
+    case GL_POINTS :
+      return 0;
+		case GL_LINES :   
+			// wk: FIXME: check the 3 following formulas. I don't have an OpenGL bokk at hand currently :-(
+			return getNumIndices ()/2;
+    case GL_LINE_LOOP :
+    	return getNumIndices ();
+    case GL_LINE_STRIP :
+    	return getNumIndices ()-1;
+    default : break ;
+  }
+  assert(false); /* Should never get here  */
+  return 0 ;   
+}
+
+void ssgVtxArray::getLine ( int n, short *v1, short *v2 )
+{ 
+	assert( n>=0 );
+  switch ( getPrimitiveType () )
+  {
+    case GL_POLYGON :
+    case GL_TRIANGLE_FAN :
+    case GL_TRIANGLES :
+    case GL_TRIANGLE_STRIP :
+    case GL_QUADS :
+    case GL_QUAD_STRIP :
+    case GL_POINTS :
+      assert(false);
+		case GL_LINES :   
+			// wk: FIXME: check the 3 following formulas. I don't have an OpenGL bokk at hand currently :-(
+			assert ( 2*n+1 < getNumIndices() );
+			*v1 = *getIndex( 2*n );
+			*v2 = *getIndex( 2*n+1 );
+			return ;
+    case GL_LINE_LOOP :
+			assert ( n < getNumIndices() );
+			*v1 = *getIndex( n );
+			if ( n == getNumIndices()-1 )
+			  *v2 = *getIndex( 0 );
+			else
+				*v2 = *getIndex( n+1 );
+			return ;
+    case GL_LINE_STRIP :
+    	assert ( n < getNumIndices()-1 );
+			*v1 = *getIndex( n );
+			*v2 = *getIndex( n+1 );
+			return;
+    default :
+			break ;
+  }
+  assert(false); /* Should never get here  */
+  return ;   
 }
 
 
-
-void ssgVtxArray::print ( FILE *fd, char *indent )
+void ssgVtxArray::print ( FILE *fd, char *indent, int how_much )
 {
-  ssgVtxTable::print ( fd, indent ) ;
-  indices   -> print ( fd, indent ) ;
+	char in [ 100 ] ;
+
+	if ( how_much == 0 ) 
+		return; // dont print anything
+  
+  sprintf ( in, "%s  ", indent );
+	
+	// wk: Why were these 2 lines commented out?:
+  ssgVtxTable::print ( fd, indent, how_much ) ;
+  indices   -> print ( fd, in, how_much ) ;
 }
 
 
 int ssgVtxArray::load ( FILE *fd )
 {
-  if ( ! ssgVtxTable::load(fd) )
+  if ( ! ssgVtxTable::load(fd) ||
+       ! _ssgLoadObject ( fd, (ssgBase **) &indices, ssgTypeIndexArray () ) )
     return FALSE ;
 
-  indices = new ssgIndexArray () ; indices -> ref () ;
-
-  if ( ! indices -> load ( fd ) )
-  {
-    ulSetError ( UL_WARNING, "loadSSG: Failed to read index array." ) ;        
-    return FALSE ;
-  }
+  if ( indices != NULL)
+    indices -> ref () ;
 
   return TRUE ;
 }
@@ -236,16 +347,9 @@ int ssgVtxArray::load ( FILE *fd )
 
 int ssgVtxArray::save ( FILE *fd )
 {
-  ssgVtxTable::save(fd) ;
-
-  if ( ! indices -> save ( fd ) )
-  {
-    ulSetError ( UL_WARNING, "saveSSG: Failed to write index array." ) ;        
+  if ( ! ssgVtxTable::save(fd) ||
+       ! _ssgSaveObject ( fd, indices ) )
     return FALSE ;
-  }
-
+   
   return TRUE ;
 }
-
-
-

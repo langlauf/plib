@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgSaveOBJ.cxx,v 1.8 2001/04/12 03:38:15 deca Exp $
+*/
+
 //
 // Wavefront OBJ export for SSG/PLIB
 // Ported from IVCON by Dave McClurg (dpm@efn.org) in March-2000
@@ -6,19 +29,21 @@
 #include "ssgLocal.h"
 
 static FILE *fileout ;
+static int total_vert ;
+static int total_normal ;
 
 static void save_vtx_table ( ssgVtxTable *vt )
 {
-  int   total_vert = 0 ;
-  int   total_normal = 0 ;
   float w = 1.0f ;
+	short iv1, iv2;
 
-  GLenum mode = vt -> getGLtype () ;
-  if ( mode == GL_LINES )
+  GLenum mode = vt -> getPrimitiveType () ;
+	//fprintf ( fileout, "g test\n" ); wk: Pfusch fixme: is this necessary? NIV135
+  
+  if (( mode == GL_LINES ) || ( mode == GL_LINE_LOOP) || ( mode == GL_LINE_STRIP))
   {
     int num_vert = vt -> getNumVertices () ;
-    num_vert = num_vert - ( num_vert & 1 ) ; //discard odd vertex
-
+    
     // V: vertex coordinates. 
     for ( int i = 0; i < num_vert; i++ ) {
       sgVec3 vert ;
@@ -27,10 +52,13 @@ static void save_vtx_table ( ssgVtxTable *vt )
         vert[0], vert[1], vert[2], w );
     }
 
+
+  
     // L: lines. 
     fprintf ( fileout, "\n" );
-    for ( int j = 0; j < num_vert; j += 2 )
-    {
+		int num_lines = vt -> getNumLines () ;
+    for ( int j = 0; j < num_lines; j ++ )
+    { vt -> getLine ( j, &iv1, &iv2 ) ;
       fprintf ( fileout, "l %d %d\n",
          total_vert + j + 1,
          total_vert + j + 2 );
@@ -165,6 +193,9 @@ int ssgSaveOBJ ( const char *filename, ssgEntity *ent )
   fprintf ( fileout, "\n" );
   fprintf ( fileout, "g SSG\n" );
   fprintf ( fileout, "\n" );
+
+  total_vert = 0 ;
+  total_normal = 0 ;
 
   save_entities ( ent ) ;
 

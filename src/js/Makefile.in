@@ -68,6 +68,8 @@ VERSION = @VERSION@
 
 include_HEADERS = js.h
 
+INCLUDES =  -I$(top_srcdir)/src/util
+
 EXTRA_DIST = js.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 

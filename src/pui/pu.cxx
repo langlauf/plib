@@ -1,5 +1,35 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: pu.cxx,v 1.17 2001/05/16 16:51:40 mcdave Exp $
+*/
 
 #include "puLocal.h"
+
+#ifndef WIN32
+#  ifndef macintosh
+#    include <GL/glx.h>
+#  else
+#    include <agl.h>
+#  endif
+#endif
 
 #ifdef PU_NOT_USING_GLUT
 #include <iostream.h>
@@ -29,10 +59,10 @@ static int fontBase = 0;
 static int fontSize[257];
 #else
 
-static bool openGLSize = false;
+static int openGLSize = 0 ;
 
 
-void puSetResizeMode ( bool mode ) {
+void puSetResizeMode ( int mode ) {
   openGLSize = mode ;
 }
 
@@ -46,25 +76,25 @@ int puGetWindow ()
 int puGetWindowHeight ()
 {
   if ( ! openGLSize )
-	return glutGet ( (GLenum) GLUT_WINDOW_HEIGHT ) ;
+        return glutGet ( (GLenum) GLUT_WINDOW_HEIGHT ) ;
   else
-	return puWindowHeight ;
+        return puWindowHeight ;
 }
 
 
 int puGetWindowWidth ()
 {
   if ( ! openGLSize )
-	return glutGet ( (GLenum) GLUT_WINDOW_WIDTH ) ;
+        return glutGet ( (GLenum) GLUT_WINDOW_WIDTH ) ;
   else
-	return puWindowWidth ;
+        return puWindowWidth ;
 }
 
 
 void puSetWindowSize ( int width, int height )
 {
   if ( ! openGLSize )
-  fprintf ( stderr, "PUI: puSetWindowSize shouldn't be used with GLUT.\n" ) ;
+    ulSetError ( UL_WARNING, "PUI: puSetWindowSize shouldn't be used with GLUT." ) ;
   else
   {
     puWindowWidth  = width  ;
@@ -85,6 +115,19 @@ puColour _puDefaultColourTable[] =
   { 0.0f, 0.0f, 0.0f, 0.0f }  /* ILLEGAL */
 } ;
  
+
+static int glIsValidContext ()
+{
+#if defined(CONSOLE)
+  return true ;
+#elif defined(WIN32)
+  return ( wglGetCurrentContext () != NULL ) ;
+#elif defined(macintosh)
+  return ( aglGetCurrentContext() != NULL ) ;
+#else
+  return ( glXGetCurrentContext() != NULL ) ;
+#endif
+}
 
 puValue::~puValue () {}  
 
@@ -168,7 +211,7 @@ void puDeleteObject ( puObject *ob )
 
 static void puCleanUpJunk ()
 {
-  // Step through the linked list of objects to delete, removing them.
+  /* Step through the linked list of objects to delete, removing them. */
   while ( objects_to_delete != NULL )
   {
     puObject *next_ob = objects_to_delete ->next ;
@@ -178,22 +221,28 @@ static void puCleanUpJunk ()
 }
 
 
+static puObject *active_widget ;   /* Widget which is currently receiving user input */
+static char *input_paste_buffer ;  /* Cut/Copy/Paste buffer for input widgets */
+
 void puInit ( void )
 {
   static int firsttime = TRUE ;
 
   if ( firsttime )
   {
-    if ( glGetCurrentContext () == NULL )
+    if ( glIsValidContext () == 0 )
     {
-      fprintf ( stderr,
-      "FATAL: puInit called without a valid OpenGL context.\n");
-      exit ( 1 ) ;
+      ulSetError ( UL_FATAL,
+        "puInit called without a valid OpenGL context.");
     }
 
     puInterface *base_interface = new puInterface ( 0, 0 ) ;
     puPushGroup         ( base_interface ) ;
     puPushLiveInterface ( base_interface ) ;
+
+    active_widget = NULL ;
+    input_paste_buffer = NULL ;
+
     firsttime = FALSE ;
 #ifdef PU_NOT_USING_GLUT
 
@@ -215,14 +264,14 @@ void puInit ( void )
       LPVOID lpMsgBuf ;
 
       FormatMessage ( FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	              FORMAT_MESSAGE_FROM_SYSTEM,
-	              NULL,
-	              GetLastError(),
-	              MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-	              (LPTSTR) &lpMsgBuf,
-	              0, NULL ) ;
+                      FORMAT_MESSAGE_FROM_SYSTEM,
+                      NULL,
+                      GetLastError(),
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                      (LPTSTR) &lpMsgBuf,
+                      0, NULL ) ;
 
-      fprintf ( stderr, "PUI: Error: %s\n", (char *)lpMsgBuf ) ;
+      ulSetError ( UL_WARNING, "PUI: Error: %s", (char *)lpMsgBuf ) ;
       LocalFree ( lpMsgBuf ) ;
     }
 
@@ -363,3 +412,41 @@ int puMouse ( int x, int y )
   
   return return_value ;
 }
+
+void puMoveToLast (puObject *ob)
+{
+  puGroup *parent = ob -> getParent () ;
+
+  /* If no parent interface, return. */
+
+  if ( ! parent ) return;
+
+  /* Remove "ob" from present place in the "dlist" list */
+
+  parent -> remove (ob) ;
+
+  /* Place at the end of the list */
+
+  parent -> add (ob) ;
+
+  /*
+    Now repeat the process for the parent interface so that the interface will
+    be drawn last of all interfaces.
+  */
+
+  puMoveToLast ( parent );
+}
+
+void puDeactivateWidget ()  {  active_widget = NULL ; }
+void puSetActiveWidget ( puObject *w ) {   active_widget = w ; }
+puObject *puActiveWidget () {   return active_widget ; }
+
+void puSetPasteBuffer ( char *ch )
+{
+  if ( input_paste_buffer ) delete input_paste_buffer ;
+  input_paste_buffer = new char [ strlen(ch) + 1 ] ;
+  strcpy ( input_paste_buffer, ch ) ;
+}
+
+char *puGetPasteBuffer ()  {  return input_paste_buffer ;  }
+

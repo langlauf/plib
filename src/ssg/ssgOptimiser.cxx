@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgOptimiser.cxx,v 1.16 2001/04/12 03:38:15 deca Exp $
+*/
+
 
 #include "ssgLocal.h"
 
@@ -84,6 +107,7 @@ public:
     vlist = new OptVertex* [ MAX_OPT_VERTEX_LIST ] ;
     tlist = new short [ MAX_OPT_VERTEX_LIST * 3 ] ;
     state = s ;
+    if (state != NULL) state -> ref(); //~T.G.
     cullface = cf ;
     vnum = tnum = 0 ;
   }
@@ -95,6 +119,8 @@ public:
     
     delete vlist ;
     delete tlist ;
+
+    if (state != NULL) ssgDeRefDelete(state); //~T.G.
   }
   
   short find ( sgVec3 v, sgVec2 t, sgVec4 c, int tex_fraction_only = FALSE ) ;
@@ -179,50 +205,73 @@ short OptVertexList::add ( sgVec3 v1, sgVec2 t1, sgVec4 c1,
                           sgVec3 v2, sgVec2 t2, sgVec4 c2,
                           sgVec3 v3, sgVec2 t3, sgVec4 c3 )
 {
-  /*
-  Sharing vertices is tricky because of texture coordinates
-  that have the same all-important fractional part - but
-  differ in their integer parts.
-  */
+	// If possible, this routine moves the texturecoordinates of
+	// all three vertices of a Tria so that one needs less vertices.
+	// This doesnÄt affect looks, but enhances the speed a bit.
+	// This is not possible, if warpu or wrapv is FALSE
+
+	int bWrapsInBothDirections = FALSE;
+	short vi1, vi2, vi3;
+/*
+  if ( state->isAKindOf( ssgTypeSimpleState() ) )
+		bWrapsInBothDirections = 
+	      ( (((ssgSimpleState *)state)->getWrapU()) &&
+          (((ssgSimpleState *)state)->getWrapV()) );
+	*/
+  if (!bWrapsInBothDirections)
+	{
+		/* Find which (if any) of the vertices are a match for one in the list */
   
-  sgVec2 adjust ;
+		 vi1 = add ( v1, t1, c1 ) ;
+		 vi2 = add ( v2, t2, c2 ) ;
+		 vi3 = add ( v3, t3, c3 ) ;
+	}
+	else
+	{
+		/*
+		Sharing vertices is tricky because of texture coordinates
+		that have the same all-important fractional part - but
+		differ in their integer parts.
+		*/
   
-  /* Find which (if any) of the vertices are a match for one in the list */
+		sgVec2 adjust ;
   
-  short vi1 = find ( v1, t1, c1, TRUE ) ;
-  short vi2 = find ( v2, t2, c2, TRUE ) ;
-  short vi3 = find ( v3, t3, c3, TRUE ) ;
+		/* Find which (if any) of the vertices are a match for one in the list */
   
-  /* Compute texture offset coordinates (if needed) to make everything match */
+		vi1 = find ( v1, t1, c1, TRUE ) ;
+		vi2 = find ( v2, t2, c2, TRUE ) ;
+		vi3 = find ( v3, t3, c3, TRUE ) ;
   
-  if ( vi1 >= 0 )
-    sgSubVec2 ( adjust, t1, vlist[vi1]->texcoord ) ;
-  else
-    if ( vi2 >= 0 )
-      sgSubVec2 ( adjust, t2, vlist[vi2]->texcoord ) ;
-    else
-      if ( vi3 >= 0 )
-        sgSubVec2 ( adjust, t3, vlist[vi3]->texcoord ) ;
-      else
-      {
-      /*
-      OK, there was no match - so just remove
-      any large numbers from the texture coords
-        */
+		/* Compute texture offset coordinates (if needed) to make everything match */
+  
+		if ( vi1 >= 0 )
+			sgSubVec2 ( adjust, t1, vlist[vi1]->texcoord ) ;
+		else
+			if ( vi2 >= 0 )
+				sgSubVec2 ( adjust, t2, vlist[vi2]->texcoord ) ;
+			else
+				if ( vi3 >= 0 )
+					sgSubVec2 ( adjust, t3, vlist[vi3]->texcoord ) ;
+				else
+				{
+				/*
+				OK, there was no match - so just remove
+				any large numbers from the texture coords
+					*/
         
-        adjust [ 0 ] = (float) floor ( t1[0] ) ;
-        adjust [ 1 ] = (float) floor ( t1[1] ) ;
-      }
+					adjust [ 0 ] = (float) floor ( t1[0] ) ;
+					adjust [ 1 ] = (float) floor ( t1[1] ) ;
+				}
       
-      /*
-      Now adjust the texture coordinates and add them into the list
-      */
-      sgVec2 tmp ;
-      sgSubVec2 ( tmp, t1, adjust ) ; vi1 = add ( v1, tmp, c1 ) ;
-      sgSubVec2 ( tmp, t2, adjust ) ; vi2 = add ( v2, tmp, c2 ) ;
-      sgSubVec2 ( tmp, t3, adjust ) ; vi3 = add ( v3, tmp, c3 ) ;
-      
-      return add ( vi1, vi2, vi3 ) ;
+		/*
+		Now adjust the texture coordinates and add them into the list
+		*/
+		sgVec2 tmp ;
+		sgSubVec2 ( tmp, t1, adjust ) ; vi1 = add ( v1, tmp, c1 ) ;
+		sgSubVec2 ( tmp, t2, adjust ) ; vi2 = add ( v2, tmp, c2 ) ;
+		sgSubVec2 ( tmp, t3, adjust ) ; vi3 = add ( v3, tmp, c3 ) ;
+  }
+  return add ( vi1, vi2, vi3 ) ;
 }
 
 
@@ -568,20 +617,25 @@ void ssgStripify ( ssgEntity *ent )
   {
     if ( k -> isAKindOf ( ssgTypeVtxTable () ) )
     {
-      int i ;
-      ssgState *s = ((ssgLeaf *) k ) -> getState() ;
-      int       c = ((ssgLeaf *) k ) -> getCullFace() ;
+			GLenum thisType = ((ssgVtxTable *)k)->getPrimitiveType ();
+			if ((thisType != GL_POINTS) && (thisType != GL_LINES) &&
+				  (thisType != GL_LINE_STRIP) && (thisType != GL_LINE_LOOP))
+			{
+				int i ;
+				ssgState *s = ((ssgLeaf *) k ) -> getState() ;
+				int       c = ((ssgLeaf *) k ) -> getCullFace() ;
 
-      for ( i = 0 ; i < stot ; i++ )
-	if ( s == slist [ i ] && c == cflist [ i ] )
-	  break ;
+				for ( i = 0 ; i < stot ; i++ )
+		if ( s == slist [ i ] && c == cflist [ i ] )
+			break ;
 
-      if ( i >= stot )
-      {
-	slist  [ i ] = s ;
-	cflist [ i ] = c ;
-	stot++ ;
-      }
+				if ( i >= stot )
+				{
+		slist  [ i ] = s ;
+		cflist [ i ] = c ;
+		stot++ ;
+				}
+			}
     }
     else
     if ( k -> isAKindOf ( ssgTypeBranch () ) )
@@ -612,9 +666,15 @@ void ssgStripify ( ssgEntity *ent )
            ((ssgLeaf *) k ) -> getState() == slist [ i ] &&
            ((ssgLeaf *) k ) -> getCullFace() == cflist [ i ] )
       {
-        list . add ( (ssgVtxTable *) k ) ;
-        b_ent -> removeKid ( k ) ;
-        k = b_ent -> getKid ( 0 ) ;
+				GLenum thisType = ((ssgVtxTable *)k)->getPrimitiveType ();
+				if ((thisType != GL_POINTS) && (thisType != GL_LINES) &&
+						(thisType != GL_LINE_STRIP) && (thisType != GL_LINE_LOOP))
+        {	list . add ( (ssgVtxTable *) k ) ;
+					b_ent -> removeKid ( k ) ;
+					k = b_ent -> getKid ( 0 ) ;
+				}
+				else
+          k = b_ent -> getNextKid () ;
       }
       else
         k = b_ent -> getNextKid () ;
@@ -710,13 +770,57 @@ void ssgStripify ( ssgEntity *ent )
   These routines are essentially non-realtime tree optimisations.
 */
 
+static void safe_replace_kid ( ssgBranch *parent, ssgEntity *old_kid, ssgEntity *new_kid )
+{
+  /*
+    Replace old_kid by new_kid in a "safe" manner.
+    new_kid may be null, in which case old_kid is removed.
+    If parent is null then loop over all parents of old_kid.
+  */
+
+  if ( parent == NULL )
+  {
+    int n = old_kid -> getNumParents () ;
+    while ( n-- > 0 )
+      safe_replace_kid ( old_kid -> getParent ( 0 ), old_kid, new_kid ) ;
+    return ;
+  }
+
+  assert ( parent -> searchForKid ( old_kid ) >= 0 ) ;
+
+  if ( new_kid == NULL )
+  {
+    if ( parent -> isAKindOf ( ssgTypeRangeSelector () ) )
+    {
+      ssgRangeSelector *s = (ssgRangeSelector *) parent ;
+      for ( int i = s -> searchForKid ( old_kid ) ; 
+	        i < s -> getNumKids () ; i++ )
+	s -> setRange ( i, s -> getRange ( i + 1 ) ) ;
+    }
+
+    else if ( parent -> isAKindOf ( ssgTypeSelector () ) )
+    { 
+      /* ssgTimedSelector among others -- jarnspikar */
+      parent -> replaceKid ( old_kid, new ssgInvisible ) ;
+      return ;
+    }
+
+    parent -> removeKid ( old_kid ) ;
+  }
+  else
+  {
+    parent -> replaceKid ( old_kid, new_kid ) ;
+  }
+}
+
 static void strip ( ssgEntity *ent )
 {
   /*
     Strip off all branches with no kids - and snip out all
     simple branches with just one kid.
+    A node with user data is always left unchanged.
   */
-
+  
   if ( ! ent -> isAKindOf ( ssgTypeBranch () ) )
     return ;
 
@@ -726,28 +830,39 @@ static void strip ( ssgEntity *ent )
 				 k = b_ent -> getNextKid () )
     strip ( k ) ;
 
-  if ( ! ent -> isA ( ssgTypeBranch () ) )
-    return ;
-
-  if ( b_ent -> getNumKids () == 1 )
+  switch ( b_ent -> getNumKids () )
   {
-    for ( ssgBranch *p = b_ent -> getParent ( 0 ) ; p != NULL ;
-				  p = b_ent -> getNextParent () )
-       p -> addKid ( b_ent -> getKid ( 0 ) ) ; 
+  case 0:
+    if ( b_ent -> getUserData() == NULL )
+      safe_replace_kid ( NULL, b_ent, NULL ) ;
+    break;
 
-    b_ent -> removeKid ( 0 ) ;
-  }
+  case 1:
+    if ( b_ent -> isA ( ssgTypeBranch () ) &&
+	 b_ent -> getUserData () == NULL )
+    {
+      safe_replace_kid ( NULL, b_ent, b_ent -> getKid ( 0 ) ) ;
+    }
+    else if ( ! b_ent -> isAKindOf ( ssgTypeSelector () ) &&
+	      b_ent -> getKid ( 0 ) -> isA ( ssgTypeBranch () ) &&
+	      b_ent -> getKid ( 0 ) -> getUserData () == NULL )
+    {
+      ssgBranch *b_kid = (ssgBranch *) b_ent -> getKid ( 0 ) ;
+      for ( ssgEntity *k = b_kid -> getKid ( 0 ) ; k != NULL ;
+  	               k = b_kid -> getNextKid () )
+        b_ent -> addKid ( k ) ;
+      b_ent -> removeKid ( b_kid ) ;
+      b_ent -> recalcBSphere () ;
+    }
+    break;
 
-  if ( b_ent -> getNumKids () == 0 )
-  {
-    for ( ssgBranch *p = b_ent -> getParent ( 0 ) ;
-				p != NULL ; p = b_ent -> getNextParent () )
-       p -> removeKid ( b_ent ) ; 
+  default:
+    if ( b_ent -> isDirtyBSphere () )
+      b_ent -> recalcBSphere () ;
   }
 }
 
-
-static void flatten ( ssgEntity *ent, sgMat4 m )
+static void flatten ( ssgBranch *parent, ssgEntity *ent, sgMat4 mat )
 {
   /*
     Move all transforms down to the leaf nodes and
@@ -755,75 +870,141 @@ static void flatten ( ssgEntity *ent, sgMat4 m )
     tree after calling this.
   */
 
-  if ( ent -> isAKindOf ( ssgTypeLeaf () ) )
-  {
-    ((ssgLeaf *) ent) -> transform ( m ) ;
-    return ;
-  }
+  sgMat4 mat2 ;
 
-  if ( ent -> isAKindOf ( ssgTypeCutout () ) )
+  /*
+    The following nodes may (currently) not be flattened:
+    - ssgCutout,
+    - ssgRangeSelector, and
+    - ssgTransform with user data.
+  */
+  if ( ent -> isAKindOf ( ssgTypeCutout () ) ||
+       ent -> isAKindOf ( ssgTypeRangeSelector () ) ||
+       ( ent -> isAKindOf ( ssgTypeTransform () ) &&
+	 ( ent -> getUserData () != NULL || 
+	   ! ent -> isA ( ssgTypeTransform () ) )))
   {
-/*
-    ulSetError ( UL_WARNING, "ssgFlatten: Can't flatten subtrees containing Cutout nodes" ) ; 
-*/
+    /* Insert a transform node if needed. */
+    if ( mat != NULL ) {
+      ssgTransform *tr = new ssgTransform ;
+      tr -> setTransform ( mat ) ;
+      tr -> addKid ( ent ) ;
+      safe_replace_kid ( parent, ent, tr ) ;
+    }
+
+    /* Traverse as usual. */
+    if ( ent -> isAKindOf ( ssgTypeBranch () ) )
+    {
+      ssgBranch *b_ent = (ssgBranch *) ent ;
+      for ( ssgEntity *k = b_ent -> getKid ( 0 ) ; k != NULL ;
+                       k = b_ent -> getNextKid () )
+        flatten ( b_ent, k, NULL ) ;
+    }
+
     return ;
   }
 
   /*
-    Transforms with userdata are assumed to be
-    special and cannot be flattened.
+    Clone the node if needed (there is no need to clone it recursively,
+    especially not past unflattable nodes).
   */
+  if ( ent -> getRef () > 1 && mat != NULL ) 
+  {
+    ssgEntity *clone = (ssgEntity *) ent -> clone ( SSG_CLONE_GEOMETRY |
+  				                    SSG_CLONE_USERDATA ) ;
+    safe_replace_kid ( parent, ent, clone ) ;
+    ent = clone ;
+  }
 
-  if ( ent -> isAKindOf ( ssgTypeTransform () ) &&
-       ent -> getUserData () == NULL )
+  /*
+    Apply the transformation on leaf nodes.
+  */
+  if ( ent -> isAKindOf ( ssgTypeLeaf () ) )
+  {
+    if ( mat != NULL )
+      ((ssgLeaf *) ent) -> transform ( mat ) ;
+    return ;
+  }
+
+  /*
+    Replace transform nodes with simple branches.
+   */
+  if ( ent -> isAKindOf ( ssgTypeTransform () ) )
   {
     ssgTransform *t_ent = (ssgTransform *) ent ;
-    ssgBranch *br = new ssgBranch () ;
-    sgMat4 tmp1, tmp2 ;
 
-    t_ent -> getTransform ( tmp1 ) ;
-    sgCopyMat4 ( tmp2, m ) ;
-    sgPreMultMat4 ( tmp2, tmp1 ) ;
-
-    ssgEntity *k ;
-
-    while ( (k = t_ent -> getKid ( 0 )) != NULL )
-    {
-      flatten ( k, tmp2 ) ;
+    t_ent -> getTransform ( mat2 ) ;
+    if ( mat != NULL )
+      sgPostMultMat4 ( mat2, mat ) ;
+    mat = mat2 ;
+    
+    ssgBranch *br = new ssgBranch ;
+    /*
+      FIXME! It would have been very neat to do:
+      br -> copy_from ( t_ent, 0 ) ;
+    */
+    br -> setName ( t_ent -> getName () ) ;
+    for ( ssgEntity *k = t_ent -> getKid ( 0 ) ; k != NULL ;
+	             k = t_ent -> getNextKid () )
       br -> addKid ( k ) ;
-      t_ent -> removeKid ( k ) ;
-    }
+    t_ent -> removeAllKids () ;
 
-    br    -> recalcBSphere () ;
-    t_ent -> recalcBSphere () ;
-
-    for ( ssgBranch *p = t_ent -> getParent ( 0 ) ;
-		     p != NULL ; p = t_ent -> getNextParent () )
-    {
-      p -> addKid ( br ) ;
-      p -> recalcBSphere () ;
-    }
+    safe_replace_kid ( NULL, ent, br ) ;
+    ent = br ;
   }
-  else
+
+  /*
+    Finally traverse the kids.
+  */
+  if ( ent -> isAKindOf ( ssgTypeBranch () ) )
   {
     ssgBranch *b_ent = (ssgBranch *) ent ;
-
     for ( ssgEntity *k = b_ent -> getKid ( 0 ) ; k != NULL ;
-                                      k = b_ent -> getNextKid () )
-      flatten ( k, m ) ;
+                     k = b_ent -> getNextKid () )
+      flatten ( b_ent, k, mat ) ;
   }
-}
 
+}
 
 void ssgFlatten ( ssgEntity *ent )
 {
-  sgMat4 m ;
-  sgMakeIdentMat4 ( m ) ;
+  if ( ! ent -> isAKindOf ( ssgTypeBranch () ) )
+     return ;
 
-  flatten ( ent, m ) ;
-  strip   ( ent ) ;
+  ssgBranch *b_ent = (ssgBranch *) ent ;
+  sgVec4 *mat = NULL ;
+  sgMat4 xform, ident ;
 
-  ent -> recalcBSphere () ;
+  /*
+    If the top level node is a ssgTransform, then do not replace it;
+    instead load an identity transform and multiply out the matrix.
+   */
+
+  if ( b_ent -> isA ( ssgTypeTransform () ) && 
+       b_ent -> getUserData () == NULL )
+  {
+    sgMakeIdentMat4 ( ident ) ;
+    ((ssgTransform *) b_ent) -> getTransform ( xform ) ;
+    ((ssgTransform *) b_ent) -> setTransform ( ident ) ;
+    mat = xform ;
+  }
+
+  /*
+    Since the top level node may not be removed, loop over the kids.
+    Done in two passes because *kid* may be removed.
+  */
+	ssgEntity *kid;
+
+  for ( kid = b_ent -> getKid ( 0 ) ; kid != NULL ;
+	           kid = b_ent -> getNextKid () )
+    flatten ( b_ent, kid, mat ) ;
+
+  for ( kid = b_ent -> getKid ( 0 ) ; kid != NULL ;
+	           kid = b_ent -> getNextKid () )
+    strip ( kid ) ;
+
+  if ( b_ent -> isDirtyBSphere () )
+    b_ent -> recalcBSphere () ;
 }
 
 
@@ -840,11 +1021,46 @@ void ssgFlatten ( ssgEntity *ent )
 */
 void ssgTransTool ( ssgEntity *ent, const sgMat4 trans )
 {
-  sgMat4 m ;
-  sgCopyMat4 ( m, trans ) ;
+  if ( ent -> isAKindOf ( ssgTypeLeaf () ) )
+  {
+		((ssgLeaf *) ent) -> transform ( trans ) ;
+    return ;
+  }
 
-  flatten ( ent, m ) ;
-  strip   ( ent ) ;
+  if ( ! ent -> isAKindOf ( ssgTypeBranch () ) )
+    return ;
 
-  ent -> recalcBSphere () ;
+  ssgBranch *b_ent = (ssgBranch *) ent ;
+  sgMat4 mat, ident, xform ;
+  
+  sgCopyMat4 ( mat, trans ) ;
+  
+  if ( b_ent -> isA ( ssgTypeTransform () ) && 
+       b_ent -> getUserData () == NULL )
+  {
+    sgMakeIdentMat4 ( ident ) ;
+    ((ssgTransform *) b_ent) -> getTransform ( xform ) ;
+    ((ssgTransform *) b_ent) -> setTransform ( ident ) ;
+    sgPreMultMat4 ( mat, xform ) ;
+  }
+
+  else if ( b_ent -> isAKindOf ( ssgTypeTransform () ) ||
+	    b_ent -> isAKindOf ( ssgTypeCutout () ) ||
+	    b_ent -> isAKindOf ( ssgTypeRangeSelector () ) )
+  {
+    ulSetError ( UL_WARNING, 
+		 "ssgTransTool: Cannot handle this kind of node at top level." ) ;
+    return ;
+  }
+
+	ssgEntity *kid;
+  for ( kid = b_ent -> getKid ( 0 ) ; kid != NULL ;
+	           kid = b_ent -> getNextKid () )
+    flatten ( b_ent, kid, mat ) ;
+
+  for ( kid = b_ent -> getKid ( 0 ) ; kid != NULL ;
+	           kid = b_ent -> getNextKid () )
+    strip ( kid ) ;
+
+  b_ent -> recalcBSphere () ;
 }

@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: puPopupMenu.cxx,v 1.6 2001/04/12 03:36:12 deca Exp $
+*/
+
 #include "puLocal.h"
 
 #define PUMENU_BUTTON_HEIGHT       25
@@ -14,6 +37,7 @@ puObject *puPopupMenu::add_item ( const char *str, puCallback cb )
 		       colour[PUCOL_FOREGROUND][2],
 		       colour[PUCOL_FOREGROUND][3] ) ;
   b->setCallback     ( cb ) ;
+  b->setLegendPlace  ( PUPLACE_LEFT ) ;
   recalc_bbox () ;
   return b ;
 }
@@ -56,8 +80,14 @@ void puPopupMenu::close ( void )
 
 int puPopupMenu::checkKey ( int key, int updown )
 {
-  if ( dlist == NULL || ! isVisible () || ! isActive () )
+  if ( dlist == NULL || ! isVisible () || ! isActive () || ( window != puGetWindow () ) )
     return FALSE ;
+
+  if ( puActiveWidget() && ( this != puActiveWidget() ) )
+  {
+    puActiveWidget() -> invokeDownCallback () ;
+    puDeactivateWidget () ;
+  }
 
   if ( updown == PU_DOWN )
   {

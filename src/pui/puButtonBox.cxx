@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: puButtonBox.cxx,v 1.6 2001/04/12 03:36:12 deca Exp $
+*/
+
 
 #include "puLocal.h"
 
@@ -22,6 +45,12 @@ int puButtonBox::checkKey ( int key, int updown )
        ( key != '\r' && key != '\n' ) || ( window != puGetWindow () ) )
     return FALSE ;
 
+  if ( puActiveWidget() && ( this != puActiveWidget() ) )
+  {
+    puActiveWidget() -> invokeDownCallback () ;
+    puDeactivateWidget () ;
+  }
+
   int v = getValue () ;
 
   if ( ! one_only )
@@ -31,6 +60,7 @@ int puButtonBox::checkKey ( int key, int updown )
     v = 0 ;
 
   setValue ( v ) ;
+  puSetActiveWidget ( this ) ;
   invokeCallback() ;
   return TRUE ;
 }
@@ -43,6 +73,15 @@ int puButtonBox::checkHit ( int /*button*/, int updown, int x, int y )
          active_mouse_edge != PU_UP_AND_DOWN ) )
     return FALSE ;
 
+  if ( puActiveWidget() && ( this != puActiveWidget() ) )
+  {
+    puActiveWidget() -> invokeDownCallback () ;
+    puDeactivateWidget () ;
+  }
+
+  if ( updown != PU_DRAG )
+    puMoveToLast ( this );
+
   int i = num_kids - 1 - (( y - abox.min[1] - PUSTR_BGAP ) * num_kids ) /
                           ( abox.max[1] - abox.min[1] - PUSTR_BGAP - PUSTR_TGAP ) ;
 
@@ -54,6 +93,7 @@ int puButtonBox::checkHit ( int /*button*/, int updown, int x, int y )
   else
     setValue ( getValue () ^ ( 1 << i ) ) ;
 
+  puSetActiveWidget ( this ) ;
   invokeCallback () ;
   return TRUE ;
 }

@@ -1,8 +1,32 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ulClock.cxx,v 1.5 2001/04/12 03:39:08 deca Exp $
+*/
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #if defined(WIN32)
 #include <windows.h>
+#include <mmsystem.h>
  #ifdef __CYGWIN__
   typedef long long _int64;
   #define LARGEINTEGER _int64

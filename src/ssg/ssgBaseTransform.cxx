@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 2001  Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+
+     $Id: ssgBaseTransform.cxx,v 1.5 2001/05/18 04:05:00 sjbaker Exp $
+*/
+
 
 #include "ssgLocal.h"
 
@@ -39,6 +62,18 @@ int ssgBaseTransform::save ( FILE *fd )
 {
   _ssgWriteMat4 ( fd, transform ) ;
   return ssgBranch::save(fd) ;
+}
+
+
+void ssgBaseTransform::print ( FILE *fd, char *indent, int how_much )
+{
+  ssgBranch::print ( fd, indent, how_much ) ;
+
+  if ( how_much >= 2 )
+    for ( int row = 0 ; row < 4 ; row++ )
+      fprintf ( fd, "%s  Transform[%d]= %f,%f,%f,%f\n", indent, row,
+        transform[row][0], transform[row][1],
+        transform[row][2], transform[row][3] ) ;
 }
 
 
