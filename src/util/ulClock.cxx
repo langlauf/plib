@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ulClock.cxx,v 1.5 2001/04/12 03:39:08 deca Exp $
+     $Id: ulClock.cxx,v 1.6 2001/06/16 21:03:27 sjbaker Exp $
 */
 
 
@@ -32,10 +32,10 @@
   #define LARGEINTEGER _int64
 //  #include <largeint.h>
  #endif
-#include <time.h>
 #else
 #include <sys/time.h>
 #endif
+#include <time.h>
 
 #include "ul.h"
 

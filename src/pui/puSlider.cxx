@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puSlider.cxx,v 1.8 2001/05/30 12:17:21 stromberg Exp $
+     $Id: puSlider.cxx,v 1.12 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 
@@ -75,28 +75,33 @@ void puSlider::draw ( int dx, int dy )
                  style==PUSTYLE_SHADED) ? -PUSTYLE_BOXED : -style,
                 colour, FALSE ) ;
 
-  float val ;
-
-  getValue ( & val ) ;
-
-  draw_slider_box ( dx, dy, val ) ;
-
-  /* If greyed out then halve the opacity when drawing the label and legend */
-
-  if ( active )
-    glColor4fv ( colour [ PUCOL_LEGEND ] ) ;
+  if ( r_cb )
+    r_cb ( this, dx, dy, render_data ) ;
   else
-    glColor4f ( colour [ PUCOL_LEGEND ][0],
-                colour [ PUCOL_LEGEND ][1],
-                colour [ PUCOL_LEGEND ][2],
-                colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
+  {
+    float val ;
 
-  int xx = ( abox.max[0] - abox.min[0] - puGetStringWidth(legendFont,legend) ) / 2 ;
-  int yy = ( abox.max[1] - abox.min[1] - puGetStringHeight(legendFont) ) / 2 ;
+    getValue ( & val ) ;
 
-  puDrawString ( legendFont, legend,
-                  dx + abox.min[0] + xx,
-                  dy + abox.min[1] + yy ) ;
+    draw_slider_box ( dx, dy, val ) ;
+
+    /* If greyed out then halve the opacity when drawing the label and legend */
+
+    if ( active )
+      glColor4fv ( colour [ PUCOL_LEGEND ] ) ;
+    else
+      glColor4f ( colour [ PUCOL_LEGEND ][0],
+                  colour [ PUCOL_LEGEND ][1],
+                  colour [ PUCOL_LEGEND ][2],
+                  colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
+
+    int xx = ( abox.max[0] - abox.min[0] - puGetStringWidth(legendFont,legend) ) / 2 ;
+    int yy = ( abox.max[1] - abox.min[1] - puGetStringHeight(legendFont) ) / 2 ;
+
+    puDrawString ( legendFont, legend,
+                    dx + abox.min[0] + xx,
+                    dy + abox.min[1] + yy ) ;
+  }
 
   draw_label ( dx, dy ) ;
 }
@@ -112,6 +117,12 @@ void puSlider::doHit ( int button, int updown, int x, int y )
 
   if ( updown != PU_DRAG )
     puMoveToLast ( this );
+
+  if ( button == PU_LEFT_BUTTON && updown == PU_UP )
+  {
+    puDeactivateWidget () ;
+    return ;
+  }
 
   if ( button == PU_LEFT_BUTTON )
   {
@@ -139,7 +150,7 @@ void puSlider::doHit ( int button, int updown, int x, int y )
         if ( updown == active_mouse_edge )
         {
 	  last_cb_value = next_value ;
-    puSetActiveWidget ( this ) ;
+    puSetActiveWidget ( this, x, y ) ;
 	  invokeCallback () ;
         }
         break ;
@@ -148,7 +159,7 @@ void puSlider::doHit ( int button, int updown, int x, int y )
         if ( fabs ( last_cb_value - next_value ) >= cb_delta )
         {
 	  last_cb_value = next_value ;
-    puSetActiveWidget ( this ) ;
+    puSetActiveWidget ( this, x, y ) ;
 	  invokeCallback () ;
         }
         break ;
@@ -156,7 +167,7 @@ void puSlider::doHit ( int button, int updown, int x, int y )
       case PUSLIDER_ALWAYS :
       default :
         last_cb_value = next_value ;
-        puSetActiveWidget ( this ) ;
+        puSetActiveWidget ( this, x, y ) ;
         invokeCallback () ;
         break ;
     }

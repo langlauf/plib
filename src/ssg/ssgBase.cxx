@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgBase.cxx,v 1.15 2001/04/29 16:07:15 sjbaker Exp $
+     $Id: ssgBase.cxx,v 1.16 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -64,7 +64,7 @@ ssgBase *ssgBase::clone ( int /* clone_flags */ )
 ssgBase:: ssgBase (void)
 {
   spare = refc = 0 ;
-  type      = SSG_TYPE_BASE ;
+  type      = ssgTypeBase () ;
   unique    = next_unique_id++ ;
   user_data = NULL ;
   name      = NULL ;

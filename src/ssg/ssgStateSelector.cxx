@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgStateSelector.cxx,v 1.17 2001/04/12 03:38:16 deca Exp $
+     $Id: ssgStateSelector.cxx,v 1.18 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -59,7 +59,7 @@ ssgBase *ssgStateSelector::clone ( int clone_flags )
 
 ssgStateSelector::ssgStateSelector () 
 { 
-  type |= SSG_TYPE_STATESELECTOR ;
+  type = ssgTypeStateSelector () ;
   nstates = 0 ;
   selection = -1 ; 
   statelist = NULL ;
@@ -67,7 +67,7 @@ ssgStateSelector::ssgStateSelector ()
 
 ssgStateSelector::ssgStateSelector ( int ns ) 
 { 
-  type |= SSG_TYPE_STATESELECTOR ;
+  type = ssgTypeStateSelector () ;
   nstates   = ns ;
   selection = -1 ; 
   statelist = new ssgSimpleState * [ nstates ] ;

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTexTrans.cxx,v 1.7 2001/04/12 03:38:16 deca Exp $
+     $Id: ssgTexTrans.cxx,v 1.8 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -39,13 +39,13 @@ ssgBase *ssgTexTrans::clone ( int clone_flags )
 
 ssgTexTrans::ssgTexTrans ( sgCoord *c )
 {
-  type |= SSG_TYPE_TEXTRANS ;
+  type = ssgTypeTexTrans () ;
   setTransform ( c ) ;
 }
 
 ssgTexTrans::ssgTexTrans (void)
 {
-  type |= SSG_TYPE_TEXTRANS ;
+  type = ssgTypeTexTrans () ;
 }
 
 ssgTexTrans::~ssgTexTrans (void)

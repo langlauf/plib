@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puButtonBox.cxx,v 1.6 2001/04/12 03:36:12 deca Exp $
+     $Id: puButtonBox.cxx,v 1.8 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 
@@ -60,7 +60,7 @@ int puButtonBox::checkKey ( int key, int updown )
     v = 0 ;
 
   setValue ( v ) ;
-  puSetActiveWidget ( this ) ;
+//  puSetActiveWidget ( this, x, y ) ;
   invokeCallback() ;
   return TRUE ;
 }
@@ -93,7 +93,7 @@ int puButtonBox::checkHit ( int /*button*/, int updown, int x, int y )
   else
     setValue ( getValue () ^ ( 1 << i ) ) ;
 
-  puSetActiveWidget ( this ) ;
+  puSetActiveWidget ( this, x, y ) ;
   invokeCallback () ;
   return TRUE ;
 }
@@ -105,34 +105,39 @@ void puButtonBox::draw ( int dx, int dy )
 
   abox . draw ( dx, dy, style, colour, isReturnDefault() ) ;
 
-  for ( int i = 0 ; i < num_kids ; i++ )
+  if ( r_cb )
+    r_cb ( this, dx, dy, render_data ) ;
+  else
   {
-    puBox tbox ;
+    for ( int i = 0 ; i < num_kids ; i++ )
+    {
+      puBox tbox ;
 
-    tbox . min [ 0 ] = abox.min [ 0 ] + PUSTR_LGAP + PUSTR_LGAP ;
-    tbox . min [ 1 ] = abox.min [ 1 ] + ((abox.max[1]-abox.min[1]-PUSTR_TGAP-PUSTR_BGAP)/num_kids) * (num_kids-1-i) ;
-    tbox . max [ 0 ] = tbox.min [ 0 ] ;
-    tbox . max [ 1 ] = tbox.min [ 1 ] ;
+      tbox . min [ 0 ] = abox.min [ 0 ] + PUSTR_LGAP + PUSTR_LGAP ;
+      tbox . min [ 1 ] = abox.min [ 1 ] + ((abox.max[1]-abox.min[1]-PUSTR_TGAP-PUSTR_BGAP)/num_kids) * (num_kids-1-i) ;
+      tbox . max [ 0 ] = tbox.min [ 0 ] ;
+      tbox . max [ 1 ] = tbox.min [ 1 ] ;
 
-    if (( one_only && i == getValue() ) ||
-        ( !one_only && ((1<<i) & getValue() ) != 0 ) ) 
-      tbox . draw ( dx, dy + PUSTR_BGAP + PUSTR_BGAP, -PUSTYLE_RADIO, colour, FALSE ) ;
-    else
-      tbox . draw ( dx, dy + PUSTR_BGAP + PUSTR_BGAP, PUSTYLE_RADIO, colour, FALSE ) ;
+      if (( one_only && i == getValue() ) ||
+          ( !one_only && ((1<<i) & getValue() ) != 0 ) ) 
+        tbox . draw ( dx, dy + PUSTR_BGAP + PUSTR_BGAP, -PUSTYLE_RADIO, colour, FALSE ) ;
+      else
+        tbox . draw ( dx, dy + PUSTR_BGAP + PUSTR_BGAP, PUSTYLE_RADIO, colour, FALSE ) ;
 
-    /* If greyed out then halve the opacity when drawing the label and legend */
+      /* If greyed out then halve the opacity when drawing the label and legend */
 
-    if ( active )
-      glColor4fv ( colour [ PUCOL_LEGEND ] ) ;
-    else
-      glColor4f ( colour [ PUCOL_LEGEND ][0],
-                  colour [ PUCOL_LEGEND ][1],
-                  colour [ PUCOL_LEGEND ][2],
-                  colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
+      if ( active )
+        glColor4fv ( colour [ PUCOL_LEGEND ] ) ;
+      else
+        glColor4f ( colour [ PUCOL_LEGEND ][0],
+                    colour [ PUCOL_LEGEND ][1],
+                    colour [ PUCOL_LEGEND ][2],
+                    colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
 
-    puDrawString ( legendFont, button_labels[i],
-                   dx + tbox.min[0] + PU_RADIO_BUTTON_SIZE + PUSTR_LGAP,
-                   dy + tbox.min[1] + puGetStringDescender(legendFont) + PUSTR_BGAP  + PUSTR_BGAP) ;
+      puDrawString ( legendFont, button_labels[i],
+                     dx + tbox.min[0] + PU_RADIO_BUTTON_SIZE + PUSTR_LGAP,
+                     dy + tbox.min[1] + puGetStringDescender(legendFont) + PUSTR_BGAP  + PUSTR_BGAP) ;
+    }
   }
 
   draw_label ( dx, dy ) ;

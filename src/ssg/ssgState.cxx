@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgState.cxx,v 1.6 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgState.cxx,v 1.7 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -39,7 +39,7 @@ void ssgState::copy_from ( ssgState *src, int clone_flags )
 
 ssgState::ssgState (void)
 {
-  type |= SSG_TYPE_STATE ;
+  type = ssgTypeState () ;
   setOpaque () ;
   setExternalPropertyIndex ( 0 ) ;
 }

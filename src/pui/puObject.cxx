@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puObject.cxx,v 1.9 2001/04/12 03:36:12 deca Exp $
+     $Id: puObject.cxx,v 1.10 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 
@@ -242,7 +242,7 @@ int puObject::checkKey ( int key, int updown )
 }
 
 
-void puObject::doHit ( int button, int updown, int /* x */, int /* y */ )
+void puObject::doHit ( int button, int updown, int x, int y )
 {
   if ( puActiveWidget() && ( this != puActiveWidget() ) )
   {
@@ -258,7 +258,7 @@ void puObject::doHit ( int button, int updown, int /* x */, int /* y */ )
     if ( updown == active_mouse_edge || active_mouse_edge == PU_UP_AND_DOWN )
     {
       lowlight () ;
-      puSetActiveWidget ( this ) ;
+      puSetActiveWidget ( this, x, y ) ;
       invokeCallback () ;
     }
     else

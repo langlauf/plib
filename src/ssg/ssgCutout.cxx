@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgCutout.cxx,v 1.7 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgCutout.cxx,v 1.8 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -41,7 +41,7 @@ ssgBase *ssgCutout::clone ( int clone_flags )
 ssgCutout::ssgCutout (int pntrot)
 {
   point_rotate = pntrot ;
-  type |= SSG_TYPE_CUTOUT ;
+  type = ssgTypeCutout () ;
 }
 
 ssgCutout::~ssgCutout ()

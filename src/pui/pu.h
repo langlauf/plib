@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: pu.h,v 1.28 2001/05/30 12:17:21 stromberg Exp $
+     $Id: pu.h,v 1.32 2001/06/19 03:10:22 sjbaker Exp $
 */
 
 #ifndef _PU_H_
@@ -371,7 +371,7 @@ void  puDeleteObject   ( puObject *ob ) ;
 // Active widget functions
 
 void puDeactivateWidget () ;
-void puSetActiveWidget ( puObject *w ) ;
+void puSetActiveWidget ( puObject *w, int x, int y ) ;
 puObject *puActiveWidget () ;
 
 /*
@@ -532,9 +532,10 @@ protected:
                                                y <= abox.max[1] &&
                                                window == puGetWindow () ; }
 
-  virtual void doHit ( int button, int updown, int x, int y ) ;
 
 public:
+  virtual void doHit ( int button, int updown, int x, int y ) ;
+
    puObject ( int minx, int miny, int maxx, int maxy ) ;
   ~puObject () ;
 
@@ -916,15 +917,15 @@ public:
   void draw  ( int dx, int dy ) ;
   puSlider ( int minx, int miny, int sz, int vertical = FALSE ) :
      puObject ( minx, miny, vertical ?
-                             ( minx + puGetStringWidth ( puGetDefaultLegendFont(), "W" ) +
-                                      PUSTR_LGAP + PUSTR_RGAP ) :
-                             ( minx + sz ),
-                            vertical ?
-                             ( miny + sz ) :
-                             ( miny + puGetStringHeight ( puGetDefaultLegendFont() ) +
-                                      puGetStringDescender ( puGetDefaultLegendFont() ) +
-                                      PUSTR_TGAP + PUSTR_BGAP )
-                           )
+	       ( minx + puGetStringWidth ( puGetDefaultLegendFont(), "W" ) +
+			PUSTR_LGAP + PUSTR_RGAP ) :
+	       ( minx + sz ),
+	      vertical ?
+	       ( miny + sz ) :
+	       ( miny + puGetStringHeight ( puGetDefaultLegendFont() ) +
+			puGetStringDescender ( puGetDefaultLegendFont() ) +
+			PUSTR_TGAP + PUSTR_BGAP )
+	     )
   {
     type |= PUCLASS_SLIDER ;
     slider_fraction = 0.1f ;
@@ -1056,28 +1057,24 @@ public:
 } ;
 
 
-class puDial : public puObject
+class puDial : public puSlider
 {
 protected:
-  float min_value ;
-  float max_value ;
+  int wrap ;  // Flag telling whether you can wrap around the bottom of the dial
 public:
   void doHit ( int button, int updown, int x, int y ) ;
   void draw  ( int dx, int dy ) ;
   puDial ( int minx, int miny, int sz ) :
-     puObject ( minx, miny, minx+sz, miny+sz )
+     puSlider ( minx, miny, sz )
   {
     type |= PUCLASS_DIAL ;
     setValue ( 0.0f ) ;
-    min_value = -180.0f ;
-    max_value = +180.0f ;
+    wrap = TRUE ;
+    setSize ( sz, sz ) ; /* Override the funky math that the base slider did! */
   }
 
-  void setMinimum ( float f ) { min_value = f ; }
-  float getMinimum ( void ) { return min_value ; }
-
-  void setMaximum ( float f ) { max_value = f ; }
-  float getMaximum ( void ) { return max_value ; }
+  void setWrap ( int in )  {  wrap = in ;  }
+  int getWrap ( void )  {  return wrap ;  }
 } ;
 
 

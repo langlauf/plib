@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgSaveOBJ.cxx,v 1.8 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgSaveOBJ.cxx,v 1.9 2001/06/16 16:27:37 stromberg Exp $
 */
 
 //
@@ -123,7 +123,7 @@ static void save_vtx_table ( ssgVtxTable *vt )
 
 static void save_entities ( ssgEntity *e )
 {
-  if ( e -> isAKindOf ( SSG_TYPE_BRANCH ) )
+  if ( e -> isAKindOf ( ssgTypeBranch() ) )
   {
     ssgBranch *br = (ssgBranch *) e ;
 
@@ -131,7 +131,7 @@ static void save_entities ( ssgEntity *e )
       save_entities ( br -> getKid ( i ) ) ;
   }
   else
-  if ( e -> isAKindOf ( SSG_TYPE_VTXTABLE ) )
+  if ( e -> isAKindOf ( ssgTypeVtxTable() ) )
   {
     ssgVtxTable *vt = (ssgVtxTable *) e ;
     save_vtx_table ( vt ) ;

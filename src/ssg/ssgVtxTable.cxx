@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVtxTable.cxx,v 1.17 2001/05/21 03:44:24 sjbaker Exp $
+     $Id: ssgVtxTable.cxx,v 1.18 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -70,7 +70,7 @@ ssgBase *ssgVtxTable::clone ( int clone_flags )
 
 ssgVtxTable::ssgVtxTable ()
 {
-  type |= SSG_TYPE_VTXTABLE ;
+  type = ssgTypeVtxTable () ;
   gltype = GL_POINTS ;
   vertices  = NULL ;
   normals   = NULL ;
@@ -86,7 +86,7 @@ ssgVtxTable::ssgVtxTable ( GLenum ty,
                 ssgColourArray   *cl )
 {
   gltype = ty ;
-  type |= SSG_TYPE_VTXTABLE ;
+  type = ssgTypeVtxTable () ;
 
   vertices  = (vl!=NULL) ? vl : new ssgVertexArray   () ;
   normals   = (nl!=NULL) ? nl : new ssgNormalArray   () ;

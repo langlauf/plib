@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgBaseTransform.cxx,v 1.5 2001/05/18 04:05:00 sjbaker Exp $
+     $Id: ssgBaseTransform.cxx,v 1.6 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -38,7 +38,7 @@ void ssgBaseTransform::copy_from ( ssgBaseTransform *src, int clone_flags )
 
 ssgBaseTransform::ssgBaseTransform (void)
 {
-  type |= SSG_TYPE_BASETRANSFORM ;
+  type = ssgTypeBaseTransform () ;
   last_updated = -9999999 ;
   first_time = TRUE ;
   sgMakeIdentMat4 ( transform ) ;

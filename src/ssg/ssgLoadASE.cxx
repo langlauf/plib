@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadASE.cxx,v 1.35 2001/05/22 05:30:34 mcdave Exp $
+     $Id: ssgLoadASE.cxx,v 1.36 2001/06/16 16:27:37 stromberg Exp $
 */
 
 /****
@@ -1287,7 +1287,7 @@ static int parse_object()
       ssgEntity* found = top_branch -> getByName ( obj->parent ) ;
       if ( found != NULL )
       {
-        assert ( found -> isAKindOf ( SSG_TYPE_BRANCH ) ) ;
+        assert ( found -> isAKindOf ( ssgTypeBranch() ) ) ;
         parent_branch = (ssgBranch *) found ;
       }
       else

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgBranch.cxx,v 1.17 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgBranch.cxx,v 1.18 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -50,7 +50,7 @@ ssgBase *ssgBranch::clone ( int clone_flags )
 
 ssgBranch::ssgBranch (void)
 {
-  type |= SSG_TYPE_BRANCH ;
+  type = ssgTypeBranch () ;
 }
 
 

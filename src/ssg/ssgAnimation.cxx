@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgAnimation.cxx,v 1.10 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgAnimation.cxx,v 1.11 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -56,7 +56,7 @@ ssgBase *ssgTimedSelector::clone ( int clone_flags )
 
 ssgTimedSelector::ssgTimedSelector ( int max_kids ) : ssgSelector ( max_kids )
 {
-  type |= SSG_TYPE_TIMEDSELECTOR ;
+  type = ssgTypeTimedSelector () ;
   select ( 1 ) ;
   running = SSG_ANIM_STOP ;
   mode = SSG_ANIM_SHUTTLE ;

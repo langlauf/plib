@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTexture.cxx,v 1.17 2001/05/23 16:54:39 mcdave Exp $
+     $Id: ssgTexture.cxx,v 1.18 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -70,7 +70,7 @@ void ssgTexture::setDefaultGlParams(int wrapu, int wrapv, int mipmap)
 
 ssgTexture::ssgTexture ()
 {
-  type |= SSG_TYPE_TEXTURE ;
+  type = ssgTypeTexture () ;
 
   filename = NULL ;
 
@@ -89,7 +89,7 @@ ssgTexture::ssgTexture ( const char *fname, GLubyte *image, int xsize, int ysize
 // fname is used when saving the ssgSimpleState to disc.
 // If there is no associated file, you can use a dummy name.
 {
-  type |= SSG_TYPE_TEXTURE ;
+  type = ssgTypeTexture () ;
 
   filename = NULL ;
 
@@ -117,7 +117,7 @@ ssgTexture::ssgTexture ( const char *fname, GLubyte *image, int xsize, int ysize
 
 ssgTexture::ssgTexture ( const char *fname, int _wrapu, int _wrapv, int _mipmap )
 {
-  type |= SSG_TYPE_TEXTURE ;
+  type = ssgTypeTexture () ;
 
   filename = NULL ;
 

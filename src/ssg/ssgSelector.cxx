@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgSelector.cxx,v 1.7 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgSelector.cxx,v 1.8 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -44,7 +44,7 @@ ssgBase *ssgSelector::clone ( int clone_flags )
 
 ssgSelector::ssgSelector ( int _max_kids )
 {
-  type |= SSG_TYPE_SELECTOR ;
+  type = ssgTypeSelector () ;
 
   max_kids = _max_kids ;
   selection = new unsigned char [ max_kids ] ;

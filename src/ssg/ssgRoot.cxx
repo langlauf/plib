@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgRoot.cxx,v 1.4 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgRoot.cxx,v 1.5 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -39,7 +39,7 @@ ssgBase *ssgRoot::clone ( int clone_flags )
 
 ssgRoot::ssgRoot (void)
 {
-  type |= SSG_TYPE_ROOT ;
+  type = ssgTypeRoot () ;
 }
 
 ssgRoot::~ssgRoot (void)

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoad.cxx,v 1.17 2001/05/06 15:30:38 wolfram_kuss Exp $
+     $Id: ssgLoad.cxx,v 1.18 2001/06/14 16:59:31 mcdave Exp $
 */
 
 
@@ -87,7 +87,7 @@ ssgLeaf* ssgLoaderOptions::createLeaf ( ssgLeaf* leaf,
   {
     /* try to do some state sharing */
     ssgState* st = leaf -> getState () ;
-    if ( st != NULL && st -> isAKindOf ( SSG_TYPE_SIMPLESTATE ) )
+    if ( st != NULL && st -> isA ( ssgTypeSimpleState () ) )
     {
       ssgSimpleState *ss = (ssgSimpleState*) st ;
       ssgSimpleState *match = shared_states.findMatch ( ss ) ;

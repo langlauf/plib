@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTransform.cxx,v 1.8 2001/05/18 04:05:00 sjbaker Exp $
+     $Id: ssgTransform.cxx,v 1.9 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -39,13 +39,13 @@ ssgBase *ssgTransform::clone ( int clone_flags )
 
 ssgTransform::ssgTransform ( sgCoord *c )
 {
-  type |= SSG_TYPE_TRANSFORM ;
+  type = ssgTypeTransform () ;
   setTransform ( c ) ;
 }
 
 ssgTransform::ssgTransform (void)
 {
-  type |= SSG_TYPE_TRANSFORM ;
+  type = ssgTypeTransform () ;
 }
 
 ssgTransform::~ssgTransform (void)

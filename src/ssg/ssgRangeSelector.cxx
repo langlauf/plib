@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgRangeSelector.cxx,v 1.8 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgRangeSelector.cxx,v 1.9 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -45,7 +45,7 @@ ssgBase *ssgRangeSelector::clone ( int clone_flags )
 
 ssgRangeSelector::ssgRangeSelector (void)
 {
-  type |= SSG_TYPE_RANGESELECTOR ;
+  type = ssgTypeRangeSelector () ;
   additive = FALSE ;
   rng_list[0] = 0.0f ;
 

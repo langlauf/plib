@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puListBox.cxx,v 1.8 2001/05/20 05:25:05 sjbaker Exp $
+     $Id: puListBox.cxx,v 1.9 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 /****
@@ -137,7 +137,7 @@ void puListBox::doHit ( int button, int updown, int x, int y )
     
       setValue ( index ) ;
     
-      puSetActiveWidget ( this ) ;
+      puSetActiveWidget ( this, x, y ) ;
       invokeCallback () ;
     }
     else

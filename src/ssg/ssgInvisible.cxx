@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgInvisible.cxx,v 1.4 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgInvisible.cxx,v 1.5 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -40,7 +40,7 @@ ssgBase *ssgInvisible::clone ( int clone_flags )
 
 ssgInvisible::ssgInvisible (void)
 {
-  type |= SSG_TYPE_INVISIBLE ;
+  type = ssgTypeInvisible () ;
 }
 
 

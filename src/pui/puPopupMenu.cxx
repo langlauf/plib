@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puPopupMenu.cxx,v 1.6 2001/04/12 03:36:12 deca Exp $
+     $Id: puPopupMenu.cxx,v 1.7 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 #include "puLocal.h"
@@ -168,7 +168,7 @@ int puPopupMenu::checkHit ( int button, int updown, int x, int y )
     for ( puObject *bo = dlist ; bo != NULL ; bo = bo->next )
     {
       if ( ! hit )
-	bo -> checkHit ( button, updown, x , y ) ;
+        bo -> checkHit ( button, updown, x , y ) ;
 
       bo -> clrValue () ;
     }

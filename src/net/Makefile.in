@@ -68,10 +68,10 @@ VERSION = @VERSION@
 
 lib_LIBRARIES = libplibnet.a
 
-include_HEADERS = netBuffer.h netChannel.h netChat.h netMessage.h 	netMonitor.h netRoom.h netSocket.h netList.h
+include_HEADERS = netBuffer.h netChannel.h netChat.h netMessage.h 	netMonitor.h netSocket.h
 
 
-libplibnet_a_SOURCES = netBuffer.cxx netChannel.cxx netChat.cxx 	netMessage.cxx netMonitor.cxx netRoom.cxx netRoomClient.cxx 	netRoomMaster.cxx netRoomServer.cxx netSocket.cxx
+libplibnet_a_SOURCES = netBuffer.cxx netChannel.cxx netChat.cxx 	netMessage.cxx netMonitor.cxx netSocket.cxx
 
 
 INCLUDES =  -I$(top_srcdir)/src/util
@@ -92,8 +92,7 @@ X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibnet_a_LIBADD = 
 libplibnet_a_OBJECTS =  netBuffer.o netChannel.o netChat.o netMessage.o \
-netMonitor.o netRoom.o netRoomClient.o netRoomMaster.o netRoomServer.o \
-netSocket.o
+netMonitor.o netSocket.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)

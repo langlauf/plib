@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puButton.cxx,v 1.8 2001/04/12 03:36:12 deca Exp $
+     $Id: puButton.cxx,v 1.9 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 
@@ -85,7 +85,7 @@ void puButton::draw ( int dx, int dy )
 }
 
 
-void puButton::doHit ( int button, int updown, int, int )
+void puButton::doHit ( int button, int updown, int x, int y )
 {
   if ( puActiveWidget() && ( this != puActiveWidget() ) )
   {
@@ -102,7 +102,7 @@ void puButton::doHit ( int button, int updown, int, int )
     {
       lowlight () ;
       setValue ( (int) ! getValue () ) ;
-      puSetActiveWidget ( this ) ;
+      puSetActiveWidget ( this, x, y ) ;
       invokeCallback () ;
     }
     else

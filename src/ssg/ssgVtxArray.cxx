@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVtxArray.cxx,v 1.18 2001/05/21 03:44:24 sjbaker Exp $
+     $Id: ssgVtxArray.cxx,v 1.19 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -51,7 +51,7 @@ ssgBase *ssgVtxArray::clone ( int clone_flags )
 
 ssgVtxArray::ssgVtxArray () : ssgVtxTable()
 {
-  type |= SSG_TYPE_VTXARRAY ;
+  type = ssgTypeVtxArray () ;
   indices = NULL ;
 }
 
@@ -63,7 +63,7 @@ ssgVtxArray::ssgVtxArray ( GLenum ty,
                 ssgColourArray   *cl,
                 ssgIndexArray    *il ) : ssgVtxTable( ty, vl, nl, tl, cl )
 {
-  type |= SSG_TYPE_VTXARRAY ;
+  type = ssgTypeVtxArray () ;
 
   indices = (il!=NULL) ? il : new ssgIndexArray () ;
 

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.cxx,v 1.12 2001/04/12 03:35:05 deca Exp $
+     $Id: netSocket.cxx,v 1.13 2001/06/16 21:03:27 sjbaker Exp $
 */
 
 #include "netSocket.h"
@@ -27,7 +27,8 @@
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <sys/time.h>
+#include <time.h>
+#include <sys/time.h>    /* Need both for Mandrake 8.0!! */
 #include <unistd.h>
 #include <netdb.h>
 #include <fcntl.h>

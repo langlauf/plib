@@ -18,11 +18,11 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadFLT.cxx,v 1.24 2001/05/23 00:22:22 sjbaker Exp $
+     $Id: ssgLoadFLT.cxx,v 1.25 2001/06/16 21:03:27 sjbaker Exp $
 */
 
 //
-//  $Id: ssgLoadFLT.cxx,v 1.24 2001/05/23 00:22:22 sjbaker Exp $
+//  $Id: ssgLoadFLT.cxx,v 1.25 2001/06/16 21:03:27 sjbaker Exp $
 //
 //
 //    OpenFlight loader for SSG
@@ -112,7 +112,8 @@
 # endif
 #endif
 #ifdef USE_POSIX_MMAP
-# include <sys/time.h>
+# include <time.h>
+# include <sys/time.h>   /* Need both for Mandrake 8.0 !! */
 # include <sys/stat.h>
 # include <sys/mman.h>
 #endif

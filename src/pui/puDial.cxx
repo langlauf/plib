@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puDial.cxx,v 1.3 2001/04/12 03:36:12 deca Exp $
+     $Id: puDial.cxx,v 1.7 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 
@@ -45,60 +45,65 @@ void puDial::draw ( int dx, int dy )
                 colour [ PUCOL_LEGEND ][2],
                 colour [ PUCOL_LEGEND ][3] / 2.0f ) ; // 50% more transparent
 
-  // Draw the surrounding circle.
-
-  float rad = (float)( abox.max [0] - abox.min [0] ) / 2.0f - 3.0f ;
-  int x_cen = dx + ( abox.max [0] + abox.min [0] ) / 2 ;
-  int y_cen = dy + ( abox.max [1] + abox.min [1] ) / 2 ;
-
-  float dtheta = 3.0f / rad ;   // three pixels per segment
-
-  float old_line_width ;
-
-  glGetFloatv ( GL_LINE_WIDTH, &old_line_width ) ;
-  
-  glLineWidth ( 2.0f ) ;   // set line width to two pixels
-
-  glBegin ( GL_LINE_LOOP ) ;
-
-  float theta ;
-  for ( theta = -3.1415927f; theta < 3.1415927f; theta+= dtheta )
+  if ( r_cb )
+    r_cb ( this, dx, dy, render_data ) ;
+  else
   {
-    float x = (float)x_cen + rad * cos ( (double)theta ) ;
-    float y = (float)y_cen + rad * sin ( (double)theta ) ;
+    // Draw the surrounding circle.
 
-    glVertex2f ( x, y ) ;
+    float rad = (float)( abox.max [0] - abox.min [0] ) / 2.0f - 3.0f ;
+    int x_cen = dx + ( abox.max [0] + abox.min [0] ) / 2 ;
+    int y_cen = dy + ( abox.max [1] + abox.min [1] ) / 2 ;
+
+    float dtheta = 3.0f / rad ;   // three pixels per segment
+
+    float old_line_width ;
+
+    glGetFloatv ( GL_LINE_WIDTH, &old_line_width ) ;
+    
+    glLineWidth ( 2.0f ) ;   // set line width to two pixels
+
+    glBegin ( GL_LINE_STRIP ) ;
+
+    float theta ;
+    for ( theta = -3.1415927f; theta < 3.1415927f+dtheta; theta+= dtheta )
+    {
+      float x = (float)x_cen + rad * cos ( (double)theta ) ;
+      float y = (float)y_cen + rad * sin ( (double)theta ) ;
+
+      glVertex2f ( x, y ) ;
+    }
+
+    glEnd () ;
+
+    // Draw the line from the center.
+
+    glLineWidth ( 4.0f ) ;  // four pixels wide
+
+    float val ;
+    getValue ( &val ) ;
+
+    if ( val < 0.0 ) val = 0.0 ;
+    if ( val > 1.0 ) val = 1.0 ;
+
+    val = ( 2.0f * val - 1.0f ) * 3.1415927f ;
+
+    glBegin ( GL_LINES ) ;
+
+    glVertex2f ( x_cen, y_cen ) ;
+    glVertex2f ( x_cen + rad * sin ( (double)val ), y_cen + rad * cos ( (double)val ) ) ;
+
+    glEnd () ;
+
+    glLineWidth ( old_line_width ) ;  // restore the old width
+
+    int xx = ( abox.max[0] - abox.min[0] - puGetStringWidth(legendFont,legend) ) / 2 ;
+    int yy = ( abox.max[1] - abox.min[1] - puGetStringHeight(legendFont) ) / 2 ;
+
+    puDrawString ( legendFont, legend,
+                    dx + abox.min[0] + xx,
+                    dy + abox.min[1] + yy ) ;
   }
-
-  glEnd () ;
-
-  // Draw the line from the center.
-
-  glLineWidth ( 4.0f ) ;  // four pixels wide
-
-  float val ;
-  getValue ( &val ) ;
-
-  if ( val < min_value ) val = min_value ;
-  if ( val > max_value ) val = max_value ;
-
-  val = ( 2.0f * ( val - min_value ) / ( max_value - min_value ) - 1.0f ) * 3.1415927f ;
-
-  glBegin ( GL_LINES ) ;
-
-  glVertex2f ( x_cen, y_cen ) ;
-  glVertex2f ( x_cen + rad * sin ( (double)val ), y_cen + rad * cos ( (double)val ) ) ;
-
-  glEnd () ;
-
-  glLineWidth ( old_line_width ) ;  // restore the old width
-
-  int xx = ( abox.max[0] - abox.min[0] - puGetStringWidth(legendFont,legend) ) / 2 ;
-  int yy = ( abox.max[1] - abox.min[1] - puGetStringHeight(legendFont) ) / 2 ;
-
-  puDrawString ( legendFont, legend,
-                  dx + abox.min[0] + xx,
-                  dy + abox.min[1] + yy ) ;
 
   draw_label ( dx, dy ) ;
 }
@@ -115,23 +120,40 @@ void puDial::doHit ( int button, int updown, int x, int y )
   if ( updown != PU_DRAG )
     puMoveToLast ( this );
 
+  if ( button == PU_LEFT_BUTTON && updown == PU_UP )
+  {
+    puDeactivateWidget () ;
+    return ;
+  }                                                                             
+
   if ( button == PU_LEFT_BUTTON )
   {
     int x_cen = ( abox.max [0] + abox.min [0] ) / 2 ;
     int y_cen = ( abox.max [1] + abox.min [1] ) / 2 ;
-    float angle = atan2 ( (double)(x-x_cen), (double)(y-y_cen) ) *  // Up is zero degrees
-                  180.0f / 3.1415927f ;
-    // Move to within the (min, max) interval
+    float angle = atan2 ( (double)(x-x_cen), (double)(y-y_cen) ) / 3.1415927f ;
 
-    if ( angle < -180.0f )
-      angle += 360.0 ;
-    else if (angle > 180.0f )
-      angle -= 360.0 ;
+    // Move to within the (0,1) interval
 
-    angle = min_value + ( max_value - min_value ) * ( angle +180.0f ) / 360.0f ;
+    if ( angle < -1.0f )
+      angle += 2.0 ;
+    else if (angle > 1.0f )
+      angle -= 2.0 ;
+
+    angle = ( angle + 1.0f ) / 2.0f ;
+
+    // Check for hitting the limits (user has dragged the mouse around the bottom
+    // of the widget)
+    if ( !wrap )
+    {
+      if ( ( angle > 0.75 ) && ( getValue () < 0.25 ) )
+        angle = 0.0 ;
+      else if ( ( angle < 0.25 ) && ( getValue () > 0.75 ) )
+        angle = 1.0 ;
+    }
 
     setValue ( angle ) ;
 
+    puSetActiveWidget ( this, x, y ) ;
     invokeCallback () ;
   }
 }

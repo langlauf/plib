@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puArrowButton.cxx,v 1.3 2001/04/12 03:36:12 deca Exp $
+     $Id: puArrowButton.cxx,v 1.5 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 #include "puLocal.h"
@@ -55,95 +55,100 @@ void puArrowButton::draw ( int dx, int dy )
                 colour [ PUCOL_LABEL ][2],
                 colour [ PUCOL_LABEL ][3] / 2.0f ) ; /* 50% more transparent */ 
 
-  int size_x = abox.max[0] - abox.min[0] ;
-  int size_y = abox.max[1] - abox.min[1] ;
-
-  int pos_x = dx + ( abox.max[0] + abox.min[0] ) / 2 ;
-  int pos_y = dy + ( abox.max[1] + abox.min[1] ) / 2 ;
-
-  switch ( arrow_type )
+  if ( r_cb )
+    r_cb ( this, dx, dy, render_data ) ;
+  else
   {
+    int size_x = abox.max[0] - abox.min[0] ;
+    int size_y = abox.max[1] - abox.min[1] ;
+
+    int pos_x = dx + ( abox.max[0] + abox.min[0] ) / 2 ;
+    int pos_y = dy + ( abox.max[1] + abox.min[1] ) / 2 ;
+
+    switch ( arrow_type )
+    {
     case PUARROW_UP :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
       glEnd      () ;
       break;
 
     case PUARROW_DOWN :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
-	glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
       glEnd      () ;
       break;
 
     case PUARROW_FASTUP :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x           , pos_y            ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y            ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
 
-	glVertex2i ( pos_x - size_x/4, pos_y            ) ;
-	glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y            ) ;
       glEnd      () ;
       break;
 
     case PUARROW_FASTDOWN :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
-	glVertex2i ( pos_x           , pos_y            ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y            ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
 
-	glVertex2i ( pos_x - size_x/4, pos_y            ) ;
-	glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y            ) ;
       glEnd      () ;
       break;
 
     case PUARROW_LEFT :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y            ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
       glEnd      () ;
       break;
 
     case PUARROW_RIGHT :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y            ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
       glEnd      () ;
       break;
 
     case PUARROW_FASTLEFT :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x           , pos_y            ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y            ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y + size_y/4 ) ;
 
-	glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y            ) ;
-	glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
       glEnd      () ;
       break;
 
     case PUARROW_FASTRIGHT :
       glBegin    ( GL_TRIANGLES ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x           , pos_y            ) ;
-	glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y            ) ;
+		glVertex2i ( pos_x - size_x/4, pos_y + size_y/4 ) ;
 
-	glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
-	glVertex2i ( pos_x + size_x/4, pos_y            ) ;
-	glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
+		glVertex2i ( pos_x           , pos_y - size_y/4 ) ;
+		glVertex2i ( pos_x + size_x/4, pos_y            ) ;
+		glVertex2i ( pos_x           , pos_y + size_y/4 ) ;
       glEnd      () ;
       break;
 
     default : break ;
+    }
   }
 
   draw_label ( dx, dy ) ;

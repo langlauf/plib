@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puLargeInput.cxx,v 1.7 2001/06/11 23:45:13 mcdave Exp $
+     $Id: puLargeInput.cxx,v 1.9 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 #include "puLocal.h"
@@ -826,7 +826,7 @@ void puLargeInput::doHit ( int button, int updown, int x, int y )
       accepting = TRUE ;
       cursor_position = i ;
       normalize_cursors () ;
-      puSetActiveWidget ( this ) ;
+      puSetActiveWidget ( this, x, y ) ;
       invokeCallback () ;
     }
     else if ( updown == PU_DOWN )

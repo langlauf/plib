@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puInput.cxx,v 1.8 2001/05/16 16:51:40 mcdave Exp $
+     $Id: puInput.cxx,v 1.10 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 
@@ -76,85 +76,90 @@ void puInput::draw ( int dx, int dy )
                            style==PUSTYLE_SMALL_SHADED) ) ? -style :
                         (accepting ? -style : style ), colour, FALSE ) ;
 
-  int xx = puGetStringWidth ( legendFont, " " ) ;
-  int yy = ( abox.max[1] - abox.min[1] - puGetStringHeight(legendFont) ) / 2 ;
-
-  if ( accepting )
+  if ( r_cb )
+    r_cb ( this, dx, dy, render_data ) ;
+  else
   {
-    char val [ PUSTRING_MAX ] ;
-    getValue ( val ) ;
+    int xx = puGetStringWidth ( legendFont, " " ) ;
+    int yy = ( abox.max[1] - abox.min[1] - puGetStringHeight(legendFont) ) / 2 ;
 
-    /* Highlight the select area */
-
-    if ( select_end_position > 0 &&
-         select_end_position != select_start_position )    
+    if ( accepting )
     {
-      val [ select_end_position ] = '\0' ;
-      int cpos2 = puGetStringWidth ( legendFont, val ) + xx + dx + abox.min[0] ;
-      val [ select_start_position ] = '\0' ;
-      int cpos1 = puGetStringWidth ( legendFont, val ) + xx + dx + abox.min[0] ;
+      char val [ PUSTRING_MAX ] ;
+      getValue ( val ) ;
 
-      glColor3f ( 1.0f, 1.0f, 0.7f ) ;
-      glRecti ( cpos1, dy + abox.min[1] + 6 ,
-                cpos2, dy + abox.max[1] - 6 ) ;
+      /* Highlight the select area */
+
+      if ( select_end_position > 0 &&
+           select_end_position != select_start_position )    
+      {
+        val [ select_end_position ] = '\0' ;
+        int cpos2 = puGetStringWidth ( legendFont, val ) + xx + dx + abox.min[0] ;
+        val [ select_start_position ] = '\0' ;
+        int cpos1 = puGetStringWidth ( legendFont, val ) + xx + dx + abox.min[0] ;
+
+        glColor3f ( 1.0f, 1.0f, 0.7f ) ;
+        glRecti ( cpos1, dy + abox.min[1] + 6 ,
+                  cpos2, dy + abox.max[1] - 6 ) ;
+      }
     }
-  }
 
-  /* Draw the text */
+    /* Draw the text */
 
-  {
-    /* If greyed out then halve the opacity when drawing the label and legend */
-
-    if ( active )
-      glColor4fv ( colour [ PUCOL_LEGEND ] ) ;
-    else
-      glColor4f ( colour [ PUCOL_LEGEND ][0],
-                  colour [ PUCOL_LEGEND ][1],
-                  colour [ PUCOL_LEGEND ][2],
-                  colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
-
-    char val [ PUSTRING_MAX ] ;
-    getValue ( val ) ;
-
-    puDrawString ( legendFont, val,
-                  dx + abox.min[0] + xx,
-                  dy + abox.min[1] + yy ) ;
-
-    draw_label ( dx, dy ) ;
-  }
-
-  if ( accepting )
-  { 
-    char val [ PUSTRING_MAX ] ;
-    getValue ( val ) ;
-
-    /* Draw the 'I' bar cursor. */
-
-    if ( cursor_position >= 0 )
     {
-      val [ cursor_position ] = '\0' ;
+      /* If greyed out then halve the opacity when drawing the label and legend */
 
-      int cpos = puGetStringWidth ( legendFont, val ) + xx + dx + abox.min[0] ;
-      int top = yy + puGetStringHeight ( legendFont ) ;
-      int bot = yy - puGetStringDescender ( legendFont ) ;
+      if ( active )
+        glColor4fv ( colour [ PUCOL_LEGEND ] ) ;
+      else
+        glColor4f ( colour [ PUCOL_LEGEND ][0],
+                    colour [ PUCOL_LEGEND ][1],
+                    colour [ PUCOL_LEGEND ][2],
+                    colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
 
-      glColor3f ( 0.1f, 0.1f, 1.0f ) ;
-      glBegin   ( GL_LINES ) ;
-      glVertex2i ( cpos    , dy + abox.min[1] + bot ) ;
-      glVertex2i ( cpos    , dy + abox.min[1] + top ) ;
-      glVertex2i ( cpos - 1, dy + abox.min[1] + bot ) ;
-      glVertex2i ( cpos - 1, dy + abox.min[1] + top ) ;
-      glVertex2i ( cpos - 4, dy + abox.min[1] + bot ) ;
-      glVertex2i ( cpos + 3, dy + abox.min[1] + bot ) ;
-      glVertex2i ( cpos - 4, dy + abox.min[1] + top ) ;
-      glVertex2i ( cpos + 3, dy + abox.min[1] + top ) ;
-      glEnd      () ;
+      char val [ PUSTRING_MAX ] ;
+      getValue ( val ) ;
+
+      puDrawString ( legendFont, val,
+                    dx + abox.min[0] + xx,
+                    dy + abox.min[1] + yy ) ;
+
+      draw_label ( dx, dy ) ;
+    }
+
+    if ( accepting )
+    { 
+      char val [ PUSTRING_MAX ] ;
+      getValue ( val ) ;
+
+      /* Draw the 'I' bar cursor. */
+
+      if ( cursor_position >= 0 )
+      {
+        val [ cursor_position ] = '\0' ;
+
+        int cpos = puGetStringWidth ( legendFont, val ) + xx + dx + abox.min[0] ;
+        int top = yy + puGetStringHeight ( legendFont ) ;
+        int bot = yy - puGetStringDescender ( legendFont ) ;
+
+        glColor3f ( 0.1f, 0.1f, 1.0f ) ;
+        glBegin   ( GL_LINES ) ;
+        glVertex2i ( cpos    , dy + abox.min[1] + bot ) ;
+        glVertex2i ( cpos    , dy + abox.min[1] + top ) ;
+        glVertex2i ( cpos - 1, dy + abox.min[1] + bot ) ;
+        glVertex2i ( cpos - 1, dy + abox.min[1] + top ) ;
+        glVertex2i ( cpos - 4, dy + abox.min[1] + bot ) ;
+        glVertex2i ( cpos + 3, dy + abox.min[1] + bot ) ;
+        glVertex2i ( cpos - 4, dy + abox.min[1] + top ) ;
+        glVertex2i ( cpos + 3, dy + abox.min[1] + top ) ;
+        glEnd      () ;
+      }
     }
   }
 }
 
 
-void puInput::doHit ( int button, int updown, int x, int /* y */ )
+void puInput::doHit ( int button, int updown, int x, int y )
 {
   if ( puActiveWidget() && ( this != puActiveWidget() ) )
   {
@@ -201,7 +206,7 @@ void puInput::doHit ( int button, int updown, int x, int /* y */ )
       accepting = TRUE ;
       cursor_position = i ;
       normalize_cursors () ;
-      puSetActiveWidget ( this ) ;
+      puSetActiveWidget ( this, x, y ) ;
       invokeCallback () ;
     }
     else if ( updown == PU_DOWN )

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgAxisTransform.cxx,v 1.2 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgAxisTransform.cxx,v 1.3 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -43,14 +43,14 @@ ssgBase *ssgAxisTransform::clone ( int clone_flags )
 
 ssgAxisTransform::ssgAxisTransform (void)
 {
-  type |= SSG_TYPE_AXISTRANSFORM ;
+  type = ssgTypeAxisTransform () ;
   sgZeroVec3 ( rotation_axis ) ;
   limit_low = limit_high = 0.f;  
 }
 
 ssgAxisTransform::ssgAxisTransform ( sgVec3 axis, sgVec3 center )
 {
-  type |= SSG_TYPE_AXISTRANSFORM ;
+  type = ssgTypeAxisTransform () ;
   setAxis   ( axis   );
   setCenter ( center );
   limit_low = limit_high = 0.f;

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLeaf.cxx,v 1.15 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgLeaf.cxx,v 1.16 2001/06/16 16:27:37 stromberg Exp $
 */
 
 
@@ -63,7 +63,7 @@ ssgLeaf::ssgLeaf (void)
 {
   cull_face = TRUE ;
   state = NULL ;
-  type |= SSG_TYPE_LEAF ;
+  type = ssgTypeLeaf () ;
 
 #ifdef _SSG_USE_DLIST
   dlist = 0 ;

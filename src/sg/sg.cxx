@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sg.cxx,v 1.14 2001/05/21 03:44:24 sjbaker Exp $
+     $Id: sg.cxx,v 1.19 2001/06/15 23:14:52 sjbaker Exp $
 */
 
 
@@ -644,6 +644,44 @@ int sgFrustum::contains ( const sgSphere *s ) const
 }
 
 
+
+SGfloat sgDistSquaredToLineVec3 ( const sgLine3 line, const sgVec3 pnt )
+{
+  sgVec3 r ; sgSubVec3 ( r, pnt, line.point_on_line ) ;
+ 
+  return sgScalarProductVec3 ( r, r ) -
+         sgScalarProductVec3 ( r, line.direction_vector ) ;
+}
+
+
+
+SGfloat sgDistSquaredToLineSegmentVec3 ( const sgLineSegment3 line,
+                                         const sgVec3 pnt )
+{
+  sgLine3 l ; sgLineSegment3ToLine3 ( & l, line ) ;
+ 
+sgVec3 v ; sgSubVec3 ( v, line.b, line.a ) ;
+  sgVec3 r1 ; sgSubVec3 ( r1, pnt, line.a ) ;
+ 
+  SGfloat r1_dot_v = sgScalarProductVec3 ( r1, v /*l.direction_vector*/ ) ;
+ 
+  if ( r1_dot_v <= 0 )  /* Off the "A" end  */
+    return sgScalarProductVec3 ( r1, r1 ) ;
+ 
+  sgVec3 r2 ; sgSubVec3 ( r2, pnt, line.b ) ;
+
+  SGfloat r2_dot_v = sgScalarProductVec3 ( r2, v /*l.direction_vector*/ ) ;
+ 
+  if ( r2_dot_v >= 0 )  /* Off the "B" end */
+    return sgScalarProductVec3 ( r2, r2 ) ;
+ 
+  /* Closest point on line is on the line segment */
+ 
+  return sgScalarProductVec3 ( r1, r1 ) - r1_dot_v ;
+}
+
+
+
 void sgMakeCoordMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const SGfloat z, const SGfloat h, const SGfloat p, const SGfloat r )
 {
   SGfloat ch, sh, cp, sp, cr, sr, srsp, crsp, srcp ;
@@ -1099,7 +1137,7 @@ void sgAngleAxisToQuat ( sgQuat dst, const SGfloat angle, const sgVec3 axis )
 //from gamasutra.com
 //by nb
 
-void sgMatrixToQuat( sgQuat quat, sgMat4 m )
+void sgMatrixToQuat( sgQuat quat, const sgMat4 m )
 {
   SGfloat tr, s, q[4] ;
   int   i, j, k ;
@@ -1190,18 +1228,18 @@ void sgMultQuat2 ( sgQuat dst, const sgQuat a, const sgQuat b )
 //from gamasutra.com
 //by nb@netcom.ca 
 
-void sgEulerToQuat(sgQuat quat, sgVec3 ypr )
+void sgEulerToQuat(sgQuat quat, const sgVec3 hpr )
 {
   SGfloat cr, cp, cy, sr, sp, sy, cpcy, spsy;
 
 // calculate trig identities
-  cr = (SGfloat) cos(ypr[2]/SG_TWO);
-  cp = (SGfloat) cos(ypr[1]/SG_TWO);
-  cy = (SGfloat) cos(ypr[0]/SG_TWO);
+  cr = (SGfloat) cos(hpr[2]*SG_DEGREES_TO_RADIANS/SG_TWO);
+  cp = (SGfloat) cos(hpr[1]*SG_DEGREES_TO_RADIANS/SG_TWO);
+  cy = (SGfloat) cos(hpr[0]*SG_DEGREES_TO_RADIANS/SG_TWO);
 
-  sr = (SGfloat) sin(ypr[2]/SG_TWO);
-  sp = (SGfloat) sin(ypr[1]/SG_TWO);
-  sy = (SGfloat) sin(ypr[0]/SG_TWO);
+  sr = (SGfloat) sin(hpr[2]*SG_DEGREES_TO_RADIANS/SG_TWO);
+  sp = (SGfloat) sin(hpr[1]*SG_DEGREES_TO_RADIANS/SG_TWO);
+  sy = (SGfloat) sin(hpr[0]*SG_DEGREES_TO_RADIANS/SG_TWO);
   
   cpcy = cp * cy;
   spsy = sp * sy;
@@ -1215,7 +1253,7 @@ void sgEulerToQuat(sgQuat quat, sgVec3 ypr )
 //from darwin3d.com
 // jeffl@darwin3d.com
 
-void sgQuatToEuler( sgVec3 euler, const sgQuat quat )
+void sgQuatToEuler( sgVec3 hpr, const sgQuat quat )
 {
   SGfloat matrix[3][3];
   SGfloat cx,sx;
@@ -1245,7 +1283,7 @@ void sgQuatToEuler( sgVec3 euler, const sgQuat quat )
   sy = -matrix[2][0];
   cy = (SGfloat)sqrt(SG_ONE - (sy * sy));
   yr = (SGfloat)atan2(sy,cy);
-  euler[1] = yr * SG_RADIANS_TO_DEGREES ;
+  hpr[1] = yr * SG_RADIANS_TO_DEGREES ;
 
   // AVOID DIVIDE BY ZERO ERROR ONLY WHERE Y= +-90 or +-270 
   // NOT CHECKING cy BECAUSE OF PRECISION ERRORS
@@ -1253,11 +1291,11 @@ void sgQuatToEuler( sgVec3 euler, const sgQuat quat )
   {
     cx = matrix[2][2] / cy;
     sx = matrix[2][1] / cy;
-    euler[0] = ((SGfloat)atan2(sx,cx)) * SG_RADIANS_TO_DEGREES ;
+    hpr[0] = ((SGfloat)atan2(sx,cx)) * SG_RADIANS_TO_DEGREES ;
 
     cz = matrix[0][0] / cy;
     sz = matrix[1][0] / cy;
-    euler[2] = ((SGfloat)atan2(sz,cz)) * SG_RADIANS_TO_DEGREES ;
+    hpr[2] = ((SGfloat)atan2(sz,cz)) * SG_RADIANS_TO_DEGREES ;
   }
   else
   {
@@ -1272,16 +1310,16 @@ void sgQuatToEuler( sgVec3 euler, const sgQuat quat )
 
     cx =  matrix[1][1];
     sx = -matrix[1][2];
-    euler[0] = ((SGfloat)atan2(sx,cx)) * SG_RADIANS_TO_DEGREES ;
+    hpr[0] = ((SGfloat)atan2(sx,cx)) * SG_RADIANS_TO_DEGREES ;
 
     cz = SG_ONE ;
     sz = SG_ZERO ;
-    euler[2] = ((SGfloat)atan2(sz,cz)) * SG_RADIANS_TO_DEGREES ;
+    hpr[2] = ((SGfloat)atan2(sz,cz)) * SG_RADIANS_TO_DEGREES ;
   }
 }
 
 
-void sgQuatToMatrix ( sgMat4 dst, sgQuat q )
+void sgQuatToMatrix ( sgMat4 dst, const sgQuat q )
 {
   SGfloat two_xx = q[SG_X] * (q[SG_X] + q[SG_X]) ;
   SGfloat two_xy = q[SG_X] * (q[SG_Y] + q[SG_Y]) ;
@@ -1305,6 +1343,11 @@ void sgQuatToMatrix ( sgMat4 dst, sgQuat q )
 
 //from gamasutra.com
 //by nb@netcom.ca 
+
+/*****************************
+ DEPRECATED...use sgQuatToMatrix instead.
+*****************************/
+
 void sgMakeRotMat42( sgMat4 m, sgQuat quat ){
  SGfloat wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
 

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: pu.cxx,v 1.17 2001/05/16 16:51:40 mcdave Exp $
+     $Id: pu.cxx,v 1.20 2001/06/19 02:42:18 sjbaker Exp $
 */
 
 #include "puLocal.h"
@@ -371,6 +371,11 @@ int puKeyboard ( int key, int updown )
 
 
 static int last_buttons = 0 ;
+static int pu_mouse_x = 0 ;
+static int pu_mouse_y = 0 ;
+static int pu_mouse_offset_x = 0 ;
+static int pu_mouse_offset_y = 0 ;
+
 int puMouse ( int button, int updown, int x, int y )
 {
   puCursor ( x, y ) ;
@@ -381,9 +386,11 @@ int puMouse ( int button, int updown, int x, int y )
     last_buttons |=  ( 1 << button ) ;
   else
     last_buttons &= ~( 1 << button ) ;
-  
+
+  pu_mouse_x = x ;
+  pu_mouse_y = h - y ;
   int return_value =  puGetBaseLiveInterface () -> checkHit ( button,
-    updown, x, h - y ) ;
+    updown, pu_mouse_x, pu_mouse_y ) ;
   
   puCleanUpJunk () ;
   
@@ -397,14 +404,30 @@ int puMouse ( int x, int y )
   
   if ( last_buttons == 0 )
     return FALSE ;
-  
+
   int button =
     (last_buttons & (1<<PU_LEFT_BUTTON  )) ?  PU_LEFT_BUTTON   :
     (last_buttons & (1<<PU_MIDDLE_BUTTON)) ?  PU_MIDDLE_BUTTON :
     (last_buttons & (1<<PU_RIGHT_BUTTON )) ?  PU_RIGHT_BUTTON  : 0 ;
-  
+
   int h = puGetWindowHeight () ;
-  
+
+  pu_mouse_x = x ;
+  pu_mouse_y = h - y ;
+
+  /*
+    When you drag over an ACTIVE widget, you don't
+    affect any other widgets until you release the
+    mouse button.
+  */
+
+  if ( puActiveWidget () )
+  {
+    puActiveWidget()->doHit(button, PU_DRAG, pu_mouse_x - pu_mouse_offset_x,
+                                             pu_mouse_y - pu_mouse_offset_y) ;
+    return TRUE ;
+  }
+
   int return_value = puGetBaseLiveInterface () -> checkHit ( button,
     PU_DRAG, x, h - y ) ;
   
@@ -438,7 +461,13 @@ void puMoveToLast (puObject *ob)
 }
 
 void puDeactivateWidget ()  {  active_widget = NULL ; }
-void puSetActiveWidget ( puObject *w ) {   active_widget = w ; }
+void puSetActiveWidget ( puObject *w, int x, int y )
+{
+  active_widget = w ;
+  pu_mouse_offset_x = pu_mouse_x - x ;
+  pu_mouse_offset_y = pu_mouse_y - y ;
+}
+
 puObject *puActiveWidget () {   return active_widget ; }
 
 void puSetPasteBuffer ( char *ch )
