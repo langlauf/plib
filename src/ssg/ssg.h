@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -129,6 +130,13 @@ inline int ssgTypeStateSelector() { return SSG_TYPE_STATESELECTOR | ssgTypeSimpl
 #define SSG_GL_ALPHA_TEST       13
 #define SSG_GL_SHADE_MODEL      14
 
+#define SSG_CLONE_RECURSIVE        1
+#define SSG_CLONE_GEOMETRY         2
+#define SSG_CLONE_USERDATA         4
+#define SSG_CLONE_STATE            8
+#define SSG_CLONE_STATE_RECURSIVE 16
+#define SSG_CLONE_TEXTURE         32
+
 int ssgGetFrameCounter () ;
 
 void ssgDeRefDelete ( ssgBase *s ) ;
@@ -198,6 +206,8 @@ protected :
   int   type  ;
   int   spare ;  /* This spare field is used in a bunch of short-term hacks */
 
+  virtual void copy_from ( ssgBase *src, int clone_flags ) ;
+
 public:
   virtual void zeroSpareRecursive ();
   virtual void zeroSpare ()         ;
@@ -211,6 +221,8 @@ public:
   void ref   () { refc++ ; }
   void deRef () { assert ( refc > 0 ) ; refc-- ; }
   int  getRef() { return refc ; }
+
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
 
   /* Type checking mechanism */
 
@@ -230,10 +242,11 @@ public:
 class ssgSimpleList : public ssgBase
 {
 protected:
-  unsigned int total ;  /* The total number of things in the list */
-  unsigned int limit ;  /* The current limit on number of things  */
-  unsigned int size_of ;
-  char *list ;  /* The list. */
+
+  unsigned int total   ;  /* The total number of things in the list */
+  unsigned int limit   ;  /* The current limit on number of things  */
+  unsigned int size_of ;  /* The size of each thing */
+  char         *list   ;  /* The list. */
 
   void sizeChk (void)
   {
@@ -247,6 +260,17 @@ protected:
     }
   }
 
+  virtual void copy_from ( ssgSimpleList *src, int clone_flags ) ;
+
+_SSG_PUBLIC:
+
+  ssgSimpleList ()
+  {
+    limit = 0 ;
+    size_of = 0 ;
+    total = 0 ;
+    list = NULL ;
+  }
 
 public:
 
@@ -257,6 +281,8 @@ public:
     total = 0 ;
     list = new char [ limit * size_of ] ;
   }
+
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
 
   virtual ~ssgSimpleList (void)
   {
@@ -287,6 +313,7 @@ public:
     limit = total = 0 ;
   }
 
+  int getSizeOf (void) { return size_of ; }
   int getNum (void) { return total ; }
 
   virtual int load ( FILE *fd ) ;
@@ -298,6 +325,7 @@ class ssgVertexArray : public ssgSimpleList
 {
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgVertexArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec3), init ) {} 
   float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
   void   add ( sgVec3   thing ) { raw_add ( (char *) thing ) ; } ;
@@ -308,6 +336,7 @@ class ssgNormalArray : public ssgSimpleList
 {
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgNormalArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec3), init ) {} 
   float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
   void   add ( sgVec3   thing ) { raw_add ( (char *) thing ) ; } ;
@@ -318,6 +347,7 @@ class ssgTexCoordArray : public ssgSimpleList
 {
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgTexCoordArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec2), init ) {} 
   float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
   void   add ( sgVec2   thing ) { raw_add ( (char *) thing ) ; } ;
@@ -328,6 +358,7 @@ class ssgColourArray : public ssgSimpleList
 {
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgColourArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec4), init ) {} 
   float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
   void   add ( sgVec4   thing ) { raw_add ( (char *) thing ) ; } ;
@@ -354,8 +385,13 @@ class ssgTexture : public ssgBase
   char *filename ;
   GLuint handle ;
 
+protected:
+
+  virtual void copy_from ( ssgTexture *src, int clone_flags ) ;
+  ssgTexture () ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgTexture ( char *fname, int wrapu = TRUE, int wrapv = TRUE )
   {
 #ifdef GL_VERSION_1_1
@@ -416,6 +452,10 @@ class ssgState : public ssgBase
   int translucent ;
 
   int external_property_index ;
+
+protected:
+  virtual void copy_from ( ssgState *src, int clone_flags ) ;
+
 public:
   ssgState (void) ;
   virtual ~ssgState (void) ;
@@ -459,8 +499,12 @@ _SSG_PUBLIC:
 
   ssgSimpleState ( int I_am_current_state ) ;
 
+protected:
+  virtual void copy_from ( ssgSimpleState *src, int clone_flags ) ;
+
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgSimpleState (void) ;
   virtual ~ssgSimpleState (void) ;
   virtual char *getTypeName(void) ;
@@ -588,16 +632,22 @@ class ssgStateSelector : public ssgSimpleState
 {
   int              nstates   ;
   int              selection ;
+_SSG_PUBLIC:
   ssgSimpleState **statelist ;
+
+protected:
+  virtual void copy_from ( ssgStateSelector *src, int clone_flags ) ;
 
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgStateSelector () ;
   ssgStateSelector ( int ns ) ;
 
   virtual ~ssgStateSelector (void) ;
   virtual char *getTypeName (void) ;
 
+  int             getNumSteps ( void ) { return nstates ; }
   void            selectStep ( unsigned int s ) ;
   unsigned int    getSelectStep   (void) ;
   ssgSimpleState *getCurrentStep  (void) ;
@@ -681,6 +731,7 @@ protected:
   virtual ssgCullResult isect_test ( sgSphere  *s, sgMat4 m, int test_needed ) ;
   virtual ssgCullResult hot_test   ( sgVec3     s, sgMat4 m, int test_needed ) ;
 
+  virtual void copy_from ( ssgEntity *src, int clone_flags ) ;
 public:
  
   ssgEntity (void) ;
@@ -766,6 +817,7 @@ protected:
 
   int preDraw () ;
 
+  virtual void copy_from ( ssgLeaf *src, int clone_flags ) ;
 public:
   ssgLeaf (void) ;
   virtual ~ssgLeaf (void) ;
@@ -837,7 +889,13 @@ protected:
   sgVec4 *colours   ; int num_colours   ; unsigned short *c_index ;
 
   virtual void draw_geometry () ;
+  virtual void copy_from ( ssgVTable *src, int clone_flags ) ;
+
+_SSG_PUBLIC:
+  int isIndexed () { return indexed ; }
+
 public:
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgVTable () ;
   ssgVTable ( GLenum ty,
               int nv, unsigned short *vi, sgVec3 *vl,
@@ -922,13 +980,18 @@ protected:
   sgBox bbox ;
   GLenum gltype ;
 
+  virtual void draw_geometry () ;
+  virtual void copy_from ( ssgVtxTable *src, int clone_flags ) ;
+
+_SSG_PUBLIC:
+
   ssgVertexArray   *vertices  ;
   ssgNormalArray   *normals   ;
   ssgTexCoordArray *texcoords ;
   ssgColourArray   *colours   ;
 
-  virtual void draw_geometry () ;
 public:
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgVtxTable () ;
 
   ssgVtxTable ( GLenum ty, ssgVertexArray   *vl,
@@ -995,9 +1058,13 @@ class ssgBranch : public ssgEntity
 {
   ssgKidList kids ;
 
+protected:
+  virtual void copy_from ( ssgBranch *src, int clone_flags ) ;
+
 public:
   virtual void zeroSpareRecursive ();
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgBranch (void) ;
   virtual ~ssgBranch (void) ;
 
@@ -1027,8 +1094,13 @@ public:
 
 class ssgInvisible : public ssgBranch
 {
+protected:
+
+  virtual void copy_from ( ssgInvisible *src, int clone_flags ) ;
+
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgInvisible (void) ;
   virtual ~ssgInvisible (void) ;
 
@@ -1042,8 +1114,13 @@ public:
 class ssgSelector : public ssgBranch
 {
   unsigned int selection ;
+
+protected:
+  virtual void copy_from ( ssgSelector *src, int clone_flags ) ;
+
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgSelector (void) ;
   virtual ~ssgSelector (void) ;
 
@@ -1073,8 +1150,11 @@ class ssgRangeSelector : public ssgSelector
   int additive ;
   float rng_list [ 33 ] ;
 
+protected:
+  virtual void copy_from ( ssgRangeSelector *src, int clone_flags ) ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgRangeSelector (void) ;
   virtual ~ssgRangeSelector (void) ;
 
@@ -1122,6 +1202,7 @@ enum ssgAnimDirection
 
 class ssgTimedSelector : public ssgSelector
 {
+_SSG_PUBLIC:
   ssgAnimEnum      running ;
   ssgAnimDirection mode    ;
 
@@ -1141,8 +1222,11 @@ class ssgTimedSelector : public ssgSelector
       loop_time += times [ k ] ;
   }
 
+protected:
+  virtual void copy_from ( ssgTimedSelector *src, int clone_flags ) ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgTimedSelector (void) ;
   virtual ~ssgTimedSelector (void) ;
 
@@ -1225,6 +1309,7 @@ protected:
   sgMat4 last_transform ;
   int    last_updated ;
   int    first_time ;
+  virtual void copy_from ( ssgBaseTransform *src, int clone_flags ) ;
 public:
 
   ssgBaseTransform (void) ;
@@ -1277,8 +1362,11 @@ public:
 
 class ssgTransform : public ssgBaseTransform
 {
+protected:
+  virtual void copy_from ( ssgTransform *src, int clone_flags ) ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgTransform (void) ;
   ssgTransform ( sgCoord *c ) ;
   virtual ~ssgTransform (void) ;
@@ -1300,8 +1388,11 @@ public:
 
 class ssgTexTrans : public ssgBaseTransform
 {
+protected:
+  virtual void copy_from ( ssgTexTrans *src, int clone_flags ) ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgTexTrans (void) ;
   ssgTexTrans ( sgCoord *c ) ;
   virtual ~ssgTexTrans (void) ;
@@ -1321,10 +1412,15 @@ public:
 class ssgCutout : public ssgBranch
 {
   int point_rotate ;
+protected:
+  virtual void copy_from ( ssgCutout *src, int clone_flags ) ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgCutout (int pntrot=FALSE) ;
   virtual ~ssgCutout (void) ;
+
+  int isPointRotate (void) { return point_rotate ; }
 
   virtual char *getTypeName(void) ;
   virtual int load ( FILE *fd ) ;
@@ -1337,8 +1433,11 @@ public:
 
 class ssgRoot : public ssgBranch
 {
+protected:
+  virtual void copy_from ( ssgRoot *src, int clone_flags ) ;
 public:
 
+  virtual ssgBase *clone ( int clone_flags = 0 ) ;
   ssgRoot (void) ;
   virtual ~ssgRoot (void) ;
   virtual char *getTypeName(void) ;
@@ -1638,13 +1737,14 @@ int  ssgLOS         ( ssgRoot *root, sgVec3    s, sgMat4 m, ssgHit **results ) ;
 
 typedef ssgBranch *(*ssgHookFunc)(char *) ;
 
+ssgEntity *ssgLoad     ( char *fname, ssgHookFunc hookfunc = NULL ) ;
 ssgEntity *ssgLoadVRML ( char *fname, ssgHookFunc hookfunc = NULL ) ;
 ssgEntity *ssgLoad3ds  ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-
 ssgEntity *ssgLoadAC   ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-int        ssgSaveAC   ( char *fname, ssgEntity *ent ) ;
-
 ssgEntity *ssgLoadSSG  ( char *fname, ssgHookFunc hookfunc = NULL ) ;
+
+int        ssgSave     ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveAC   ( char *fname, ssgEntity *ent ) ;
 int        ssgSaveSSG  ( char *fname, ssgEntity *ent ) ;
 
 void ssgFlatten  ( ssgEntity *ent ) ;

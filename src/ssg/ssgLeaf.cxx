@@ -1,6 +1,22 @@
 
 #include "ssgLocal.h"
 
+void ssgLeaf::copy_from ( ssgLeaf *src, int clone_flags )
+{
+  ssgEntity::copy_from ( src, clone_flags ) ;
+
+  cull_face = src -> getCullFace () ;
+
+  ssgState *s = src -> getState () ;
+
+  if ( s != NULL && ( clone_flags & SSG_CLONE_STATE ) )
+    state = (ssgState *)( s -> clone ( clone_flags ) ) ;
+  else
+    state = s ;
+}
+
+
+
 ssgLeaf::ssgLeaf (void)
 {
   cull_face = TRUE ;

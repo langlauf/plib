@@ -257,7 +257,6 @@ slMODPlayer.o: slMODPlayer.cxx sl.h slPortability.h slMODPrivate.h \
 slMODdacio.o: slMODdacio.cxx slMODPrivate.h
 slMODfile.o: slMODfile.cxx slMODPrivate.h slMODfile.h
 slMODinst.o: slMODinst.cxx slMODPrivate.h
-slMODnode.o: slMODnode.cxx slMODPrivate.h
 slMODnote.o: slMODnote.cxx slMODPrivate.h
 slPlayer.o: slPlayer.cxx sl.h slPortability.h
 slSample.o: slSample.cxx sl.h slPortability.h

@@ -240,7 +240,6 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 fnt.o: fnt.cxx fntLocal.h fnt.h ../../src/sg/sg.h
-fntImageLoader.o: fntImageLoader.cxx fntLocal.h fnt.h ../../src/sg/sg.h
 fntTXF.o: fntTXF.cxx fntLocal.h fnt.h ../../src/sg/sg.h
 
 info-am:

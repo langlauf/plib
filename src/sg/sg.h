@@ -516,6 +516,7 @@ inline SGfloat sgScalarProductVec4 ( const sgVec4 a, const sgVec4 b )
 
 extern void sgVectorProductVec3 ( sgVec3 dst, const sgVec3 a, const sgVec3 b ) ;
 
+
 inline SGfloat sgDistanceSquaredVec2 ( const sgVec2 a, const sgVec2 b )
 {
   return sgSquare ( a[0]-b[0] ) + sgSquare ( a[1]-b[1] ) ;
@@ -1042,6 +1043,29 @@ inline void sgRotQuat ( sgQuat *dst, const SGfloat angle,
 
 /* SWC - Interpolate between to quaternions */
 void sgSlerpQuat( sgQuat *dst, const sgQuat *from, const sgQuat *to, const SGfloat t );
+
+/*
+  Intersection testing.
+*/
+
+int sgIsectPlanePlane       ( sgVec3 point, sgVec3 dir,
+                              sgVec4 plane1, sgVec4 plane2 ) ;
+int sgIsectInfLinePlane     ( sgVec3 dst,
+                              sgVec3 l_org, sgVec3 l_vec,
+                              sgVec4 plane ) ;
+int sgIsectInfLineInfLine   ( sgVec3 dst,
+                              sgVec3 l1_org, sgVec3 l1_vec,
+                              sgVec3 l2_org, sgVec3 l2_vec ) ;
+SGfloat sgIsectLinesegPlane ( sgVec3 dst,
+                              sgVec3 v1, sgVec3 v2,
+                              sgVec4 plane ) ;
+
+
+
+
+
+
+/**********************************************************************/
 
 #define SGDfloat double
 

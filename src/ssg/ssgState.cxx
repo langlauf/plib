@@ -1,6 +1,19 @@
 
 #include "ssgLocal.h"
 
+void ssgState::copy_from ( ssgState *src, int clone_flags )
+{
+  ssgBase::copy_from ( src, clone_flags ) ;
+  setExternalPropertyIndex ( src -> getExternalPropertyIndex () ) ;
+
+  if ( src -> isTranslucent () )
+    setTranslucent () ;
+  else
+    setOpaque () ;
+}
+
+
+
 ssgState::ssgState (void)
 {
   type |= SSG_TYPE_STATE ;

@@ -70,7 +70,7 @@ lib_LIBRARIES = libplibsg.a
 
 include_HEADERS = sg.h
 
-libplibsg_a_SOURCES = sg.cxx sgd.cxx
+libplibsg_a_SOURCES = sg.cxx sgd.cxx sgIsect.cxx
 
 EXTRA_DIST = sg.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -87,7 +87,7 @@ X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibsg_a_LIBADD = 
-libplibsg_a_OBJECTS =  sg.o sgd.o
+libplibsg_a_OBJECTS =  sg.o sgd.o sgIsect.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -234,6 +234,7 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 sg.o: sg.cxx sg.h
+sgIsect.o: sgIsect.cxx sg.h
 sgd.o: sgd.cxx sg.h
 
 info-am:

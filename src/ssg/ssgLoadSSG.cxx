@@ -81,9 +81,9 @@ ssgEntity *ssgLoadSSG ( char *fname, ssgHookFunc hookfunc )
 
   if ( ( magic & 0xFFFFFF00 ) != ( SSG_FILE_MAGIC_NUMBER & 0xFFFFFF00 ) )
   {
-    if ( ( magic & 0x0000FF ) == ( SSG_FILE_MAGIC_NUMBER & 0xFF000000 ) &&
-         ( magic & 0x00FF00 ) == ( SSG_FILE_MAGIC_NUMBER & 0x00FF0000 ) &&
-         ( magic & 0xFF0000 ) == ( SSG_FILE_MAGIC_NUMBER & 0x0000FF00 ) ) 
+    if (((magic & 0x0000FF)>> 0)==((SSG_FILE_MAGIC_NUMBER & 0xFF000000)>>24) &&
+        ((magic & 0x00FF00)>> 8)==((SSG_FILE_MAGIC_NUMBER & 0x00FF0000)>>16) &&
+        ((magic & 0xFF0000)>>16)==((SSG_FILE_MAGIC_NUMBER & 0x0000FF00)>> 8) ) 
       fprintf ( stderr, "ssgLoadSSG: File appears to be byte swapped!\n" ) ;
     else
       fprintf ( stderr, "ssgLoadSSG: File has incorrect magic number!\n" ) ;
