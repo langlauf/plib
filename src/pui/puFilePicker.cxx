@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puFilePicker.cxx,v 1.13 2001/06/25 07:08:56 sjbaker Exp $
+     $Id: puFilePicker.cxx,v 1.14 2001/07/09 14:57:59 nhv Exp $
 */
 
 /****
@@ -42,7 +42,7 @@
 
 #include "puLocal.h"
 
-#if defined(WIN32)
+#if defined(WIN32) && !defined(__CYGWIN__)
 #define DOTDOTSLASH "..\\"
 #define SLASH       "\\"
 #else

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgaShapes.cxx,v 1.17 2001/06/16 16:28:38 stromberg Exp $
+     $Id: ssgaShapes.cxx,v 1.18 2001/07/14 03:08:33 sjbaker Exp $
 */
 
 
@@ -477,9 +477,11 @@ void ssgaSphere::regenerateTessellatedIcosahedron ()
 void ssgaSphere::regenerateLatLong ()
 {
   int stacks = (int) sqrt ( (double) ntriangles / 2.0f ) ;
-  int slices = ntriangles / stacks ;
 
   if ( stacks < 2 ) stacks = 2 ;
+
+  int slices = ntriangles / stacks ;
+
   if ( slices < 3 ) slices = 3 ;
 
   for ( int i = 0 ; i < stacks ; i++ )

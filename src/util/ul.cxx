@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ul.cxx,v 1.16 2001/06/24 01:43:02 sjbaker Exp $
+     $Id: ul.cxx,v 1.24 2001/07/09 15:00:49 nhv Exp $
 */
 
 
@@ -29,6 +29,15 @@
 
 #if defined(__CYGWIN__) || !defined(WIN32)
 #include <dirent.h>
+#elif defined(_MSC_VER)
+#include <direct.h>
+#endif
+
+
+#if defined(WIN32) && !defined(__CYGWIN__)
+#define SLASH "\\"
+#else
+#define SLASH "/"
 #endif
 
 
@@ -175,18 +184,11 @@ char* ulMakePath( char* path, const char* dir, const char* fname )
        dir != NULL && dir[0] != '\0' )
     {
       strcpy ( path, dir ) ;
-      strcat ( path, "/" ) ;
+      strcat ( path, SLASH ) ;
       strcat ( path, fname ) ;
     }
     else
       strcpy ( path, fname ) ;
-
-    //convert backward slashes to forward slashes
-    for ( char* ptr = path ; *ptr ; ptr ++ )
-    {
-      if ( *ptr == '\\' )
-        *ptr = '/' ;
-    }
   }
   else
      path [0] = 0 ;
@@ -430,3 +432,54 @@ int ulStrEqual ( const char *s1, const char *s2 )
 
   return TRUE ;
 }
+
+
+int ulIsAbsolutePathName ( const char *pathname )
+{
+  /*
+    Is this an absolute pathname or a relative one?
+  */
+ 
+	if ( (pathname == NULL) || (pathname [0] == 0) )
+		return FALSE;
+
+#if defined(WIN32) && !defined(__CYGWIN__)
+ 
+  /*
+    Under WinDOS, it's an absolute path if it starts
+    with a slash *or* if it starts with a drive letter,
+    a colon and a slash.
+  */
+
+  return ( pathname[0] == SLASH[0] || pathname[0] == '/' ) ||
+         (
+           (
+             ( pathname[0] >= 'a' && pathname[0] <= 'z' ) ||
+             ( pathname[0] >= 'A' && pathname[0] <= 'Z' )
+           ) &&
+           pathname[1] == ':' &&
+           ( pathname[2] == SLASH[0] || pathname[2] == '/' )
+         ) ;
+#elif defined(macintosh)
+  return (pathname [0] != ':' && strchr( pathname, ':') != NULL );
+#else 
+  return pathname [0] == SLASH[0] ;
+#endif
+}
+
+
+char *ulGetCWD ( char *result, int maxlength )
+{
+  /*
+    Return the current working directory into 'result' - which
+    has enough space for 'maxlength-1' characters and a '\0'.
+  */
+
+#if defined(_MSC_VER)
+  return _getcwd ( result, maxlength ) ;
+#else
+  return getcwd ( result, maxlength ) ;
+#endif
+}
+
+

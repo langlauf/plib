@@ -2,6 +2,16 @@
 PLIB Change Log.
 ================
 
+PLIB v1.4.2 (July 21st 2001)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  * Added some casts to NET to allow it to compile under RedHat 7.1
+
+  * Fixed a small bug in puFilePicker.
+
+  * Fixed a divide by zero error in ssgaSphere for spheres with
+    very low requested polygon counts.
+
 PLIB v1.4.1 (June 25th 2001)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
