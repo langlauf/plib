@@ -66,14 +66,14 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libsl.a libsm.a
+lib_LIBRARIES = libplibsl.a libplibsm.a
 
 include_HEADERS = sl.h slPortability.h sm.h slMODPrivate.h slMODfile.h
 
-libsl_a_SOURCES =  	slDSP.cxx slSample.cxx slEnvelope.cxx 	slPlayer.cxx slMODPlayer.cxx slSamplePlayer.cxx         slScheduler.cxx slMODdacio.cxx slMODfile.cxx         slMODinst.cxx slMODnote.cxx
+libplibsl_a_SOURCES =  	slDSP.cxx slSample.cxx slEnvelope.cxx 	slPlayer.cxx slMODPlayer.cxx slSamplePlayer.cxx         slScheduler.cxx slMODdacio.cxx slMODfile.cxx         slMODinst.cxx slMODnote.cxx
 
 
-libsm_a_SOURCES = slPortability.h smMixer.cxx
+libplibsm_a_SOURCES = slPortability.h smMixer.cxx
 
 EXTRA_DIST = Makefile.msc README.freebsd README.linux 	README.openbsd README.sgi README.unix README.win         sl.dsp
 
@@ -90,12 +90,12 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-libsl_a_LIBADD = 
-libsl_a_OBJECTS =  slDSP.o slSample.o slEnvelope.o slPlayer.o \
+libplibsl_a_LIBADD = 
+libplibsl_a_OBJECTS =  slDSP.o slSample.o slEnvelope.o slPlayer.o \
 slMODPlayer.o slSamplePlayer.o slScheduler.o slMODdacio.o slMODfile.o \
 slMODinst.o slMODnote.o
-libsm_a_LIBADD = 
-libsm_a_OBJECTS =  smMixer.o
+libplibsm_a_LIBADD = 
+libplibsm_a_OBJECTS =  smMixer.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -114,8 +114,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = $(libsl_a_SOURCES) $(libsm_a_SOURCES)
-OBJECTS = $(libsl_a_OBJECTS) $(libsm_a_OBJECTS)
+SOURCES = $(libplibsl_a_SOURCES) $(libplibsm_a_SOURCES)
+OBJECTS = $(libplibsl_a_OBJECTS) $(libplibsm_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -179,15 +179,15 @@ distclean-compile:
 
 maintainer-clean-compile:
 
-libsl.a: $(libsl_a_OBJECTS) $(libsl_a_DEPENDENCIES)
-	-rm -f libsl.a
-	$(AR) cru libsl.a $(libsl_a_OBJECTS) $(libsl_a_LIBADD)
-	$(RANLIB) libsl.a
+libplibsl.a: $(libplibsl_a_OBJECTS) $(libplibsl_a_DEPENDENCIES)
+	-rm -f libplibsl.a
+	$(AR) cru libplibsl.a $(libplibsl_a_OBJECTS) $(libplibsl_a_LIBADD)
+	$(RANLIB) libplibsl.a
 
-libsm.a: $(libsm_a_OBJECTS) $(libsm_a_DEPENDENCIES)
-	-rm -f libsm.a
-	$(AR) cru libsm.a $(libsm_a_OBJECTS) $(libsm_a_LIBADD)
-	$(RANLIB) libsm.a
+libplibsm.a: $(libplibsm_a_OBJECTS) $(libplibsm_a_DEPENDENCIES)
+	-rm -f libplibsm.a
+	$(AR) cru libplibsm.a $(libplibsm_a_OBJECTS) $(libplibsm_a_LIBADD)
+	$(RANLIB) libplibsm.a
 .cxx.o:
 	$(CXXCOMPILE) -c $<
 

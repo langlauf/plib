@@ -66,11 +66,11 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libsg.a
+lib_LIBRARIES = libplibsg.a
 
 include_HEADERS = sg.h
 
-libsg_a_SOURCES = sg.cxx sgd.cxx
+libplibsg_a_SOURCES = sg.cxx sgd.cxx
 
 EXTRA_DIST = sg.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -86,8 +86,8 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-libsg_a_LIBADD = 
-libsg_a_OBJECTS =  sg.o sgd.o
+libplibsg_a_LIBADD = 
+libplibsg_a_OBJECTS =  sg.o sgd.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -102,8 +102,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = $(libsg_a_SOURCES)
-OBJECTS = $(libsg_a_OBJECTS)
+SOURCES = $(libplibsg_a_SOURCES)
+OBJECTS = $(libplibsg_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -167,10 +167,10 @@ distclean-compile:
 
 maintainer-clean-compile:
 
-libsg.a: $(libsg_a_OBJECTS) $(libsg_a_DEPENDENCIES)
-	-rm -f libsg.a
-	$(AR) cru libsg.a $(libsg_a_OBJECTS) $(libsg_a_LIBADD)
-	$(RANLIB) libsg.a
+libplibsg.a: $(libplibsg_a_OBJECTS) $(libplibsg_a_DEPENDENCIES)
+	-rm -f libplibsg.a
+	$(AR) cru libplibsg.a $(libplibsg_a_OBJECTS) $(libplibsg_a_LIBADD)
+	$(RANLIB) libplibsg.a
 .cxx.o:
 	$(CXXCOMPILE) -c $<
 

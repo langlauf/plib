@@ -2,13 +2,25 @@
 Portability Libraries.
 ======================
              by Steve Baker.
-             <sjbaker1@airmail.net>
-             http://www.woodsoup.org/~sbaker
 
 All the documentation and installation instructions
-are now in doc/index.html - or online at:
+are now online at:
 
   http://www.woodsoup.org/projs/plib
+
+They are also downloadable - along with example
+programs and demos from the same site.
+
+
+SUPPORT:
+
+Please don't email me (Steve Baker) directly - I
+get *WAY* too much mail as it is!  Instead, please
+sign up to the PLIB user's mailing list.  Instructions
+can be found here:
+
+  http://www.woodsoup.org/projs/plib
+
 
 LICENSING:
 
@@ -17,6 +29,7 @@ under the provisions of the GNU Library Public
 License (LGPL). Those terms and conditions are
 detailed in the file 'LICENSE' in this directory.
 
+
 REQUIREMENTS:
 
 In addition to the libraries that I provide, you
@@ -24,6 +37,7 @@ will also need OpenGL (OpenGL 1.1 or later -
 Mesa 3.0 or later) and GLUT (The OpenGL utilities
 toolkit - version 3.7 or later) and a hardware 3D
 graphics accellerator that supports OpenGL.
+
 
 WHAT DO YOU GET?
 
@@ -34,6 +48,7 @@ PUI -- A simple GUI built on top of OpenGL.
 SG  -- Some Standard Geometry functions (vector and
        matrix math, spheres, boxes, frustra, etc)
 SL  -- A Games-oriented Sound Library.
+FNT -- OpenGL texture-mapped font Library.
 SSG -- A Simple Scene Graph API built on top of OpenGL.
 
 
@@ -41,30 +56,27 @@ DIRECTORY STRUCTURE:
 
 PLIB expects to be installed in one standard place:
 
-   /usr/local/plib
+   /usr/lib   or   C:\USR\LIB
 
-or 
+...with header files at:
 
-   C:\USR\LOCAL\PLIB
+  /usr/include/plib   or   C:\USR\INCLUDE\PLIB
 
 
-PORTABILITY:
+PORTABILITY and DEPENDANCIES:
 
 Although all these libraries are designed to be easily
 portable (and more importantly so that programs using
 them can be UTTERLY portable), some of them have not
 yet been ported to all operating systems.
 
-JS  -- Currently Linux-only (although a Windows
-       version is under development).
+JS  -- Currently Linux/Windows/BSD only.
 
-PUI -- Requires GLUT and OpenGL. (Although a
-       GLUT-less version does also exist for
-       Windows - it is deprecated)
+SG  -- Totally portable, no dependancies.
 
-SG  -- Totally portable.
+PUI -- Requires GLUT and OpenGL also FNT and SG.
 
-SSG -- Requires OpenGL.
+FNT and SSG -- Require OpenGL and SG.
 
 SL  -- This has now been ported onto:
 
@@ -72,6 +84,7 @@ SL  -- This has now been ported onto:
          FreeBSD
          OpenBSD
          M$ Windows (NT,95,98 - so far)
+         MacOS
          SGI IRIX
          Sun Solaris
          Any operating system that supports OSS (The
@@ -84,11 +97,16 @@ SL  -- This has now been ported onto:
        too. Don't use SM if you want to write portable
        code.
 
+       No other requirements.
+
+
 STABILITY AND RELIABILITY:
 
 SG, SL, JS and PUI have all been in use for a long time
 in a huge number of applications - so they are reliable
 and unlikely to change much in the future.
+
+FNT is pretty simple and should be very stable.
 
 SSG is still fairly new though - and it's by far the
 most complex and ambitious of the libraries. Whilst
@@ -96,21 +114,27 @@ it seems to work well and to be stable for the couple
 of applications I have, it will certainly need more
 work in the future.
 
+
 COMPILING/LINKING WITH PLIB
 
-  Add '-I/usr/local/plib/include' to compile lines.
+In your source code, add any combination of:
 
-  In your source code, add any combination of:
+     #include <plib/js.h>
+     #include <plib/sg.h>
+     #include <plib/fnt.h>
+     #include <plib/pu.h>
+     #include <plib/ssg.h>
+     #include <plib/sl.h>
 
-     #include <js.h>
-     #include <pu.h>
-     #include <sg.h>
-     #include <ssg.h>
-     #include <sl.h>
+Add any of these to your link line:
 
-  Add '-L/usr/local/plib/lib' and any of:
-  "-lssg -lsl -lpu -lsg" to your link line.
+  -lplibssg -lplibsl -lplibpu -lplibfnt -lplibsg
 
-  Under UNIX/Linux, you'll also need:
+Under UNIX/Linux, you'll also need:
+
   -lglut -lGLU -lGL -L/usr/X11/lib -lX11 -lXext -lXmu -lm
  
+
+             Steve Baker.
+             <sjbaker1@airmail.net>
+             http://www.woodsoup.org/~sbaker

@@ -150,10 +150,6 @@ SOURCE=.\ssgLoad3ds.cxx
 # End Source File
 # Begin Source File
 
-SOURCE=.\ssgLoad3ds.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\ssgLoadAC.cxx
 # End Source File
 # Begin Source File

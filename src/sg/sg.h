@@ -137,6 +137,8 @@ extern void sgPreMultMat4   ( sgMat4 dst, const sgMat4 a ) ;
 
 extern void sgTransposeNegateMat4 ( sgMat4 dst ) ;
 extern void sgTransposeNegateMat4 ( sgMat4 dst, const sgMat4 src ) ;
+extern void sgInvertMat4 ( sgMat4 dst, const sgMat4 src ) ;
+inline void sgInvertMat4 ( sgMat4 dst ) { sgInvertMat4 ( dst, dst ) ; }
 
 extern void sgXformVec3     ( sgVec3 dst, const sgVec3 src, const sgMat4 mat ) ;
 extern void sgXformPnt3     ( sgVec3 dst, const sgVec3 src, const sgMat4 mat ) ;
@@ -1155,6 +1157,9 @@ extern void sgdPreMultMat4   ( sgdMat4 dst, const sgdMat4 a ) ;
 extern void sgdTransposeNegateMat4 ( sgdMat4 dst ) ;
 extern void sgdTransposeNegateMat4 ( sgdMat4 dst, const sgdMat4 src ) ;
 
+extern void sgdInvertMat4 ( sgdMat4 dst, const sgdMat4 src ) ;
+inline void sgdInvertMat4 ( sgdMat4 dst ) { sgdInvertMat4 ( dst, dst ) ; }
+
 extern void sgdXformVec3     ( sgdVec3 dst, const sgdVec3 src, const sgdMat4 mat ) ;
 extern void sgdXformPnt3     ( sgdVec3 dst, const sgdVec3 src, const sgdMat4 mat ) ;
 extern void sgdXformVec4     ( sgdVec4 dst, const sgdVec4 src, const sgdMat4 mat ) ;
@@ -2054,6 +2059,84 @@ inline void sgdRotQuat ( sgdQuat *dst, const SGDfloat angle,
 
 /* SWC - Interpolate between to quaternions */
 void sgdSlerpQuat( sgdQuat *dst, const sgdQuat *from, const sgdQuat *to, const SGDfloat t );
+
+/* Conversions between sg and sgd types. */
+
+inline void sgSetVec2 ( sgVec2 dst, sgdVec2 src )
+{
+  dst [ 0 ] = (SGfloat) src [ 0 ] ;
+  dst [ 1 ] = (SGfloat) src [ 1 ] ;
+}
+
+inline void sgSetVec3 ( sgVec3 dst, sgdVec3 src )
+{
+  dst [ 0 ] = (SGfloat) src [ 0 ] ;
+  dst [ 1 ] = (SGfloat) src [ 1 ] ;
+  dst [ 2 ] = (SGfloat) src [ 2 ] ;
+}
+
+inline void sgSetVec4 ( sgVec4 dst, sgdVec4 src )
+{
+  dst [ 0 ] = (SGfloat) src [ 0 ] ;
+  dst [ 1 ] = (SGfloat) src [ 1 ] ;
+  dst [ 2 ] = (SGfloat) src [ 2 ] ;
+  dst [ 3 ] = (SGfloat) src [ 3 ] ;
+}
+
+inline void sgdSetVec2 ( sgdVec2 dst, sgVec2 src )
+{
+  dst [ 0 ] = (SGDfloat) src [ 0 ] ;
+  dst [ 1 ] = (SGDfloat) src [ 1 ] ;
+}
+
+inline void sgdSetVec3 ( sgdVec3 dst, sgVec3 src )
+{
+  dst [ 0 ] = (SGDfloat) src [ 0 ] ;
+  dst [ 1 ] = (SGDfloat) src [ 1 ] ;
+  dst [ 2 ] = (SGDfloat) src [ 2 ] ;
+}
+
+inline void sgdSetVec4 ( sgdVec4 dst, sgVec4 src )
+{
+  dst [ 0 ] = (SGDfloat) src [ 0 ] ;
+  dst [ 1 ] = (SGDfloat) src [ 1 ] ;
+  dst [ 2 ] = (SGDfloat) src [ 2 ] ;
+  dst [ 3 ] = (SGDfloat) src [ 3 ] ;
+}
+
+
+inline void sgSetMat4 ( sgMat4 dst, sgdMat4 src )
+{
+  sgSetVec4 ( dst [ 0 ], src [ 0 ] ) ;
+  sgSetVec4 ( dst [ 1 ], src [ 1 ] ) ;
+  sgSetVec4 ( dst [ 2 ], src [ 2 ] ) ;
+  sgSetVec4 ( dst [ 3 ], src [ 3 ] ) ;
+}
+
+
+inline void sgdSetMat4 ( sgdMat4 dst, sgMat4 src )
+{
+  sgdSetVec4 ( dst [ 0 ], src [ 0 ] ) ;
+  sgdSetVec4 ( dst [ 1 ], src [ 1 ] ) ;
+  sgdSetVec4 ( dst [ 2 ], src [ 2 ] ) ;
+  sgdSetVec4 ( dst [ 3 ], src [ 3 ] ) ;
+}
+
+
+inline void sgSetCoord ( sgCoord *dst, sgdCoord *src )
+{
+  sgSetVec3 ( dst->xyz, src->xyz ) ;
+  sgSetVec3 ( dst->hpr, src->hpr ) ;
+}
+
+
+inline void sgdSetCoord ( sgdCoord *dst, sgCoord *src )
+{
+  sgdSetVec3 ( dst->xyz, src->xyz ) ;
+  sgdSetVec3 ( dst->hpr, src->hpr ) ;
+}
+
+
 
 #endif
 

@@ -1,14 +1,14 @@
-lib_LIBRARIES = libsl.a libsm.a
+lib_LIBRARIES = libplibsl.a libplibsm.a
 
 include_HEADERS = sl.h slPortability.h sm.h slMODPrivate.h slMODfile.h
 
-libsl_a_SOURCES = \
+libplibsl_a_SOURCES = \
 	slDSP.cxx slSample.cxx slEnvelope.cxx \
 	slPlayer.cxx slMODPlayer.cxx slSamplePlayer.cxx \
         slScheduler.cxx slMODdacio.cxx slMODfile.cxx \
         slMODinst.cxx slMODnote.cxx
 
-libsm_a_SOURCES = slPortability.h smMixer.cxx
+libplibsm_a_SOURCES = slPortability.h smMixer.cxx
 
 EXTRA_DIST = Makefile.msc README.freebsd README.linux \
 	README.openbsd README.sgi README.unix README.win \

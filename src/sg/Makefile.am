@@ -1,8 +1,8 @@
-lib_LIBRARIES = libsg.a
+lib_LIBRARIES = libplibsg.a
 
 include_HEADERS = sg.h
 
-libsg_a_SOURCES = sg.cxx sgd.cxx
+libplibsg_a_SOURCES = sg.cxx sgd.cxx
 
 EXTRA_DIST = sg.dsp
 

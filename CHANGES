@@ -2,6 +2,24 @@
 PLIB Change Log.
 ================
 
+PLIB v1.1.2  (Nov 8th 1999)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Fixed double declaration of sgdTransposeNegateMat4
+    that prevented SG from compiling under Windoze.
+  * Split examples and documentation off into a
+    separate tarball.
+
+PLIB v1.1.1  (Nov 6th 1999)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Added routines to SG to interconvert sgd and sg
+    data types.
+  * Matrix inversion routines added to SG.
+  * Attempt to work around possible compiler
+    error in ssgLoad3Ds - this shows up in some
+    versions of CygWin under Windoze and exhibits
+    itself as an out-of-memory error when loading
+    3DStudio models.
+
 PLIB v1.1.0  (Oct 29th 1999)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * This is actually identical to 1.0.20 except

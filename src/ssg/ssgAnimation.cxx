@@ -95,6 +95,8 @@ int ssgTimedSelector::getStep ()
 
 ssgTimedSelector::~ssgTimedSelector (void)
 {
+  fprintf(stderr,"In ssgTimedSelectors' destructor.\n" ) ;
+  print () ;
 }
 
 

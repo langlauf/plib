@@ -1,8 +1,8 @@
-lib_LIBRARIES = libfnt.a
+lib_LIBRARIES = libplibfnt.a
 
 include_HEADERS = fnt.h fntLocal.h
 
-libfnt_a_SOURCES = fnt.cxx fntTXF.cxx fntLocal.h
+libplibfnt_a_SOURCES = fnt.cxx fntTXF.cxx fntLocal.h
 
 INCLUDES += -I$(top_builddir)/src/sg
 

@@ -1,3 +1,0 @@
-
-SUBDIRS = js pui sl sg ssg fnt
-

@@ -811,14 +811,18 @@ ssgEntity *ssgLoad3ds( char *filename, ssgHookFunc hookfunc ) {
 
   buffer = new char [ size ] ;
 
-  if ( buffer == NULL ) {
-    if ((long)fread(buffer, 1, size, loader_fd) < size) {
-      fprintf(stderr, "ssgLoad3ds: Could not read file '%s' - size mismatch.\n", filepath );
-      return NULL;
-    }
-  } else {
-    fprintf( stderr, "ssgLoad3ds: Failed to allocate memory for file %s.\n", filepath);
+  if ( buffer == NULL )
+  {
+    fprintf( stderr, "ssgLoad3ds: Failed to allocate memory for file %s.\n",
+                      filepath);
     fclose ( loader_fd ) ;
+    return NULL;
+  }
+
+  if ((long)fread(buffer, 1, size, loader_fd) < size)
+  {
+    fprintf(stderr, "ssgLoad3ds: Could not read file '%s' - size mismatch.\n",
+                      filepath );
     return NULL;
   }
 

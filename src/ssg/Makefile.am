@@ -1,8 +1,8 @@
-lib_LIBRARIES = libssg.a
+lib_LIBRARIES = libplibssg.a
 
 include_HEADERS = ssg.h ssgKeyFlier.h
 
-libssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx \
+libplibssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx \
 	ssgBaseTransform.cxx ssgBranch.cxx ssgCutout.cxx ssgDList.cxx \
 	ssgEntity.cxx ssgIsect.cxx ssgLeaf.cxx ssgList.cxx \
 	ssgLoadAC.cxx ssgLocal.h ssgOptimiser.cxx ssgRoot.cxx ssgSaveAC.cxx \

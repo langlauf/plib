@@ -66,7 +66,7 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-SUBDIRS = src examples
+SUBDIRS = src
 
 EXTRA_DIST = README README.win32 CHANGES LICENSE NOTICE acsite.m4              plib.dsp plib.dsw
 
@@ -246,7 +246,6 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
-	$(MAKE) $(AM_MAKEFLAGS) top_distdir="$(top_distdir)" distdir="$(distdir)" dist-hook
 info-am:
 info: info-recursive
 dvi-am:
@@ -317,13 +316,6 @@ uninstall-am uninstall all-redirect all-am all installdirs-am \
 installdirs mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
-
-dist-hook:
-	tar cf - doc \
-             examples/ssg/tux/data \
-             examples/ssg/majik/data \
-             examples/fnt/data     \
-	   | ( cd $(distdir) ; tar xf - )
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

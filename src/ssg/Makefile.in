@@ -66,11 +66,11 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libssg.a
+lib_LIBRARIES = libplibssg.a
 
 include_HEADERS = ssg.h ssgKeyFlier.h
 
-libssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx 	ssgBaseTransform.cxx ssgBranch.cxx ssgCutout.cxx ssgDList.cxx 	ssgEntity.cxx ssgIsect.cxx ssgLeaf.cxx ssgList.cxx 	ssgLoadAC.cxx ssgLocal.h ssgOptimiser.cxx ssgRoot.cxx ssgSaveAC.cxx 	ssgSelector.cxx ssgSimpleState.cxx ssgState.cxx ssgStateTables.cxx 	ssgStats.cxx  ssgTexTrans.cxx ssgTexture.cxx ssgTransform.cxx 	ssgStateSelector.cxx ssgRangeSelector.cxx ssgImageLoader.cxx         ssgInvisible.cxx ssgLoadSSG.cxx ssgLoadVRML.cxx ssgVTable.cxx         ssgIO.cxx ssgLoad3ds.cxx
+libplibssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx 	ssgBaseTransform.cxx ssgBranch.cxx ssgCutout.cxx ssgDList.cxx 	ssgEntity.cxx ssgIsect.cxx ssgLeaf.cxx ssgList.cxx 	ssgLoadAC.cxx ssgLocal.h ssgOptimiser.cxx ssgRoot.cxx ssgSaveAC.cxx 	ssgSelector.cxx ssgSimpleState.cxx ssgState.cxx ssgStateTables.cxx 	ssgStats.cxx  ssgTexTrans.cxx ssgTexture.cxx ssgTransform.cxx 	ssgStateSelector.cxx ssgRangeSelector.cxx ssgImageLoader.cxx         ssgInvisible.cxx ssgLoadSSG.cxx ssgLoadVRML.cxx ssgVTable.cxx         ssgIO.cxx ssgLoad3ds.cxx
 
 
 INCLUDES =  -I$(top_builddir)/src/sg
@@ -89,12 +89,12 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-libssg_a_LIBADD = 
-libssg_a_OBJECTS =  ssg.o ssgAnimation.o ssgBase.o ssgBaseTransform.o \
-ssgBranch.o ssgCutout.o ssgDList.o ssgEntity.o ssgIsect.o ssgLeaf.o \
-ssgList.o ssgLoadAC.o ssgOptimiser.o ssgRoot.o ssgSaveAC.o \
-ssgSelector.o ssgSimpleState.o ssgState.o ssgStateTables.o ssgStats.o \
-ssgTexTrans.o ssgTexture.o ssgTransform.o ssgStateSelector.o \
+libplibssg_a_LIBADD = 
+libplibssg_a_OBJECTS =  ssg.o ssgAnimation.o ssgBase.o \
+ssgBaseTransform.o ssgBranch.o ssgCutout.o ssgDList.o ssgEntity.o \
+ssgIsect.o ssgLeaf.o ssgList.o ssgLoadAC.o ssgOptimiser.o ssgRoot.o \
+ssgSaveAC.o ssgSelector.o ssgSimpleState.o ssgState.o ssgStateTables.o \
+ssgStats.o ssgTexTrans.o ssgTexture.o ssgTransform.o ssgStateSelector.o \
 ssgRangeSelector.o ssgImageLoader.o ssgInvisible.o ssgLoadSSG.o \
 ssgLoadVRML.o ssgVTable.o ssgIO.o ssgLoad3ds.o
 AR = ar
@@ -115,8 +115,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = $(libssg_a_SOURCES)
-OBJECTS = $(libssg_a_OBJECTS)
+SOURCES = $(libplibssg_a_SOURCES)
+OBJECTS = $(libplibssg_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -180,10 +180,10 @@ distclean-compile:
 
 maintainer-clean-compile:
 
-libssg.a: $(libssg_a_OBJECTS) $(libssg_a_DEPENDENCIES)
-	-rm -f libssg.a
-	$(AR) cru libssg.a $(libssg_a_OBJECTS) $(libssg_a_LIBADD)
-	$(RANLIB) libssg.a
+libplibssg.a: $(libplibssg_a_OBJECTS) $(libplibssg_a_DEPENDENCIES)
+	-rm -f libplibssg.a
+	$(AR) cru libplibssg.a $(libplibssg_a_OBJECTS) $(libplibssg_a_LIBADD)
+	$(RANLIB) libplibssg.a
 .cxx.o:
 	$(CXXCOMPILE) -c $<
 

@@ -771,6 +771,78 @@ void sgTransposeNegateMat4 ( sgMat4 dst, const sgMat4 src )
 }
 
 
+void sgTransposeNegateMat4 ( sgMat4 dst )
+{
+  sgMat4 src ;
+  sgCopyMat4 ( src, dst ) ;
+  sgTransposeNegateMat4 ( dst, src ) ;
+}
+
+
+
+void sgInvertMat4 ( sgMat4 dst, const sgMat4 src )
+{
+  sgMat4 tmp ;
+
+  sgCopyMat4 ( tmp, src ) ;
+  sgMakeIdentMat4 ( dst ) ;
+
+  for ( int i = 0 ; i != 4 ; i++ )
+  {
+    SGfloat val = tmp[i][i] ;
+    int ind = i ;
+    int j ;
+
+    for ( j = i + 1 ; j != 4 ; j++ )
+    {
+      if ( fabs ( tmp[i][j] ) > fabs(val) )
+      {
+        ind = j;
+        val = tmp[i][j] ;
+      }
+    }
+
+    if ( ind != i )
+    {                   /* swap columns */
+      for ( j = 0 ; j != 4 ; j++ )
+      {
+        SGfloat t ;
+        t = dst[j][i]; dst[j][i] = dst[j][ind]; dst[j][ind] = t ;
+        t = tmp[j][i]; tmp[j][i] = tmp[j][ind]; tmp[j][ind] = t ;
+      }
+    }
+
+    if ( val == SG_ZERO)
+    {
+      fprintf ( stderr, "sg: ERROR - Singular matrix, no inverse!\n" ) ;
+      sgMakeIdentMat4 ( dst ) ;  /* Do *something* */
+      return;
+    }
+
+    for ( j = 0 ; j != 4 ; j++ )
+    {
+      tmp[j][i] /= val ;
+      dst[j][i] /= val ;
+    }
+
+    for (j = 0; j != 4; j++)
+    {
+      if ( j == i )
+        continue ;
+
+      val = tmp[i][j] ;
+
+      for ( int k = 0 ; k != 4 ; k++ )
+      {
+        tmp[k][j] -= tmp[k][i] * val ;
+        dst[k][j] -= dst[k][i] * val ;
+      }
+    }
+  }
+}
+
+
+
 void sgXformVec3 ( sgVec3 dst, const sgVec3 src, const sgMat4 mat )
 {
   SGfloat t0 = src[ 0 ] ;
@@ -1033,4 +1105,6 @@ void sgSlerpQuat( sgQuat *dst, const sgQuat *from, const sgQuat *to, const SGflo
   dst->z = scale0 * from->z + scale1 * ((sign > SG_ZERO) ? to->w : -to->y);
   dst->w = scale0 * from->w + scale1 * ((sign > SG_ZERO) ? to->w : -to->z);
 }
+
+
 

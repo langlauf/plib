@@ -66,11 +66,11 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libfnt.a
+lib_LIBRARIES = libplibfnt.a
 
 include_HEADERS = fnt.h fntLocal.h
 
-libfnt_a_SOURCES = fnt.cxx fntTXF.cxx fntLocal.h
+libplibfnt_a_SOURCES = fnt.cxx fntTXF.cxx fntLocal.h
 
 INCLUDES =  -I$(top_builddir)/src/sg
 
@@ -88,8 +88,8 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-libfnt_a_LIBADD = 
-libfnt_a_OBJECTS =  fnt.o fntTXF.o
+libplibfnt_a_LIBADD = 
+libplibfnt_a_OBJECTS =  fnt.o fntTXF.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -108,8 +108,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = $(libfnt_a_SOURCES)
-OBJECTS = $(libfnt_a_OBJECTS)
+SOURCES = $(libplibfnt_a_SOURCES)
+OBJECTS = $(libplibfnt_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -173,10 +173,10 @@ distclean-compile:
 
 maintainer-clean-compile:
 
-libfnt.a: $(libfnt_a_OBJECTS) $(libfnt_a_DEPENDENCIES)
-	-rm -f libfnt.a
-	$(AR) cru libfnt.a $(libfnt_a_OBJECTS) $(libfnt_a_LIBADD)
-	$(RANLIB) libfnt.a
+libplibfnt.a: $(libplibfnt_a_OBJECTS) $(libplibfnt_a_DEPENDENCIES)
+	-rm -f libplibfnt.a
+	$(AR) cru libplibfnt.a $(libplibfnt_a_OBJECTS) $(libplibfnt_a_LIBADD)
+	$(RANLIB) libplibfnt.a
 .cxx.o:
 	$(CXXCOMPILE) -c $<
 

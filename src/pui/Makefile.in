@@ -66,11 +66,11 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libpu.a
+lib_LIBRARIES = libplibpu.a
 
 include_HEADERS = pu.h
 
-libpu_a_SOURCES = pu.cxx puBox.cxx puButton.cxx puButtonBox.cxx         puArrowButton.cxx puDialogBox.cxx puFrame.cxx puGroup.cxx         puInput.cxx puInterface.cxx puLocal.h puMenuBar.cxx         puObject.cxx puOneShot.cxx puPopup.cxx puPopupMenu.cxx         puSlider.cxx puText.cxx puValue.cxx puFont.cxx
+libplibpu_a_SOURCES = pu.cxx puBox.cxx puButton.cxx puButtonBox.cxx         puArrowButton.cxx puDialogBox.cxx puFrame.cxx puGroup.cxx         puInput.cxx puInterface.cxx puLocal.h puMenuBar.cxx         puObject.cxx puOneShot.cxx puPopup.cxx puPopupMenu.cxx         puSlider.cxx puText.cxx puValue.cxx puFont.cxx
 
 
 INCLUDES =  -I$(top_builddir)/src/sg -I$(top_builddir)/src/fnt
@@ -89,11 +89,11 @@ X_CFLAGS = @X_CFLAGS@
 X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
-libpu_a_LIBADD = 
-libpu_a_OBJECTS =  pu.o puBox.o puButton.o puButtonBox.o puArrowButton.o \
-puDialogBox.o puFrame.o puGroup.o puInput.o puInterface.o puMenuBar.o \
-puObject.o puOneShot.o puPopup.o puPopupMenu.o puSlider.o puText.o \
-puValue.o puFont.o
+libplibpu_a_LIBADD = 
+libplibpu_a_OBJECTS =  pu.o puBox.o puButton.o puButtonBox.o \
+puArrowButton.o puDialogBox.o puFrame.o puGroup.o puInput.o \
+puInterface.o puMenuBar.o puObject.o puOneShot.o puPopup.o \
+puPopupMenu.o puSlider.o puText.o puValue.o puFont.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -112,8 +112,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = $(libpu_a_SOURCES)
-OBJECTS = $(libpu_a_OBJECTS)
+SOURCES = $(libplibpu_a_SOURCES)
+OBJECTS = $(libplibpu_a_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -177,10 +177,10 @@ distclean-compile:
 
 maintainer-clean-compile:
 
-libpu.a: $(libpu_a_OBJECTS) $(libpu_a_DEPENDENCIES)
-	-rm -f libpu.a
-	$(AR) cru libpu.a $(libpu_a_OBJECTS) $(libpu_a_LIBADD)
-	$(RANLIB) libpu.a
+libplibpu.a: $(libplibpu_a_OBJECTS) $(libplibpu_a_DEPENDENCIES)
+	-rm -f libplibpu.a
+	$(AR) cru libplibpu.a $(libplibpu_a_OBJECTS) $(libplibpu_a_LIBADD)
+	$(RANLIB) libplibpu.a
 .cxx.o:
 	$(CXXCOMPILE) -c $<
 

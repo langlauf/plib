@@ -745,6 +745,7 @@ void sgdMultMat4( sgdMat4 dst, const sgdMat4 m1, const sgdMat4 m2 )
 }
 
 
+
 void sgdTransposeNegateMat4 ( sgdMat4 dst, const sgdMat4 src )
 {
   /* Poor man's invert - can be used when matrix is a simple rotate-translate */
@@ -769,6 +770,76 @@ void sgdTransposeNegateMat4 ( sgdMat4 dst, const sgdMat4 src )
   dst[2][3] = SGD_ZERO ;                                                        
   dst[3][3] = SGD_ONE  ;
 }
+
+void sgdTransposeNegateMat4 ( sgdMat4 dst )
+{
+  sgdMat4 src ;
+  sgdCopyMat4 ( src, dst ) ;
+  sgdTransposeNegateMat4 ( dst, src ) ;
+}
+
+
+void sgdInvertMat4 ( sgdMat4 dst, const sgdMat4 src )
+{
+  sgdMat4 tmp ;
+
+  sgdCopyMat4 ( tmp, src ) ;
+  sgdMakeIdentMat4 ( dst ) ;
+
+  for ( int i = 0 ; i != 4 ; i++ )
+  {
+    SGDfloat val = tmp[i][i] ;
+    int ind = i ;
+    int j ;
+
+    for ( j = i + 1 ; j != 4 ; j++ )
+    {
+      if ( fabs ( tmp[i][j] ) > fabs(val) )
+      {
+        ind = j;
+        val = tmp[i][j] ;
+      }
+    }
+
+    if ( ind != i )
+    {                   /* swap columns */
+      for ( j = 0 ; j != 4 ; j++ )
+      {
+        SGDfloat t ;
+        t = dst[j][i]; dst[j][i] = dst[j][ind]; dst[j][ind] = t ;
+        t = tmp[j][i]; tmp[j][i] = tmp[j][ind]; tmp[j][ind] = t ;
+      }
+    }
+
+    if ( val == SGD_ZERO)
+    {
+      fprintf ( stderr, "sgd: ERROR - Singular matrix, no inverse!\n" ) ;
+      sgdMakeIdentMat4 ( dst ) ;  /* Do *something* */
+      return;
+    }
+
+    for ( j = 0 ; j != 4 ; j++ )
+    {
+      tmp[j][i] /= val ;
+      dst[j][i] /= val ;
+    }
+
+    for (j = 0; j != 4; j++)
+    {
+      if ( j == i )
+        continue ;
+
+      val = tmp[i][j] ;
+
+      for ( int k = 0 ; k != 4 ; k++ )
+      {
+        tmp[k][j] -= tmp[k][i] * val ;
+        dst[k][j] -= dst[k][i] * val ;
+      }
+    }
+  }
+}
+
 
 
 void sgdXformVec3 ( sgdVec3 dst, const sgdVec3 src, const sgdMat4 mat )
