@@ -57,6 +57,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
 CC = @CC@
 CPP = @CPP@
 CXX = @CXX@
@@ -66,11 +68,11 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libplibul.a
+@BUILD_UL_TRUE@lib_LIBRARIES = libplibul.a
 
-include_HEADERS = ul.h
+@BUILD_UL_TRUE@include_HEADERS = ul.h ulRTTI.h
 
-libplibul_a_SOURCES = ul.cxx ulClock.cxx ulError.cxx ulList.cxx
+@BUILD_UL_TRUE@libplibul_a_SOURCES = ul.cxx ulClock.cxx ulError.cxx ulLinkedList.cxx         ulList.cxx ulLocal.h ulRTTI.cxx
 
 EXTRA_DIST = ul.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -87,12 +89,17 @@ X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibul_a_LIBADD = 
-libplibul_a_OBJECTS =  ul.o ulClock.o ulError.o ulList.o
+@BUILD_UL_TRUE@libplibul_a_OBJECTS =  ul.o ulClock.o ulError.o \
+@BUILD_UL_TRUE@ulLinkedList.o ulList.o ulRTTI.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@
+CFLAGS = @CFLAGS@
+COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
 HEADERS =  $(include_HEADERS)
 
 DIST_COMMON =  Makefile.am Makefile.in
@@ -236,7 +243,9 @@ distdir: $(DISTFILES)
 ul.o: ul.cxx ul.h
 ulClock.o: ulClock.cxx ul.h
 ulError.o: ulError.cxx ul.h
+ulLinkedList.o: ulLinkedList.cxx ulLocal.h ul.h
 ulList.o: ulList.cxx ul.h
+ulRTTI.o: ulRTTI.cxx ulRTTI.h ul.h
 
 info-am:
 info: info-am

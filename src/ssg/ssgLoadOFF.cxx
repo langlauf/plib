@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadOFF.cxx,v 1.7 2001/06/26 02:00:59 lachancew Exp $
+     $Id: ssgLoadOFF.cxx,v 1.11 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 //
@@ -44,7 +44,7 @@
 
 #define u32 unsigned int
 
-int _ssgLoadTranslucent=TRUE;
+static int _ssgLoadTranslucent=TRUE;
 
 extern sgVec4 currentDiffuse;
 
@@ -73,7 +73,7 @@ static _ssgParserSpec parser_spec =
 static _ssgParser parser;
 static ssgBranch* top_branch;
 
-static int Ascii2Int(int &retVal, const char *token, const char* name )
+/*static int Ascii2Int(int &retVal, const char *token, const char* name )
 // returns TRUE on success
 {
   char *endptr;
@@ -84,7 +84,7 @@ static int Ascii2Int(int &retVal, const char *token, const char* name )
 	{ parser.error("The field %s should contain an integer number but contains %s",name, token) ;
 		return FALSE;
 	}
-}
+}*/
 
 static int Ascii2UInt(unsigned int &retVal, const char *token, const char* name )
 // returns TRUE on success
@@ -117,7 +117,7 @@ static int Ascii2Float(SGfloat &retVal, const char *token, const char* name )
 
 #define MAX_NO_VERTICES_PER_FACE 1000
 
-class ssgLoaderWriterMesh theMesh;
+static class ssgLoaderWriterMesh theMesh;
 
 
 

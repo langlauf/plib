@@ -1,7 +1,7 @@
 
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -14,12 +14,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTween.cxx,v 1.3 2001/07/21 04:59:06 mcdave Exp $
+     $Id: ssgTween.cxx,v 1.9 2002/09/02 06:05:49 sjbaker Exp $
 */
 
 
@@ -27,6 +27,8 @@
 #include "ul.h"
 
 static float current_tween_state = 0.0f ;
+
+const char *ssgTween::getTypeName (void) { return "ssgTween" ; }
 
 float _ssgGetCurrentTweenState () { return current_tween_state ; }
 
@@ -259,13 +261,17 @@ void ssgTween::draw ()
   stats_num_vertices += getNumVertices() ;
 
   float tstate = _ssgGetCurrentTweenState () ;
+  int num_banks = banked_vertices -> getNumEntities () ;
 
-  if ( tstate >= (float)( banked_vertices -> getNumEntities () - 1) )
-    tstate = (float)( banked_vertices -> getNumEntities () - 1) - 0.001f ;
+  if ( tstate < 0.0f ) tstate = 0.0f ;
 
   int   state1 = (int) floor ( tstate ) ;
   int   state2 = state1 + 1 ;
   float tween  = tstate - (float) state1 ;
+
+  if ( state1 >= num_banks ) state1 = num_banks - 1 ;
+  if ( state2 >= num_banks ) state2 = num_banks - 1 ;
+  if ( state1 == state2    ) tween  = 0.0f ;
 
   int l1, l2 ;
 
@@ -282,9 +288,7 @@ void ssgTween::draw ()
     render_vertices -> setNum ( l1 ) ;
 
   if ( v1 == v2 )
-{
     vertices = v1 ;
-}
   else
   {
     vertices = render_vertices ;
@@ -369,6 +373,30 @@ void ssgTween::draw ()
 
 
 
+void ssgTween::transform ( const sgMat4 m )
+{
+  int prev_bank = curr_bank ;
+
+  for ( int i = 0 ; i < getNumBanks(); i++ )
+  {
+    // see if this bank has been transformed already
+    // (it is really a deeper problem, but this will work in simple cases)
+    int j ;
+    for ( j = 0 ; j < i ; j++ )
+      if ( banked_vertices -> getEntity ( i ) == banked_vertices -> getEntity ( j ) )
+	break;
+    if ( j == i ) 
+    {
+      setBank ( i ) ;
+      ssgVtxTable::transform ( m ) ;
+    }
+  }
+
+  setBank ( prev_bank ) ;
+}
+
+
+
 int ssgTween::load ( FILE *fd )
 {
   sgVec3 temp;
@@ -441,5 +469,6 @@ void ssgTween::print ( FILE *fd, char *indent, int how_much )
   texcoords -> print ( fd, in, how_much ) ;
   colours   -> print ( fd, in, how_much ) ;
 }
+
 
 

@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.h,v 1.11 2001/06/23 02:30:18 sjbaker Exp $
+     $Id: netSocket.h,v 1.16 2002/09/02 06:05:44 sjbaker Exp $
 */
 
 /****
@@ -44,11 +44,6 @@
 #include "ul.h"
 #include <errno.h>
 
-
-#if defined (WIN32)
-#define strcasecmp stricmp 
-#define strncasecmp strnicmp 
-#endif
 
 /*
  * Define Basic types
@@ -88,6 +83,8 @@ public:
   int getPort() const ;
 
   static cchar* getLocalHost () ;
+
+  bool getBroadcast () const ;
 };
 
 
@@ -118,13 +115,14 @@ public:
   int   recvfrom    ( void * buffer, int size, int flags, netAddress* from ) ;
 
   void setBlocking ( bool blocking ) ;
+  void setBroadcast ( bool broadcast ) ;
 
   static bool isNonBlockingError () ;
   static int select ( netSocket** reads, netSocket** writes, int timeout ) ;
 } ;
 
 
-int netInit ( int* argc, char** argv ) ;
+int netInit ( int* argc = NULL, char** argv = NULL ) ;
 cchar* netFormat ( cchar* fmt, ... ) ;
 
 

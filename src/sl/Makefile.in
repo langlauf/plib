@@ -57,6 +57,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
 CC = @CC@
 CPP = @CPP@
 CXX = @CXX@
@@ -66,19 +68,17 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libplibsl.a libplibsm.a
+@BUILD_SL_TRUE@lib_LIBRARIES = libplibsl.a libplibsm.a
 
-include_HEADERS = sl.h slPortability.h sm.h slMODPrivate.h slMODfile.h
+@BUILD_SL_TRUE@include_HEADERS = sl.h slPortability.h sm.h
 
-libplibsl_a_SOURCES =  	slDSP.cxx slSample.cxx slEnvelope.cxx 	slPlayer.cxx slMODPlayer.cxx slSamplePlayer.cxx         slScheduler.cxx slMODdacio.cxx slMODfile.cxx         slMODinst.cxx slMODnote.cxx
+@BUILD_SL_TRUE@libplibsl_a_SOURCES = 	slDSP.cxx slSample.cxx slEnvelope.cxx 	slPlayer.cxx slMODPlayer.cxx slSamplePlayer.cxx         slScheduler.cxx slMODdacio.cxx slMODfile.cxx         slMODinst.cxx slMODnote.cxx slMODPrivate.h slMODfile.h
 
+@BUILD_SL_TRUE@libplibsm_a_SOURCES = slPortability.h smMixer.cxx
 
-libplibsm_a_SOURCES = slPortability.h smMixer.cxx
+@BUILD_SL_TRUE@INCLUDES = -I$(top_srcdir)/src/util
 
-INCLUDES =  -I$(top_srcdir)/src/util
-
-EXTRA_DIST = Makefile.msc README.freebsd README.linux 	README.openbsd README.sgi README.unix README.win         sl.dsp
-
+EXTRA_DIST = sl.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(lib_LIBRARIES)
@@ -93,11 +93,11 @@ X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibsl_a_LIBADD = 
-libplibsl_a_OBJECTS =  slDSP.o slSample.o slEnvelope.o slPlayer.o \
-slMODPlayer.o slSamplePlayer.o slScheduler.o slMODdacio.o slMODfile.o \
-slMODinst.o slMODnote.o
+@BUILD_SL_TRUE@libplibsl_a_OBJECTS =  slDSP.o slSample.o slEnvelope.o \
+@BUILD_SL_TRUE@slPlayer.o slMODPlayer.o slSamplePlayer.o slScheduler.o \
+@BUILD_SL_TRUE@slMODdacio.o slMODfile.o slMODinst.o slMODnote.o
 libplibsm_a_LIBADD = 
-libplibsm_a_OBJECTS =  smMixer.o
+@BUILD_SL_TRUE@libplibsm_a_OBJECTS =  smMixer.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)

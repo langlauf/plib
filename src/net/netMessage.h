@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netMessage.h,v 1.5 2001/04/12 03:35:05 deca Exp $
+     $Id: netMessage.h,v 1.8 2002/09/02 06:05:44 sjbaker Exp $
 */
 
 /****
@@ -108,15 +108,18 @@ class netMessage : public netBuffer
 
 public:
 
+  // incoming message; header is already there
   netMessage ( const char* s, int n ) : netBuffer(n)
   {
     assert ( n >= 5 ) ;
     append(s,n);
-    pos = 5 ;
+    pos = 5 ; // seek past header
   }
 
+  // outgoing message
   netMessage ( int type, int to_id, int from_id=0, int n=256 ) : netBuffer(n)
   {
+    // output header
     putw ( 0 ) ;  //msg_len
     putbyte ( type ) ;
     putbyte ( to_id ) ;

@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadMDL.cxx,v 1.31 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgLoadMDL.cxx,v 1.43 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 //===========================================================================
@@ -29,7 +29,7 @@
 //                                                                           
 // Author: Thomas Engh Sevaldrud <tse@math.sintef.no>
 //                                                                           
-// Revision: $Id: ssgLoadMDL.cxx,v 1.31 2001/04/12 03:38:15 deca Exp $
+// Revision: $Id: ssgLoadMDL.cxx,v 1.43 2002/09/02 06:05:48 sjbaker Exp $
 //                                                                           
 // Description:
 //                                                                           
@@ -42,7 +42,6 @@
 #ifdef SSG_LOAD_MDL_SUPPORTED
 
 #include "ssgLoadMDL.h"
-#include "ssgMSFSPalette.h"
 
 #define DEF_SHININESS 50
 
@@ -58,29 +57,33 @@
 static ssgLoaderOptions *current_options;
 
 // Temporary vertex arrays
-static ssgVertexArray 		*curr_vtx_;
-static ssgNormalArray 		*curr_norm_;
+static ssgVertexArray 	  *curr_vtx_;
+static ssgNormalArray 	  *curr_norm_;
 static ssgIndexArray      *curr_index_;
 
 // Vertex arrays
-static ssgVertexArray 		*vertex_array_;
-static ssgNormalArray 		*normal_array_;
-static ssgTexCoordArray 	*tex_coords_;
+static ssgVertexArray 	  *vertex_array_;
+static ssgNormalArray 	  *normal_array_;
+static ssgTexCoordArray   *tex_coords_;
 
 // Current part (index array)
-static ssgLeaf  		      *curr_part_;
-static ssgBranch		      *model_;
+static ssgLeaf  		  *curr_part_;
+static ssgBranch		  *model_;
 
 // Moving parts
-static ssgBranch		      *ailerons_grp_, *elevator_grp_, *rudder_grp_;
-static ssgBranch		      *gear_grp_, *spoilers_grp_, *flaps_grp_;
+static ssgBranch		  *ailerons_grp_, *elevator_grp_, *rudder_grp_;
+static ssgBranch		  *gear_grp_, *spoilers_grp_, *flaps_grp_;
 static ssgBranch          *prop_grp_;
 
-static sgMat4   		      curr_matrix_;
-static sgVec3			        curr_rot_pt_;
-static sgVec4			        curr_col_;
-static char		            *curr_tex_name_;
+static sgMat4   		  curr_matrix_;
+static sgVec3			  curr_rot_pt_;
+static sgVec4			  curr_col_;
+static char		         *curr_tex_name_;
 static ssgAxisTransform	  *curr_xfm_;
+
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+static bool 			  curr_cull_face_;
+#endif
 
 // File Address Stack
 static const int          MAX_STACK_DEPTH = 64; // wk: 32 is too small
@@ -91,24 +94,27 @@ static int                stack_depth_;
 //  static char	        *textures_    [MAX_STACK_DEPTH];
 //  static ssgBranch		*groups_      [MAX_STACK_DEPTH];
 
-static int			start_idx_, last_idx_;
-static int      curr_var_;
+static int			    start_idx_, last_idx_;
+static int              curr_var_;
 
-static bool			has_normals_, vtx_dirty_, tex_vtx_dirty_;
-static bool     join_children_, override_normals_;
+static bool			    has_normals_, vtx_dirty_, tex_vtx_dirty_;
+//static bool             join_children_, override_normals_;
 
-static char     *tex_fmt_;
+//static char             *tex_fmt_;
 
 //===========================================================================
 
-static void initLoader()
+/*static void initLoader()
 {
   start_idx_        = 0;
   join_children_    = true;
   override_normals_ = true;
   tex_fmt_          = "tif";
   stack_depth_      = 0;
-}
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+  curr_cull_face_   = false ;    
+#endif
+}*/
 
 //===========================================================================
 
@@ -146,9 +152,9 @@ static void recalcNormals() {
   sgVec3 n;
   
   for (int i = 0; i < curr_index_->getNum() - 2; i++) {
-    short ix0 = *curr_index_->get(i    );
-    short ix1 = *curr_index_->get(i + 1);
-    short ix2 = *curr_index_->get(i + 2);
+    unsigned short ix0 = *curr_index_->get(i    );
+    unsigned short ix1 = *curr_index_->get(i + 1);
+    unsigned short ix2 = *curr_index_->get(i + 2);
     
     sgMakeNormal( n, 
       vertex_array_->get(ix0),
@@ -351,6 +357,8 @@ static void createTriangIndices(ssgIndexArray *ixarr,
 
 static bool readTexIndices(FILE *fp, int numverts, const sgVec3 s_norm, bool flip_y)
 {
+	ssgIndexArray temp_index_;
+
   if(numverts <= 0)
     return false;
   
@@ -424,10 +432,10 @@ static bool readTexIndices(FILE *fp, int numverts, const sgVec3 s_norm, bool fli
       tex_coords_->add(tc);
     }
     
-    curr_index_->add(tex_idx);
+    temp_index_.add(tex_idx);
     
 #ifdef DEBUG
-    int check_index = *curr_index_->get(v);
+    int check_index = *temp_index_.get(v);
     float *check_tc = tex_coords_->get(check_index);
     DEBUGPRINT( "ix[" << v << "] = " << check_index <<
       " (u=" << check_tc[0] << ", v=" << 
@@ -436,7 +444,7 @@ static bool readTexIndices(FILE *fp, int numverts, const sgVec3 s_norm, bool fli
     
   }
   
-  createTriangIndices(curr_index_, numverts, s_norm);
+  createTriangIndices(&temp_index_, numverts, s_norm);
   
   return true;
 }
@@ -445,6 +453,8 @@ static bool readTexIndices(FILE *fp, int numverts, const sgVec3 s_norm, bool fli
 
 static bool readIndices(FILE* fp, int numverts, const sgVec3 s_norm)
 {
+	ssgIndexArray temp_index_;
+
   if(numverts <= 0)
     return false;
   
@@ -453,11 +463,11 @@ static bool readIndices(FILE* fp, int numverts, const sgVec3 s_norm)
   {
     unsigned short ix;
     ix = ulEndianReadLittle16(fp);
-    curr_index_->add(ix - start_idx_ + last_idx_);
-    DEBUGPRINT( "ix[" << v << "] = " << *curr_index_->get(v) << std::endl);
+    temp_index_.add(ix - start_idx_ + last_idx_);
+    DEBUGPRINT( "ix[" << v << "] = " << *temp_index_.get(v) << std::endl);
   }
   
-  createTriangIndices(curr_index_, numverts, s_norm);
+  createTriangIndices(&temp_index_, numverts, s_norm);
   
   return true;
 }
@@ -574,7 +584,7 @@ static ssgBranch *getMPGroup(int var)
   switch(var)
   {
   case 0x4c: 		// Rudder
-    if(!rudder_grp_)
+		if(!rudder_grp_)
     {
       rudder_grp_ = new ssgBranch();
       rudder_grp_->setName("rudder");
@@ -584,7 +594,7 @@ static ssgBranch *getMPGroup(int var)
     break;
     
   case 0x4e: 		// Elevator
-    if(!elevator_grp_)
+		if(!elevator_grp_)
     {
       elevator_grp_ = new ssgBranch();
       elevator_grp_->setName("elevator");
@@ -594,7 +604,7 @@ static ssgBranch *getMPGroup(int var)
     break;
     
   case 0x6a: 		// Ailerons
-    if(!ailerons_grp_)
+		if(!ailerons_grp_)
     {
       ailerons_grp_ = new ssgBranch();
       ailerons_grp_->setName("ailerons");
@@ -604,7 +614,7 @@ static ssgBranch *getMPGroup(int var)
     break;
     
   case 0x6c: 		// Flaps
-    if(!flaps_grp_)
+		if(!flaps_grp_)
     {
       flaps_grp_ = new ssgBranch();
       flaps_grp_->setName("flaps");
@@ -614,7 +624,7 @@ static ssgBranch *getMPGroup(int var)
     break;
     
   case 0x6e: 		// Gear
-    if(!gear_grp_)
+		if(!gear_grp_)
     {
       gear_grp_ = new ssgBranch();
       gear_grp_->setName("gear");
@@ -624,7 +634,7 @@ static ssgBranch *getMPGroup(int var)
     break;
     
   case 0x7c: 		// Spoilers
-    if(!spoilers_grp_)
+		if(!spoilers_grp_)
     {
       spoilers_grp_ = new ssgBranch();
       spoilers_grp_->setName("spoilers");
@@ -634,8 +644,8 @@ static ssgBranch *getMPGroup(int var)
     break;
     
   case 0x58:
-  case 0x7a: 		// Propeller
-    if(!prop_grp_)
+	case 0x7a: 		// Propeller
+		if(!prop_grp_)
     {
       prop_grp_ = new ssgBranch();
       prop_grp_->setName("propeller");
@@ -657,38 +667,38 @@ static void getMPLimits(int var, float *min, float *max)
   switch(var)
   {
   case 0x4c: 		// Rudder
-    *min = -30.0;
+		*min = -30.0;
     *max =  30.0;
     break;
     
   case 0x4e: 		// Elevator
-    *min = -30.0;
+		*min = -30.0;
     *max =  30.0;
     break;
     
   case 0x6a: 		// Ailerons
-    *min = -30.0;
+		*min = -30.0;
     *max =  30.0;
     break;
     
   case 0x6c: 		// Flaps
-    *min = 0.0;
+		*min = 0.0;
     *max = 70.0;
     break;
     
   case 0x6e: 		// Gear
-    *min = 0.0;
+		*min = 0.0;
     *max = -90.0;
     break;
     
   case 0x7c: 		// Spoilers
-    *min = 0.0;
+		*min = 0.0;
     *max = 90.0;
     break;
     
   case 0x58:
-  case 0x7a: 		// Propeller
-    *min = 0.0;
+	case 0x7a: 		// Propeller
+		*min = 0.0;
     *max = 360.0;
     break;
   }
@@ -738,6 +748,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
   {
     ulSetError( UL_WARNING, "ssgLoadMDL: No BGL Code found in file '%s'!",
       filename );
+		fclose(fp);
     return NULL;
   }
   
@@ -781,7 +792,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
     switch(opcode)
     {
     case 0x23:	// BGL_CALL
-      {
+			{
         short offset;
         offset = ulEndianReadLittle16(fp);
         long addr = ftell(fp);
@@ -793,7 +804,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x8a:	// BGL_CALL32
-      {
+			{
         int offset;
         offset = ulEndianReadLittle32(fp);
         long addr = ftell(fp);
@@ -805,7 +816,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x0d:	// BGL_JUMP
-      {
+			{
         short offset;
         offset = ulEndianReadLittle16(fp);
         long addr = ftell(fp);
@@ -816,7 +827,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x88:	// BGL_JUMP32
-      {
+			{
         int offset;
         offset = ulEndianReadLittle32(fp);
         long addr = ftell(fp);
@@ -827,7 +838,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x8e:	// BGL_VFILE_MARKER
-      {
+			{
         short offset;
         offset = ulEndianReadLittle16(fp);
         DEBUGPRINT( "vars: " << offset << std::endl);
@@ -835,7 +846,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       }
       
     case 0x39: 	// BGL_IFMSK
-      {
+			{
         short offset, var, mask;
         offset = ulEndianReadLittle16(fp);
         var    = ulEndianReadLittle16(fp);
@@ -848,7 +859,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         switch(var)
         {
         case 0x7e:
-          fseek(fp, dst, SEEK_SET);
+					fseek(fp, dst, SEEK_SET);
           break;
           
         default:
@@ -858,7 +869,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x24: 	// BGL_IFIN1
-      {
+			{
         short offset, lo, hi;
         unsigned short var;
         offset = ulEndianReadLittle16(fp);
@@ -872,7 +883,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x46:	// BGL_POINT_VICALL
-      {
+			{
         short offset, var_rot_x, var_rot_y, var_rot_z;
         unsigned short int_rot_x, int_rot_y, int_rot_z;
         offset = ulEndianReadLittle16(fp);
@@ -953,7 +964,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       }
       
     case 0x5f:	// BGL_IFSIZEV
-      {
+			{
         short offset;
         unsigned short real_size, pixels_ref;
         offset     = ulEndianReadLittle16(fp);
@@ -970,7 +981,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       }
       
     case 0x3b:	// BGL_VINSTANCE
-      {
+			{
         short offset, var;
         offset = ulEndianReadLittle16(fp);
         var    = ulEndianReadLittle16(fp);
@@ -991,8 +1002,8 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x0:	// EOF
-    case 0x22: 	// BGL return
-      {
+		case 0x22: 	// BGL return
+			{
         curr_xfm_    = NULL;
         sgMakeIdentMat4( curr_matrix_ );
         sgZeroVec3( curr_rot_pt_ );
@@ -1009,7 +1020,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x1a: 	// RESLIST (point list with no normals)
-      {
+			{
         newPart();
         has_normals_ = false;
         
@@ -1033,7 +1044,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x29: 	// GORAUD RESLIST (point list with normals)
-      {
+			{
         newPart();
         has_normals_ = true;
         
@@ -1056,7 +1067,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x0f:	// STRRES: Start line definition
-      {
+			{
         unsigned short idx = ulEndianReadLittle16(fp);
         DEBUGPRINT( "Start line: idx = " << idx << std::endl);
         if(vtx_dirty_)
@@ -1078,6 +1089,10 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
           NULL,
           curr_index_ );
         curr_part_->setState( createState(false) );
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+        curr_part_->setCullFace ( curr_cull_face_ ) ;    
+#endif
+
         curr_index_->add(idx - start_idx_ + last_idx_);
         ssgBranch *grp = getCurrGroup();
         grp->addKid(curr_part_);
@@ -1087,7 +1102,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x10:	// CNTRES: Continue line definition
-      {
+			{
         unsigned short idx = ulEndianReadLittle16(fp);
         DEBUGPRINT( "Cont. line: idx = " << idx << std::endl);
         curr_index_->add(idx - start_idx_ + last_idx_);
@@ -1095,8 +1110,8 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x20:
-    case 0x7a: 	// Goraud shaded Texture-mapped ABCD Facet
-      {
+		case 0x7a: 	// Goraud shaded Texture-mapped ABCD Facet
+			{
         if(tex_vtx_dirty_)
         {
           last_idx_ = vertex_array_->getNum();
@@ -1127,8 +1142,12 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         readVector(fp, v);
         
         // Dot product reference
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+        curr_cull_face_ = ulEndianReadLittle32(fp) >= 0;
+        curr_part_->setCullFace ( curr_cull_face_ ) ;    
+#else
         ulEndianReadLittle32(fp);
-        
+#endif
         // Read vertex inidices and texture coordinates
         bool flip_y = FALSE;
         if(curr_tex_name_!=NULL)
@@ -1151,12 +1170,13 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         }
         
         ssgBranch* grp = getCurrGroup();
+        ((ssgVtxArray *)curr_part_)->removeUnusedVertices();
         grp->addKid( current_options -> createLeaf(curr_part_, NULL) );
       }
       break;
       
     case 0x60: 	// BGL_FACE_TMAP
-      {
+			{
         if(tex_vtx_dirty_)
         {
           last_idx_ = vertex_array_->getNum();
@@ -1176,7 +1196,9 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
           NULL,
           curr_index_ );
         curr_part_->setState( createState(true) );
-        
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+        curr_part_->setCullFace ( curr_cull_face_ ) ;    
+#endif        
         //assert(curr_part_->getState()->getTexture() != NULL);
         
         unsigned short numverts = ulEndianReadLittle16(fp);
@@ -1213,12 +1235,13 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         }
         
         ssgBranch* grp = getCurrGroup();
+        ((ssgVtxArray *)curr_part_)->removeUnusedVertices();
         grp->addKid( current_options -> createLeaf(curr_part_, NULL) );
       }
       break;
       
     case 0x1d:	// BGL_FACE
-      {
+			{
         if(vtx_dirty_)
         {
           last_idx_ = vertex_array_->getNum();
@@ -1238,7 +1261,9 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
           NULL,
           curr_index_);
         curr_part_->setState( createState(false) );
-        
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+        curr_part_->setCullFace ( curr_cull_face_ ) ;    
+#endif
         //assert(curr_part_->getState()->getTexture() == NULL);
         
         unsigned short numverts = ulEndianReadLittle16(fp);
@@ -1261,13 +1286,14 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         }
         
         ssgBranch* grp = getCurrGroup();
+        ((ssgVtxArray *)curr_part_)->removeUnusedVertices();
         grp->addKid( current_options -> createLeaf(curr_part_, NULL) );
       }
       break;
       
     case 0x3e:	// FACETN (no texture)
-    case 0x2a:	// Goraud shaded ABCD Facet
-      {
+		case 0x2a:	// Goraud shaded ABCD Facet
+			{
         if(vtx_dirty_)
         {
           last_idx_ = vertex_array_->getNum();
@@ -1297,8 +1323,13 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         sgVec3 v;
         readVector(fp, v);
         
-        ulEndianReadLittle32(fp);  // dot-ref
-        
+        // dot-ref
+#ifdef EXPERIMENTAL_CULL_FACE_CODE
+        curr_cull_face_ = ulEndianReadLittle32(fp) >= 0;
+        curr_part_->setCullFace ( curr_cull_face_ ) ;    
+#else
+        ulEndianReadLittle32(fp);
+#endif
         // Read vertex indices
         readIndices(fp, numverts, v);
         
@@ -1310,12 +1341,13 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         }
         
         ssgBranch* grp = getCurrGroup();
+        ((ssgVtxArray *)curr_part_)->removeUnusedVertices();
         grp->addKid( current_options -> createLeaf(curr_part_, NULL) );
       }
       break;
       
     case 0x18: 	// Set texture
-      {
+			{
         unsigned short id, dx, scale, dy;
         id    = ulEndianReadLittle16(fp);
         dx    = ulEndianReadLittle16(fp);
@@ -1339,7 +1371,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x43:	// TEXTURE2
-      {
+			{
         unsigned short length, idx;
         unsigned char  flags, chksum;
         unsigned int   color;
@@ -1356,7 +1388,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         
         char c;
         int i = 0;
-        while((c = fgetc(fp)) != 0)
+        while((c = getc(fp)) != 0)
         {
           if(!isspace(c))
             tex_filename[i++] = tolower(c);
@@ -1365,7 +1397,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
         
         // Padding byte
         if((strlen(tex_filename) + 1) % 2)
-          c = fgetc(fp);
+          c = getc(fp);
         
         DEBUGPRINT( "TEXTURE2: Set texture: name = " << tex_filename << 
           std::endl);
@@ -1374,9 +1406,9 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       }
       
     case 0x50: 	// GCOLOR (Goraud shaded color)
-    case 0x51:	// LCOLOR (Line color)
-    case 0x52:     	// SCOLOR (Light source shaded surface color)
-      {
+		case 0x51:	// LCOLOR (Line color)
+		case 0x52:     	// SCOLOR (Light source shaded surface color)
+			{
         unsigned char color, param;
         fread(&color, 1, 1, fp);
         fread(&param, 1, 1, fp);
@@ -1387,7 +1419,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       break;
       
     case 0x2D: 	// BGL_SCOLOR24
-      {
+			{
         unsigned char col[4];
         fread(col, 1, 4, fp);
         DEBUGPRINT( "color = " << (int)col[0] << ", " << (int)col[2] << 
@@ -1403,7 +1435,7 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
       //-------------------------------------------
       
     case 0x03:
-      {
+			{
         //DEBUGPRINT( "BGL_CASE\n" );
         unsigned short number_cases;
         fread(&number_cases, 2, 1, fp);
@@ -1448,65 +1480,11 @@ ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
     delete curr_norm_;
     
     DEBUGPRINT("\n" << vertex_array_->getNum() << " vertices\n");
-    
+
     return model_;
 }
 
-// This really simple (raw paletted) format is used by older MSFS for textures
-bool ssgLoadMDLTexture ( const char *fname, ssgTextureInfo* info )
-{
-  FILE *tfile;
-  if ( (tfile = fopen(fname, "rb")) == NULL) {
-    ulSetError( UL_WARNING, "ssgLoadTexture: Failed to load '%s'.", fname );
-    return false ;
-  }
-  
-  fseek(tfile, 0, SEEK_END);
-  unsigned long file_length = ftell(tfile);
-  
-  if (file_length != 65536) {
-    // this is not a MSFS-formatted texture, so it's probably a BMP
-    fclose(tfile);
-    return ssgLoadBMP( fname, info );
-  } else {
-    fseek(tfile, 0, SEEK_SET);
-    
-    unsigned char *texels = new unsigned char[256 * 256 * 4];
-    int c = 0;
-    for (int y = 0; y < 256; y++) {
-      for (int x = 0; x < 256; x++) {
-        unsigned char b;
-        fread(&b, 1, 1, tfile);
-        texels[c++] = fsTexPalette[b*4    ];
-        texels[c++] = fsTexPalette[b*4 + 1];
-        texels[c++] = fsTexPalette[b*4 + 2];
-        texels[c++] = fsTexPalette[b*4 + 3];
-      }
-    }
-    
-    fclose(tfile);
-    
-    if ( info != NULL )
-    {
-      info -> width = 256 ;
-      info -> height = 256 ;
-      info -> depth = 4 ;
-      info -> alpha = FALSE ;  //??
-    }
-    
-    return ssgMakeMipMaps ( texels, 256, 256, 4 ) ;
-  }
-}
-
-
 #else
-
-
-ssgEntity *ssgLoadMDL(const char *fname, const ssgLoaderOptions *options)
-{
-  return NULL ;
-}
-
 
 bool ssgLoadMDLTexture ( const char *fname, ssgTextureInfo* info )
 {
@@ -1517,3 +1495,4 @@ bool ssgLoadMDLTexture ( const char *fname, ssgTextureInfo* info )
 
 
 #endif
+

@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ul.cxx,v 1.24 2001/07/09 15:00:49 nhv Exp $
+     $Id: ul.cxx,v 1.29 2002/09/02 06:05:49 sjbaker Exp $
 */
 
 
@@ -29,7 +29,7 @@
 
 #if defined(__CYGWIN__) || !defined(WIN32)
 #include <dirent.h>
-#elif defined(_MSC_VER)
+#elif defined(WIN32)
 #include <direct.h>
 #endif
 
@@ -359,6 +359,21 @@ void ulFindFile( char *filenameOutput, const char *path,
 
 ///////////////////// string handling ///////////////////////////////
 
+/*
+  Strdup is *evil* - use this instead...
+*/
+
+char *ulStrDup ( const char *s )
+{
+  int s_sz = strlen ( s ) + 1 ;
+  char *ret = new char [ s_sz ] ;
+
+  memcpy ( ret, s, s_sz ) ;
+  return ret ;
+}
+
+
+
 // string comparisons that are *not* case sensitive:
 
 /*
@@ -475,7 +490,7 @@ char *ulGetCWD ( char *result, int maxlength )
     has enough space for 'maxlength-1' characters and a '\0'.
   */
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(__MINGW__)
   return _getcwd ( result, maxlength ) ;
 #else
   return getcwd ( result, maxlength ) ;

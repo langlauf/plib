@@ -57,6 +57,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
 CC = @CC@
 CPP = @CPP@
 CXX = @CXX@
@@ -66,13 +68,13 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libplibsg.a
+@BUILD_SG_TRUE@lib_LIBRARIES = libplibsg.a
 
-include_HEADERS = sg.h
+@BUILD_SG_TRUE@include_HEADERS = sg.h
 
-libplibsg_a_SOURCES = sg.cxx sgd.cxx sgIsect.cxx
+@BUILD_SG_TRUE@libplibsg_a_SOURCES = sg.cxx sgd.cxx                       sgIsect.cxx sgdIsect.cxx                       sgPerlinNoise.cxx
 
-INCLUDES =  -I$(top_srcdir)/src/util
+@BUILD_SG_TRUE@INCLUDES = -I$(top_srcdir)/src/util
 
 EXTRA_DIST = sg.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -89,7 +91,8 @@ X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibsg_a_LIBADD = 
-libplibsg_a_OBJECTS =  sg.o sgd.o sgIsect.o
+@BUILD_SG_TRUE@libplibsg_a_OBJECTS =  sg.o sgd.o sgIsect.o sgdIsect.o \
+@BUILD_SG_TRUE@sgPerlinNoise.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -237,7 +240,9 @@ distdir: $(DISTFILES)
 	done
 sg.o: sg.cxx sg.h ../../src/util/ul.h
 sgIsect.o: sgIsect.cxx sg.h ../../src/util/ul.h
+sgPerlinNoise.o: sgPerlinNoise.cxx sg.h ../../src/util/ul.h
 sgd.o: sgd.cxx sg.h ../../src/util/ul.h
+sgdIsect.o: sgdIsect.cxx sg.h ../../src/util/ul.h
 
 info-am:
 info: info-am

@@ -1,3 +1,24 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 1998,2002 William Lachance, Steve Baker
+ 
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+ 
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+ 
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free Software
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ 
+     For further information visit http://plib.sourceforge.net
+*/
+
 #include "ssgLocal.h"
 #include "ssgParser.h"
 #include "ssgLoaderWriterStuff.h"
@@ -23,7 +44,7 @@ static bool iv_parseSwitch( ssgBranch *parentBranch, _traversalState *parentData
 static bool iv_parseIndexedFaceSet( ssgBranch *parentBranch, _traversalState *parentData, char *defName );
 static bool iv_parseTexture2( ssgBranch *parentBranch, _traversalState *currentData, char *defName );
 
-_parseTag ivTags [] =
+static _parseTag ivTags [] =
 {
      { "Separator", iv_parseSeparator },
      { "Switch", iv_parseSwitch },
@@ -35,6 +56,7 @@ _parseTag ivTags [] =
      { "MatrixTransform", vrml1_parseMatrixTransform },
      { "Scale", vrml1_parseScale },
      { "Rotation", vrml1_parseRotation },
+     { "Translation", vrml1_parseTranslation },
      { NULL, NULL },
 };
 
@@ -243,7 +265,7 @@ static bool iv_parseIndexedFaceSet( ssgBranch *parentBranch, _traversalState *cu
 	token = vrmlParser.peekAtNextToken( NULL );
      }
    
-   //printf("Level: %i. Found %i faces here.\n", vrmlParser.level, numFaces);
+   //ulSetError(UL_DEBUG, "Level: %i. Found %i faces here.\n", vrmlParser.level, numFaces);
 
    vrmlParser.expectNextToken( "}" );
    
@@ -296,7 +318,7 @@ static bool iv_parseIndexedFaceSet( ssgBranch *parentBranch, _traversalState *cu
    
    if( currentData->getTransform() != NULL ) 
      {
-	parentBranch->addKid( currentData->getTransform() ); // FIXME: in case we're reusing transforms, perhaps they should be reinstanced? (currently we don't allow this)
+	currentBranch->addKid( currentData->getTransform() ); // FIXME: in case we're reusing transforms, perhaps they should be reinstanced? (currently we don't allow this)
  	loaderMesh->addToSSG( ss, currentOptions, currentData->getTransform() );
      }
    else
@@ -307,7 +329,7 @@ static bool iv_parseIndexedFaceSet( ssgBranch *parentBranch, _traversalState *cu
    return TRUE;
 }
 
-bool iv_parseTexture2( ssgBranch *parentBranch, _traversalState *currentData, char *defName )
+static bool iv_parseTexture2( ssgBranch *parentBranch, _traversalState *currentData, char *defName )
 {
    char *token;
    char *fileName = NULL; bool wrapU = FALSE, wrapV = FALSE;
@@ -348,7 +370,8 @@ bool iv_parseTexture2( ssgBranch *parentBranch, _traversalState *currentData, ch
    if( fileName == NULL )
      return FALSE;
    
-   ssgTexture *currentTexture = new ssgTexture( fileName, wrapU, wrapV );
+   //ssgTexture *currentTexture = new ssgTexture( fileName, wrapU, wrapV );
+   ssgTexture *currentTexture = currentOptions -> createTexture ( fileName, wrapU, wrapV );
    currentData->setTexture( currentTexture );
    vrmlParser.expectNextToken("}");
 

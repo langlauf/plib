@@ -57,6 +57,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
 CC = @CC@
 CPP = @CPP@
 CXX = @CXX@
@@ -66,13 +68,12 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-lib_LIBRARIES = libplibpu.a
+@BUILD_PUI_TRUE@lib_LIBRARIES = libplibpu.a
 
-include_HEADERS = pu.h
+@BUILD_PUI_TRUE@include_HEADERS = pu.h
 
-libplibpu_a_SOURCES =          pu.cxx            puBox.cxx       puButton.cxx puButtonBox.cxx            puArrowButton.cxx puDialogBox.cxx puFrame.cxx  puGroup.cxx                puInput.cxx       puInterface.cxx puLocal.h    puMenuBar.cxx              puObject.cxx      puOneShot.cxx   puPopup.cxx  puPopupMenu.cxx            puFilePicker.cxx  puListBox.cxx   puSlider.cxx puText.cxx                 puValue.cxx       puFont.cxx      puBiSlider.cxx  puTriSlider.cxx 	puDial.cxx        puVerticalMenu.cxx  puLargeInput.cxx                    puFileSelector.cxx
-
-INCLUDES =  -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt -I$(top_srcdir)/src/util
+@BUILD_PUI_TRUE@libplibpu_a_SOURCES =         pu.cxx            puBox.cxx       puButton.cxx puButtonBox.cxx            puArrowButton.cxx puDialogBox.cxx puFrame.cxx  puGroup.cxx                puInput.cxx       puInterface.cxx puLocal.h    puMenuBar.cxx              puObject.cxx      puOneShot.cxx   puPopup.cxx  puPopupMenu.cxx            puFilePicker.cxx  puListBox.cxx   puSlider.cxx puText.cxx                 puValue.cxx       puFont.cxx      puBiSlider.cxx  puTriSlider.cxx         puDial.cxx        puVerticalMenu.cxx  puLargeInput.cxx                    puFileSelector.cxx puComboBox.cxx puSelectBox.cxx puRange.cxx	          puSpinBox.cxx     puScrollBar.cxx
+@BUILD_PUI_TRUE@INCLUDES = -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt -I$(top_srcdir)/src/util
 
 EXTRA_DIST = pui.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -89,12 +90,15 @@ X_LIBS = @X_LIBS@
 X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibpu_a_LIBADD = 
-libplibpu_a_OBJECTS =  pu.o puBox.o puButton.o puButtonBox.o \
-puArrowButton.o puDialogBox.o puFrame.o puGroup.o puInput.o \
-puInterface.o puMenuBar.o puObject.o puOneShot.o puPopup.o \
-puPopupMenu.o puFilePicker.o puListBox.o puSlider.o puText.o puValue.o \
-puFont.o puBiSlider.o puTriSlider.o puDial.o puVerticalMenu.o \
-puLargeInput.o puFileSelector.o
+@BUILD_PUI_TRUE@libplibpu_a_OBJECTS =  pu.o puBox.o puButton.o \
+@BUILD_PUI_TRUE@puButtonBox.o puArrowButton.o puDialogBox.o puFrame.o \
+@BUILD_PUI_TRUE@puGroup.o puInput.o puInterface.o puMenuBar.o \
+@BUILD_PUI_TRUE@puObject.o puOneShot.o puPopup.o puPopupMenu.o \
+@BUILD_PUI_TRUE@puFilePicker.o puListBox.o puSlider.o puText.o \
+@BUILD_PUI_TRUE@puValue.o puFont.o puBiSlider.o puTriSlider.o puDial.o \
+@BUILD_PUI_TRUE@puVerticalMenu.o puLargeInput.o puFileSelector.o \
+@BUILD_PUI_TRUE@puComboBox.o puSelectBox.o puRange.o puSpinBox.o \
+@BUILD_PUI_TRUE@puScrollBar.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -244,60 +248,70 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-pu.o: pu.cxx puLocal.h pu.h ../../src/sg/sg.h ../../src/util/ul.h \
-	../../src/fnt/fnt.h
-puArrowButton.o: puArrowButton.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puBiSlider.o: puBiSlider.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puBox.o: puBox.cxx puLocal.h pu.h ../../src/sg/sg.h ../../src/util/ul.h \
-	../../src/fnt/fnt.h
-puButton.o: puButton.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puButtonBox.o: puButtonBox.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puDial.o: puDial.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puDialogBox.o: puDialogBox.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puFilePicker.o: puFilePicker.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puFileSelector.o: puFileSelector.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puFont.o: puFont.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puFrame.o: puFrame.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puGroup.o: puGroup.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puInput.o: puInput.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puInterface.o: puInterface.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puLargeInput.o: puLargeInput.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puListBox.o: puListBox.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puMenuBar.o: puMenuBar.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puObject.o: puObject.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puOneShot.o: puOneShot.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puPopup.o: puPopup.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puPopupMenu.o: puPopupMenu.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puSlider.o: puSlider.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puText.o: puText.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puTriSlider.o: puTriSlider.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puValue.o: puValue.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
-puVerticalMenu.o: puVerticalMenu.cxx puLocal.h pu.h ../../src/sg/sg.h \
-	../../src/util/ul.h ../../src/fnt/fnt.h
+pu.o: pu.cxx puLocal.h pu.h ../../src/fnt/fnt.h ../../src/sg/sg.h \
+	../../src/util/ul.h ../../src/util/ulRTTI.h
+puArrowButton.o: puArrowButton.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puBiSlider.o: puBiSlider.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puBox.o: puBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h ../../src/sg/sg.h \
+	../../src/util/ul.h ../../src/util/ulRTTI.h
+puButton.o: puButton.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puButtonBox.o: puButtonBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puComboBox.o: puComboBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puDial.o: puDial.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puDialogBox.o: puDialogBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puFilePicker.o: puFilePicker.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puFileSelector.o: puFileSelector.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puFont.o: puFont.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puFrame.o: puFrame.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puGroup.o: puGroup.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puInput.o: puInput.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puInterface.o: puInterface.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puLargeInput.o: puLargeInput.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puListBox.o: puListBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puMenuBar.o: puMenuBar.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puObject.o: puObject.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puOneShot.o: puOneShot.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puPopup.o: puPopup.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puPopupMenu.o: puPopupMenu.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puRange.o: puRange.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puScrollBar.o: puScrollBar.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puSelectBox.o: puSelectBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puSlider.o: puSlider.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puSpinBox.o: puSpinBox.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puText.o: puText.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puTriSlider.o: puTriSlider.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puValue.o: puValue.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
+puVerticalMenu.o: puVerticalMenu.cxx puLocal.h pu.h ../../src/fnt/fnt.h \
+	../../src/sg/sg.h ../../src/util/ul.h ../../src/util/ulRTTI.h
 
 info-am:
 info: info-am

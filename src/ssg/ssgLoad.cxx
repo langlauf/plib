@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoad.cxx,v 1.19 2001/06/26 19:03:44 mcdave Exp $
+     $Id: ssgLoad.cxx,v 1.24 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 
@@ -128,17 +128,22 @@ ssgTransform* ssgLoaderOptions::createTransform ( ssgTransform* tr,
   return tr ;
 }
 
+ssgSelector* ssgLoaderOptions::createSelector ( ssgSelector* s ) const
+{
+  return s ;
+}
+
 
 void ssgLoaderOptions::setModelDir ( const char *s )
 {
-  delete model_dir ;
+  delete [] model_dir ;
   model_dir = new char [ strlen ( s ) + 1 ] ;
   strcpy ( model_dir, s ) ;
 }
 
 void ssgLoaderOptions::setTextureDir ( const char *s )
 {
-  delete texture_dir ;
+  delete [] texture_dir ;
   texture_dir = new char [ strlen ( s ) + 1 ] ;
   strcpy ( texture_dir, s ) ;
 }
@@ -172,6 +177,17 @@ static int num_formats = 0 ;
 void ssgAddModelFormat ( const char* extension,
                         ssgLoadFunc *loadfunc , ssgSaveFunc  *savefunc )
 {
+  for ( int i = 0 ; i < num_formats ; i++ ) 
+  {
+    if ( ulStrEqual ( formats [ i ] . extension, extension ) )
+    {
+      formats [ i ] . extension = extension ;
+      formats [ i ] . loadfunc = loadfunc ;
+      formats [ i ] . savefunc = savefunc ;
+      return ;
+    }
+  }
+
   if ( num_formats < MAX_FORMATS )
   {
     formats [ num_formats ] . extension = extension ;

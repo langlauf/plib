@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,16 +13,16 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadFLT.cxx,v 1.25 2001/06/16 21:03:27 sjbaker Exp $
+     $Id: ssgLoadFLT.cxx,v 1.33 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 //
-//  $Id: ssgLoadFLT.cxx,v 1.25 2001/06/16 21:03:27 sjbaker Exp $
+//  $Id: ssgLoadFLT.cxx,v 1.33 2002/09/02 06:05:48 sjbaker Exp $
 //
 //
 //    OpenFlight loader for SSG
@@ -130,6 +130,18 @@
 #  endif
 #endif
 
+#ifdef __BORLANDC__
+# ifdef USE_ALLOCA
+#  include <malloc.h>
+# endif
+#endif
+
+#if defined(__MINGW32__)
+# ifdef USE_ALLOCA
+#  include <libiberty.h>
+# endif
+#endif
+
 
 #ifndef O_BINARY
 # define O_BINARY 0
@@ -171,7 +183,7 @@ typedef unsigned int uint;
 /* XXX what about PDP_ENDIAN? */
 
 /* Help! Is this correct? */
-#if !defined(BYTE_ORDER) && defined(_MSC_VER) && !defined(NOT_INTEL_BYTE_ORDER)
+#if (!defined(BYTE_ORDER) && defined(WIN32) && !defined(NOT_INTEL_BYTE_ORDER))
 # define LITTLE_ENDIAN  1234
 # define BIG_ENDIAN     4321
 # define BYTE_ORDER     LITTLE_ENDIAN
@@ -181,6 +193,7 @@ typedef unsigned int uint;
 
 #if !defined(BYTE_ORDER) || BYTE_ORDER != BIG_ENDIAN
 
+#ifdef PROBE_ENDIAN
 static void _swab16(const void *src, void *dst, int n)
 {
    ushort *s = (ushort *)src;
@@ -191,6 +204,7 @@ static void _swab16(const void *src, void *dst, int n)
 	      ((t & 0x00ffU) << 8));
    }
 }
+#endif
 
 static void _swab32(const void *src, void *dst, int n)
 {
@@ -334,7 +348,7 @@ struct snode {
 
 typedef int (*sfunc)(const void *key1, const void *key2);
 
-struct snode *splay(struct snode *t, const void *key, sfunc comp)
+static struct snode *splay(struct snode *t, const void *key, sfunc comp)
 {
    struct snode N, *l, *r, *y;
      
@@ -701,7 +715,7 @@ static ssgSimpleState *ConstructState(StateInfo *key)
    if (StateCache->data == (void *)-1) {
       ssgSimpleState *s;
 
-      /*printf("new state --\n");*/
+      /*ulSetError(UL_DEBUG, "new state --");*/
 
       s = new ssgSimpleState;
 
@@ -710,13 +724,13 @@ static ssgSimpleState *ConstructState(StateInfo *key)
       }
       else {
 	 s->disable(GL_CULL_FACE);
-	 /*printf("  two-sided\n");*/
+	 /*ulSetError(UL_DEBUG, "  two-sided");*/
       }
 
       if (key->tr) {
 	 s->setTranslucent();
 	 s->enable(GL_BLEND); /* XXX what about multisampling? */
-	 /*printf("  transparent\n");*/
+	 /*ulSetError(UL_DEBUG, "  transparent");*/
       }
       else {
 	 s->setOpaque();
@@ -727,37 +741,37 @@ static ssgSimpleState *ConstructState(StateInfo *key)
       if (key->mtl) {
 	 float *m = key->mtl;
 	 sgVec4 c;
-	 /*printf("%.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f  %d\n",
+	 /*ulSetError(UL_DEBUG, "%.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f  %d",
 	   m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9], m[10], m[11], m[12], m[13], key->cm);*/
 	 if (key->cm) {
 	    s->enable(GL_COLOR_MATERIAL);
 	    s->setColourMaterial(GL_AMBIENT_AND_DIFFUSE);
-	    //printf("  color material\n");
+	    //ulSetError(UL_DEBUG, "  color material");
 	 }
 	 else {
 	    s->disable(GL_COLOR_MATERIAL);
 	    sgSetVec4(c, m[0], m[1], m[2], key->alpha); s->setMaterial(GL_AMBIENT, c);
 	    sgSetVec4(c, m[3], m[4], m[5], key->alpha); s->setMaterial(GL_DIFFUSE, c);
-	    //printf("  ambient   %.2f %.2f %.2f\n", m[0], m[1], m[2]);
-	    //printf("  diffuse   %.2f %.2f %.2f\n", m[3], m[4], m[5]);
+	    //ulSetError(UL_DEBUG, "  ambient   %.2f %.2f %.2f", m[0], m[1], m[2]);
+	    //ulSetError(UL_DEBUG, "  diffuse   %.2f %.2f %.2f", m[3], m[4], m[5]);
 	 }
 	 sgSetVec4(c, m[6], m[7], m[8], key->alpha); s->setMaterial(GL_SPECULAR, c);
 	 sgSetVec4(c, m[9], m[10], m[11], key->alpha); s->setMaterial(GL_EMISSION, c);
-	 //printf("  specular  %.2f %.2f %.2f\n", m[6], m[7], m[8]);
-	 //printf("  emission  %.2f %.2f %.2f\n", m[9], m[10], m[11]);
-	 //printf("  alpha %.2f\n", key->alpha);
+	 //ulSetError(UL_DEBUG, "  specular  %.2f %.2f %.2f", m[6], m[7], m[8]);
+	 //ulSetError(UL_DEBUG, "  emission  %.2f %.2f %.2f", m[9], m[10], m[11]);
+	 //ulSetError(UL_DEBUG, "  alpha %.2f", key->alpha);
 	 s->setShininess(m[12]);
 	 s->enable(GL_LIGHTING);
       }
       else {
 	 s->disable(GL_LIGHTING);
-	 /*printf("  no lighting\n");*/
+	 /*ulSetError(UL_DEBUG, "  no lighting");*/
       }
 
       if (key->tex) {	 
 	 s->enable(GL_TEXTURE_2D);
 	 s->setTexture(key->tex);
-	 /*printf("  texture %s\n", key->tex->getFilename());*/
+	 /*ulSetError(UL_DEBUG, "  texture %s", key->tex->getFilename());*/
       }
       else {
 	 s->disable(GL_TEXTURE_2D);
@@ -1027,7 +1041,7 @@ static ssgEntity *Build(fltState *state)
 
       geom->setState(arr[i].state);
       
-      /*printf("build: [%d..%d] %02x %d indices, %d vertices\n",
+      /*ulSetError(UL_DEBUG, "build: [%d..%d] %02x %d indices, %d vertices",
 	     i, j - 1, bind,
 	     3*(j - i), n);*/
       
@@ -1133,6 +1147,7 @@ static void Obsolete(int op)
       ulSetError(UL_WARNING, "[flt] This file is probably rather old (obsolete opcodes ignored).");
       ObsoleteFlag = 1;
    }
+   //printf("op %d obsolete\n", op);
 }
 
 static void NotImplemented(int op)
@@ -1141,6 +1156,7 @@ static void NotImplemented(int op)
       ulSetError(UL_WARNING, "[flt] This file contains opcodes that are not implemented.");
       NotImplementedFlag = 1;
    }
+   //printf("op %d not implemented\n", op);
 }
 
 static void ReportBadChunk(const ubyte *ptr, const char *name)
@@ -1293,7 +1309,7 @@ static int GeomChunks(ubyte *ptr0, ubyte *end, fltState *state, ssgEntity **node
 	    if (index != -1) {
 	       state->texs = t = splay(state->texs, (void *)index, ptrcmp);
 	       if (t == 0 || t->key != (void *)index) {
-		  /*fprintf(stderr, "[flt] undefined texture %d\n", index);*/
+		  /*ulSetError(UL_DEBUG, "[flt] undefined texture %d", index);*/
 		  t = 0;
 	       }
 	    }
@@ -1330,7 +1346,7 @@ static int GeomChunks(ubyte *ptr0, ubyte *end, fltState *state, ssgEntity **node
 	       int lmode = len >= 49 ? ptr[48] : 3;
 	       int trans = get16u(ptr + 40);
 
-	       //printf("light mode %d\n", lmode);
+	       //ulSetError(UL_DEBUG, "light mode %d", lmode);
 
 	       /*lmode = 0;*/
 	    
@@ -1427,10 +1443,10 @@ static int GeomChunks(ubyte *ptr0, ubyte *end, fltState *state, ssgEntity **node
 
 	       /*
 		 if (tri.bind & BIND_COLOR) 
-		   printf("use vertex colors\n");
+		   ulSetError(UL_DEBUG, "use vertex colors");
 		 if (tri.bind & BIND_FLAT_COLOR)
-		   printf("face color %.2f %.2f %.2f\n", 
-			  tri.color[0], tri.color[1], tri.color[2]);
+		   ulSetError(UL_DEBUG, "face color %.2f %.2f %.2f", 
+			      tri.color[0], tri.color[1], tri.color[2]);
 	        */
 
 	       /* billboard */
@@ -1783,9 +1799,9 @@ static ssgEntity *PostClean(ssgEntity *node, fltNodeAttr *attr)
 	    grp->addKid(scs);
 	    sgCopyMat4(mat, attr->mat);
 #if 0
-	    printf("replicating %d times\n", attr->replicate);
+	    ulSetError(UL_DEBUG, "replicating %d times", attr->replicate);
 	    for (i = 0; i < 4; i++)
-	       printf("  %6.2f %6.2f %6.2f %6.2f\n", mat[i][0], mat[i][1], mat[i][2], mat[i][3]);
+	       ulSetError(UL_DEBUG, "  %6.2f %6.2f %6.2f %6.2f", mat[i][0], mat[i][1], mat[i][2], mat[i][3]);
 #endif
 	    for (i = 0; i < attr->replicate; ++i) {
 	       sgPostMultMat4(mat, attr->mat);
@@ -1795,11 +1811,11 @@ static ssgEntity *PostClean(ssgEntity *node, fltNodeAttr *attr)
 	       grp->addKid(scs);
 	    }
 	    node = grp; /* there's no point in cleaning this construction */
-	    /*printf("[flt] replicated %d times\n", attr->replicate);*/
+	    /*ulSetError(UL_DEBUG, "[flt] replicated %d times", attr->replicate);*/
 	 }
 	 else {
 	    node = scs; // PostClean(scs, 0);
-	    /*printf("[flt] added transformation\n");*/
+	    /*ulSetError(UL_DEBUG, "[flt] added transformation");*/
 	 }
       }
       
@@ -1846,7 +1862,7 @@ static ssgEntity *PostClean(ssgEntity *node, fltNodeAttr *attr)
 static void PostLink(ssgEntity **stack, fltNodeAttr **attr)
 {
 #if 0
-   fprintf(stderr, "PostLink: %s %s <-- %s %s\n",
+   ulSetError(UL_DEBUG, "PostLink: %s %s <-- %s %s",
            stack[0] ? pfGetTypeName(stack[0]) : "0", stack[0] ? pfGetNodeName(stack[0]) : "0",
            stack[1] ? pfGetTypeName(stack[1]) : "0", stack[1] ? pfGetNodeName(stack[1]) : "0");
 #endif
@@ -2130,10 +2146,12 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 	    sgSetVec2(a->range, (float)v[0], (float)v[1]);
 	    get64v(ptr + 40, v, 3);
 	    sgSetVec3(a->center, (float)v[0], (float)v[1], (float)v[2]);
-	    /* break; */
+            stack[sp] = new ssgBranch;
+	    break;
 	 }
 	 default: //lint !e616
             stack[sp] = new ssgBranch;
+	    break;
          }
 	 if (ptr[4])
 	    stack[sp]->setName((char *)ptr + 4);
@@ -2143,7 +2161,7 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 
       case 61: /* Instance Reference */
          k = get16u(ptr + 6);
-         /*fprintf(stderr, "[flt] instance reference %d\n", k);*/
+         /*ulSetError(UL_DEBUG, "[flt] instance reference %d", k);*/
          PostLink(stack + sp - 1, attr + sp - 1);	 
          if (state->refs) {
 	    state->refs = splay(state->refs, (void *)k, ptrcmp);
@@ -2156,7 +2174,7 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
 
       case 62: /* Instance Definition */
          k = get16u(ptr + 6);
-         /*fprintf(stderr, "[flt] instance definition %d\n", k);*/
+         /*ulSetError(UL_DEBUG, "[flt] instance definition %d", k);*/
          if (stack[sp]) {
 	    state->refs = sinsert(state->refs, (void *)k, 0, ptrcmp);
 	    if (state->refs->data == (void *)-1) {
@@ -2168,7 +2186,7 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
          break;
 
       case 63: /* External Reference */
-         /*fprintf(stderr, "external reference %s\n", ptr + 4);*/
+         /*ulSetError(UL_DEBUG, "external reference %s", ptr + 4);*/
          PostLink(stack + sp - 1, attr + sp - 1);
          if (!NoExternals) {
             char *file = (char *)ptr + 4, *p;
@@ -2193,6 +2211,7 @@ static ssgEntity *HierChunks(ubyte *ptr, ubyte *end, fltState *state)
       case 101: /* Light Source Bead */
       case 122: /* Push Attribute */
       case 123: /* Pop Attribute */
+	//printf("op %d ignored\n", op);
 	 ptr += len;
 	 break;
 
@@ -2232,7 +2251,7 @@ static int VertexTable(ubyte *ptr0, ubyte *end, fltState *state)
    len = get16u(ptr + 2);
 
    size = get32i(ptr + 4);
-   /*printf("vertex table header len %d, total size %d\n", len, size);*/
+   /*ulSetError(UL_DEBUG, "vertex table header len %d, total size %d", len, size);*/
    num = (size - len)/40; /* max # of vertices */
    if (num <= 0 || state->vtab) {
       if (state->vtab)
@@ -2280,7 +2299,7 @@ static int VertexTable(ubyte *ptr0, ubyte *end, fltState *state)
       if (!(flags & 4)) {
 	 if ((flags & 8) && p + 4 <= ptr + len) {
 	    UNPACK_ABGR(state->color[i], p);
-	    //printf("packed ABGR: %d %d %d %d\n", p[0], p[1], p[2], p[3]);
+	    //ulSetError(UL_DEBUG, "packed ABGR: %d %d %d %d", p[0], p[1], p[2], p[3]);
 	    bind |= BIND_COLOR;
 	 }
 	 else if (state->revision > 1400) {
@@ -2296,7 +2315,7 @@ static int VertexTable(ubyte *ptr0, ubyte *end, fltState *state)
 	    int index = color / 128;
 	    int intensity = color % 128;
 	    if (color >= 0 && state->ctab && index < state->cnum) {
-	       //printf("colour %d: index %d, intensity %d\n", color, index, intensity);
+	       //ulSetError(UL_DEBUG, "colour %d: index %d, intensity %d", color, index, intensity);
 	       UNPACK_ABGR2(state->color[i], state->ctab[index], intensity);
 	       bind |= BIND_COLOR;
 	    }
@@ -2304,7 +2323,7 @@ static int VertexTable(ubyte *ptr0, ubyte *end, fltState *state)
       }
       /*
        if (bind & BIND_COLOR)
-	 printf("vertex #%d color %.2f %.2f %.2f\n", i,
+	 ulSetError(UL_DEBUG, "vertex #%d color %.2f %.2f %.2f", i,
 		state->color[i][0],
 		state->color[i][1],
 		state->color[i][2]);
@@ -2312,7 +2331,7 @@ static int VertexTable(ubyte *ptr0, ubyte *end, fltState *state)
       state->bind[i] = bind;
       ptr += len;      
    }
-   /*printf("got %d vertices\n", i);*/
+   /*ulSetError(UL_DEBUG, "got %d vertices", i);*/
 
    state->vnum = i;
 
@@ -2357,9 +2376,9 @@ static int TableChunks(ubyte *ptr0, ubyte *end, fltState *state)
 #if 0
 	    int i;
 	    for (i = 0; i < state->cnum; i++)
-	       printf("%d %02x %02x %02x %02x\n", i, 
-		      state->ctab[i][0], state->ctab[i][1], 
-		      state->ctab[i][2], state->ctab[i][3]);
+	       ulSetError(UL_DEBUG, "%d %02x %02x %02x %02x", i, 
+		                    state->ctab[i][0], state->ctab[i][1], 
+		                    state->ctab[i][2], state->ctab[i][3]);
 #endif
 	 }
 	 else {
@@ -2477,6 +2496,8 @@ static int TableChunks(ubyte *ptr0, ubyte *end, fltState *state)
       case 93: /* Sound Palette */
       case 97: /* Line Style Palette */
       case 102: /* Light Source Palette */
+      case 103: /* Reserved */
+      case 104: /* Reserved */
       case 112: /* Texture Mapping */
       case 114: /* Name Table */
 	 /* these are safe to ignore */
@@ -2484,6 +2505,7 @@ static int TableChunks(ubyte *ptr0, ubyte *end, fltState *state)
 	 break;
 
       default:
+	//printf("op %d: end of table chunks\n", op);
          done = 1;
       }
    }
@@ -2580,7 +2602,7 @@ static void ptree(ssgEntity *node, FILE *f, int d)
       for (i = 0; i <= lod->getNumKids(); i++)
 	 fprintf(f, " %.2f", lod->getRange(i));
    }
-   fputc('\n', f);
+   putc('\n', f);
    if (node->isAKindOf(ssgTypeBranch())) {
       ssgBranch *grp = (ssgBranch *)node;
       int n = grp->getNumKids();
@@ -2704,7 +2726,7 @@ static ssgEntity *LoadFLT(const char *file)
 
 #endif /* ! USE_WIN32_MMAP */
 	 
-	 /*fputc('\n', stderr);*/
+	 /*putc('\n', stderr);*/
 
 	 name = strrchr(file, '/');
 	 if (name)

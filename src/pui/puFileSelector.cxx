@@ -1,24 +1,24 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
- 
+     Copyright (C) 1998,2002  Steve Baker
+
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
      License as published by the Free Software Foundation; either
      version 2 of the License, or (at your option) any later version.
- 
+
      This library is distributed in the hope that it will be useful,
      but WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Library General Public License for more details.
- 
+
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- 
+
      For further information visit http://plib.sourceforge.net
 
-     $Id: puFileSelector.cxx,v 1.6 2001/07/09 14:57:59 nhv Exp $
+     $Id: puFileSelector.cxx,v 1.27 2002/09/02 06:05:45 sjbaker Exp $
 */
 
 /****
@@ -43,6 +43,9 @@
 
 #include "puLocal.h"
 
+UL_RTTI_DEF1(puFileSelector,puDialogBox)
+
+
 #if defined(WIN32) && !defined(__CYGWIN__)
 #define DOTDOTSLASH "..\\"
 #define SLASH       "\\"
@@ -58,8 +61,8 @@ static void puFileSelectorHandleSlider ( puObject * slider )
   val = 1.0f - val ;
 
   puListBox* list_box = (puListBox*) slider -> getUserData () ;
-  int index = int ( list_box -> getNumItems () * val ) ;
-  list_box -> setTopItem ( index ) ;
+  int idx = int ( list_box -> getNumItems () * val ) ;
+  list_box -> setTopItem ( idx ) ;
 }
 
 static void puFileSelectorHandleArrow ( puObject *arrow )
@@ -79,12 +82,12 @@ static void puFileSelectorHandleArrow ( puObject *arrow )
   int num_items = list_box->getNumItems () - 1 ;
   if ( num_items > 0 )
   {
-    int index = int ( num_items * val + 0.5 ) + inc ;
-    if ( index > num_items ) index = num_items ;
-    if ( index < 0 ) index = 0 ;
+    int idx = int ( num_items * val + 0.5 ) + inc ;
+    if ( idx > num_items ) idx = num_items ;
+    if ( idx < 0 ) idx = 0 ;
 
-    slider -> setValue ( 1.0f - (float)index / num_items ) ;
-    list_box -> setTopItem ( index ) ;
+    slider -> setValue ( 1.0f - (float)idx / num_items ) ;
+    list_box -> setTopItem ( idx ) ;
   }
 }
 
@@ -133,35 +136,31 @@ static void go_up_one_directory ( char *fname )
 }
 
 
-void puFileSelector::input_entered ( puObject* input )
+void puFileSelector::input_entered ( puObject* inp )
 {
-  puFileSelector* file_selector = (puFileSelector*) (input -> getUserData ()) ;
+  puFileSelector* file_selector = (puFileSelector*) (inp -> getUserData ()) ;
 
   /*
     If the input selector is empty - do nothing
   */
 
-  if ( input -> getStringValue() [ 0 ] == '\0' )
+  if ( inp -> getStringValue() [ 0 ] == '\0' )
     return ;
 
-  if ( ulIsAbsolutePathName ( input -> getStringValue () ) )
-    strcpy ( file_selector->getStringValue (), input ->getStringValue () ) ;
-  else
-  if ( strlen ( file_selector->__getStartDir() ) +
-       strlen ( input->getStringValue() ) + 2 >= PUSTRING_MAX )
-  {
-    ulSetError ( UL_WARNING,
-      "PUI:puFileSelector - path name is too long");
-    strcpy ( file_selector->getStringValue (), file_selector->__getStartDir());
-  }
+  if ( ulIsAbsolutePathName ( inp -> getStringValue () ) )
+    file_selector -> setValue ( inp -> getStringValue () ) ;
   else
   {
-    //strcpy ( file_selector->getStringValue (), file_selector->__getStartDir());
-    //strcat ( file_selector->getStringValue (), SLASH    ) ;
-    //strcat ( file_selector->getStringValue (), input -> getStringValue () ) ;
+    char *s = new char [   strlen ( file_selector->__getStartDir() )
+                         + strlen ( SLASH )
+                         + strlen ( inp -> getStringValue () )
+                         + 1 ] ;
 
-    ulMakePath ( file_selector->getStringValue (),
-      file_selector->__getStartDir(), input -> getStringValue () ) ;
+    ulMakePath ( s, file_selector -> __getStartDir(),
+                 inp -> getStringValue () ) ;
+    file_selector -> setValue ( s ) ;
+
+    delete [] s ;
   }
 
   /*
@@ -177,12 +176,12 @@ void puFileSelector::input_entered ( puObject* input )
 }
 
 
-void puFileSelector::handle_select ( puObject* list_box )
+void puFileSelector::handle_select ( puObject* l_box )
 {
-  puFileSelector* file_selector = (puFileSelector*) list_box -> getUserData () ;
+  puFileSelector* file_selector = (puFileSelector*) l_box -> getUserData () ;
 
   int selected ;
-  list_box -> getValue ( &selected ) ;
+  l_box -> getValue ( &selected ) ;
 
   if ( selected >= 0 && selected < file_selector -> num_files )
   {
@@ -260,76 +259,47 @@ static void puFileSelectorHandleOk ( puObject* b )
 
 void puFileSelector::setSize ( int w, int h )
 {
-  puObject *ob ;
-  for ( ob = dlist; ob != NULL; ob = ob->next )
+  // Resize the frame widget
+  frame->setSize ( w, h ) ;
+
+  // Resize and position the slider
+  slider->setPosition ( w-30, 40+20*arrow_count ) ;
+  slider->setSize ( 20, h-70-40*arrow_count ) ;
+
+  // Position the arrow buttons
+  if ( up_arrow )
   {
-    if ( ob->getType() & PUCLASS_FRAME )  /* Resize the frame */
-      ob->setSize ( w, h ) ;
-    else if ( ob->getType() & PUCLASS_SLIDER )  /* Resize and position the slider */
-    {
-      ob->setPosition ( w-30, 40+20*arrow_count ) ;
-      ob->setSize ( 20, h-70-40*arrow_count ) ;
-    }
-    else if ( ob->getType() & PUCLASS_ARROW )  /* Position the arrow buttons */
-    {
-      int type = ((puArrowButton *)ob)->getArrowType () ;
-      if ( type == PUARROW_DOWN )
-        ob->setPosition ( w-30, 20+20*arrow_count ) ;
-      else if ( type == PUARROW_FASTDOWN )
-        ob->setPosition ( w-30, 40 ) ;
-      else if ( type == PUARROW_UP )
-        ob->setPosition ( w-30, h-30-20*arrow_count ) ;
-      else  /* fast up */
-        ob->setPosition ( w-30, h-50 ) ;
-    }
-    else if ( ob->getType() & PUCLASS_LISTBOX )  /* Resize the list box */
-      ob->setSize ( w-40, h-70 ) ;
-    else  /* One-shot widgets, need to distinguish between them */
-    {
-      ob->setSize ( (w<170)?(w/2-15):70, 20 ) ;  /* Both buttons are the same size */
-      if ( *( ob->getLegend () ) == 'O' )  /* "Ok" button */
-        ob->setPosition ( (w<170)?(w/2+5):90, 10 ) ;
-    }
+    up_arrow->setPosition ( w-30, h-30-20*arrow_count ) ;
+    down_arrow->setPosition ( w-30, 20+20*arrow_count ) ;
   }
-}
 
-puFileSelector::puFileSelector ( int x, int y, int w, int h, int arrows, const char* dir, const char *title )
-                           : puDialogBox ( x, y )
-{
-  puFileSelectorInit ( x, y, w, h, arrows, dir, title ) ;
-}
+  if ( fastup_arrow )
+  {
+    fastup_arrow->setPosition ( w-30, h-50 ) ;
+    fastdown_arrow->setPosition ( w-30, 40 ) ;
+  }
 
-puFileSelector::puFileSelector ( int x, int y, int w, int h, const char* dir, const char *title )
-                           : puDialogBox ( x, y )
-{
-  puFileSelectorInit ( x, y, w, h, 1, dir, title ) ;
-}
+  // Resize the list box
+  list_box->setSize ( w-40, h-70 ) ;
 
-puFileSelector::puFileSelector ( int x, int y, int arrows, const char* dir, const char *title )
-                           : puDialogBox ( x, y )
-{
-  puFileSelectorInit ( x, y, arrows, 220, 170, dir, title ) ;
-}
-
-puFileSelector::puFileSelector ( int x, int y, const char* dir, const char *title )
-                           : puDialogBox ( x, y )
-{
-  puFileSelectorInit ( x, y, 220, 170, 1, dir, title ) ;
+  // Resoze and position the buttons
+  cancel_button->setSize ( (w<170)?(w/2-15):70, 20 ) ;
+  ok_button->setSize ( (w<170)?(w/2-15):70, 20 ) ;
+  ok_button->setPosition ( (w<170)?(w/2+5):90, 10 ) ;
 }
 
 puFileSelector::~puFileSelector ()
 {
-  if ( files )
+  delete [] startDir ;
+
+  if ( files != NULL )
   {
     for ( int i=0; i<num_files; i++ )
-      delete files[i];
+      delete [] files[i];
 
-    delete[] files;
-    delete[] dflag;
+    delete [] files;
+    delete [] dflag;
   }
-
-  if ( this == puActiveWidget () )
-    puDeactivateWidget () ;
 }
 
 void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h, 
@@ -344,29 +314,44 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
   num_files = 0 ;
 
   if ( ulIsAbsolutePathName ( dir ) )
+  {
+    /* Include space for trailing slash in case it is necessary */
+    startDir = new char [ strlen ( dir ) + strlen ( SLASH ) + 1 ] ;
+
     strcpy ( startDir, dir ) ;
+  }
   else
   {
-    if ( ulGetCWD ( startDir, PUSTRING_MAX ) == NULL ||
-       strlen ( startDir ) + 1 + strlen ( dir ) + 1 > PUSTRING_MAX )
+    startDir = new char [ UL_NAME_MAX + 1 ] ;
+    if ( ulGetCWD ( startDir, UL_NAME_MAX + 1 ) == NULL )
     {
       ulSetError ( UL_WARNING,
-      "PUI:puFileSelector - can't find current directory or name is too long");
+                   "PUI: puFileSelector - can't find current directory" ) ;
       setValue ( "" ) ;
       invokeCallback () ;
       return ;
     }
 
-    if ( ! is_slash ( startDir[strlen(startDir)-1] ) )
-      strcat ( startDir, SLASH ) ;
+    /* Include space for slashes in case they are necessary */
+    char *s = new char [   strlen ( startDir )
+                         + 2 * strlen ( SLASH )
+                         + strlen ( dir ) + 1 ] ;
 
-    strcat ( startDir, dir ) ;
+    strcpy ( s, startDir ) ;
+
+    if ( ! is_slash ( startDir[strlen(startDir)-1] ) )
+      strcat ( s, SLASH ) ;
+
+    strcat ( s, dir ) ;
+
+    delete [] startDir ;
+    startDir = s ;
   }
 
   if ( ! is_slash ( startDir[strlen(startDir)-1] ) )
     strcat ( startDir, SLASH ) ;
 
-  strcpy ( getStringValue (), startDir ) ;
+  setValue ( startDir ) ;
 
   if ( arrows > 2 ) arrows = 2 ;
   if ( arrows < 0 ) arrows = 0 ;
@@ -375,14 +360,13 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
   frame = new puFrame ( 0, 0, w, h );
 
   slider = new puSlider (w-30,40+20*arrows,h-70-40*arrows,TRUE,20);
-  slider->setDelta(0.1f);
   slider->setValue(1.0f);
   slider->setSliderFraction (0.2f) ;
   slider->setCBMode( PUSLIDER_DELTA );
   
   list_box = new puListBox ( 10, 60, w-40, h-30 ) ;
   list_box -> setLabel ( title );
-  list_box -> setLabelPlace ( PUPLACE_ABOVE ) ;
+  list_box -> setLabelPlace ( PUPLACE_TOP_LEFT ) ;
   list_box -> setStyle ( -PUSTYLE_SMALL_SHADED ) ;
   list_box -> setUserData ( this ) ;
   list_box -> setCallback ( handle_select ) ;
@@ -399,6 +383,7 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
   input -> setValue ( startDir ) ;
   input -> setUserData ( this ) ;
   input -> setCallback ( input_entered ) ;
+  input -> setDownCallback ( input_entered ) ;
 
   cancel_button = new puOneShot ( 10, 10, (w<170)?(w/2-5):80, 30 ) ;
   cancel_button -> setLegend ( "Cancel" ) ;
@@ -410,26 +395,29 @@ void puFileSelector::puFileSelectorInit ( int x, int y, int w, int h,
   ok_button -> setUserData ( this ) ;
   ok_button -> setCallback ( puFileSelectorHandleOk ) ;
 
+  up_arrow = down_arrow = NULL ;
+  fastup_arrow = fastdown_arrow = NULL ;
+
   if ( arrows > 0 )
   {
-    puArrowButton *down_arrow = new puArrowButton ( w-30, 20+20*arrows, w-10, 40+20*arrows, PUARROW_DOWN ) ;
+    down_arrow = new puArrowButton ( w-30, 20+20*arrows, w-10, 40+20*arrows, PUARROW_DOWN ) ;
     down_arrow->setUserData ( slider ) ;
     down_arrow->setCallback ( puFileSelectorHandleArrow ) ;
 
-    puArrowButton *up_arrow = new puArrowButton ( w-30, h-30-20*arrows, w-10, h-10-20*arrows, PUARROW_UP ) ;
+    up_arrow = new puArrowButton ( w-30, h-30-20*arrows, w-10, h-10-20*arrows, PUARROW_UP ) ;
     up_arrow->setUserData ( slider ) ;
     up_arrow->setCallback ( puFileSelectorHandleArrow ) ;
   }
 
   if ( arrows == 2 )
   {
-    puArrowButton *down_arrow = new puArrowButton ( w-30, 40, w-10, 60, PUARROW_FASTDOWN ) ;
-    down_arrow->setUserData ( slider ) ;
-    down_arrow->setCallback ( puFileSelectorHandleArrow ) ;
+    fastdown_arrow = new puArrowButton ( w-30, 40, w-10, 60, PUARROW_FASTDOWN ) ;
+    fastdown_arrow->setUserData ( slider ) ;
+    fastdown_arrow->setCallback ( puFileSelectorHandleArrow ) ;
 
-    puArrowButton *up_arrow = new puArrowButton ( w-30, h-50, w-10, h-30, PUARROW_FASTUP ) ;
-    up_arrow->setUserData ( slider ) ;
-    up_arrow->setCallback ( puFileSelectorHandleArrow ) ;
+    fastup_arrow = new puArrowButton ( w-30, h-50, w-10, h-30, PUARROW_FASTUP ) ;
+    fastup_arrow->setUserData ( slider ) ;
+    fastup_arrow->setCallback ( puFileSelectorHandleArrow ) ;
   }
 
   close  () ;
@@ -491,7 +479,7 @@ static int puFileSelectorStringCompare ( const char *s1, const char *s2,
 }
 
 
-void puFileSelector::setInitialValue ( char *s )
+void puFileSelector::setInitialValue ( const char *s )
 {
   if ( ulIsAbsolutePathName ( s ) )
   {
@@ -557,12 +545,12 @@ static void puFileSelectorSort ( char** list, char *flags, int size )
 }
 
 
-void puFileSelector::find_files ()
+void puFileSelector::find_files ( void )
 {
   if ( files != NULL )
   {
     for ( int i = 0 ; i < num_files ; i++ )
-      delete files[i] ;
+      delete [] files[i] ;
 
     delete [] files ;
     delete [] dflag ;
@@ -587,6 +575,7 @@ void puFileSelector::find_files ()
     perror ("puFileSelector") ;
     ulSetError ( UL_WARNING, "PUI:puFileSelector - can't open directory '%s'", dir ) ;
     num_files = 0 ;
+    return ;
   }
 
   /* Count the number of files - skipping "." */
@@ -598,13 +587,16 @@ void puFileSelector::find_files ()
   ulCloseDir ( dirp ) ;
 
   num_files = ifile ;
+  if ( num_files > 5 )
+    slider -> setDelta ( 0.5f / num_files ) ;
+  else
+    slider -> setDelta ( 0.1f ) ;
 
   if ( num_files == 0 )
   {
     ulSetError ( UL_WARNING,
 		   "PUI:puFileSelector - no entries in directory '%s'?!", dir ) ;
-    num_files = 0 ;
-    return;
+    return ;
   }
 
   files = new char* [ num_files+1 ] ;
@@ -621,29 +613,31 @@ void puFileSelector::find_files ()
     return ;
   }
 
-  for ( ifile = 0 ; (dp = ulReadDir(dirp)) != NULL && ifile < num_files ; )
+  ifile = 0 ;
+
+  while ( (dp = ulReadDir(dirp)) != NULL && ifile < num_files )
   {
     /* Skip over the "." entry... */
 
-    if ( strcmp ( dp->d_name, "." ) == 0 )
-      continue ;
-
-    dflag[ ifile ] = dp->d_isdir ;
-
-    if ( dflag[ ifile ] )
+    if ( strcmp ( dp->d_name, "." ) != 0 )
     {
-      files[ ifile ] = new char[ strlen(dp->d_name)+4 ] ;
-      strcpy ( files [ ifile ], "[" ) ;
-      strcat ( files [ ifile ], dp->d_name ) ;
-      strcat ( files [ ifile ], "]" ) ;
-    }
-    else
-    {
-      files[ ifile ] = new char[ strlen(dp->d_name)+1 ] ;
-      strcpy ( files [ ifile ], dp->d_name ) ;
-    }
+      dflag[ ifile ] = dp->d_isdir ;
 
-    ifile++ ;
+      if ( dflag[ ifile ] )
+      {
+        files[ ifile ] = new char[ strlen(dp->d_name)+4 ] ;
+        strcpy ( files [ ifile ], "[" ) ;
+        strcat ( files [ ifile ], dp->d_name ) ;
+        strcat ( files [ ifile ], "]" ) ;
+      }
+      else
+      {
+        files[ ifile ] = new char[ strlen(dp->d_name)+1 ] ;
+        strcpy ( files [ ifile ], dp->d_name ) ;
+      }
+
+      ifile++ ;
+    }
   }
 
   files [ ifile ] = NULL ;
@@ -654,6 +648,4 @@ void puFileSelector::find_files ()
 
   list_box -> newList ( files ) ;
 }
-
-
 

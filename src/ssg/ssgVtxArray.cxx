@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVtxArray.cxx,v 1.20 2001/06/28 04:29:38 sjbaker Exp $
+     $Id: ssgVtxArray.cxx,v 1.25 2002/09/02 06:05:49 sjbaker Exp $
 */
 
 
@@ -75,6 +75,16 @@ ssgVtxArray::~ssgVtxArray ()
 {
   ssgDeRefDelete ( indices      ) ;
 } 
+
+
+void ssgVtxArray::setIndices ( ssgIndexArray *il )
+{
+  ssgDeRefDelete ( indices ) ;
+  indices = il ;
+
+  if ( indices != NULL )
+    indices -> ref () ;
+}
 
 
 void ssgVtxArray::drawHighlight ( sgVec4 colour )
@@ -172,6 +182,78 @@ void ssgVtxArray::pick ( int baseName )
   glPopClientAttrib ( ) ;
 }
 
+void ssgVtxArray::removeUnusedVertices()
+// this removes any vertices (including normal, TexCoords and colour) 
+// that are not referenced by the index array
+{ 
+	
+	bool doNormals = FALSE, doTexCoords = FALSE, doColours = FALSE;
+	
+	assert(vertices);
+	if(!indices)
+	{ ulSetError( UL_WARNING, "indices == NULL\n");
+		return;
+	}
+	if(normals)
+		if(normals->getNum() != 0)
+			doNormals = TRUE;
+	if(texcoords)
+		if(texcoords->getNum() != 0)
+			doTexCoords = TRUE;
+	if(colours)
+		if(colours->getNum() != 0)
+			doColours = TRUE;
+	
+	long * oldIndex2NewIndex = new long[vertices->getNum()];
+	int i, oldIndex, newIndex;
+	for(i=0;i<vertices->getNum();i++)
+		oldIndex2NewIndex[i]=-1; // marker for "not used"
+  
+	ssgVertexArray   *newVL= new ssgVertexArray();
+  ssgNormalArray   *newNL = NULL;
+  ssgTexCoordArray *newTL = NULL;
+  ssgColourArray   *newCL = NULL;
+
+	if(doNormals)
+		newNL = new ssgNormalArray();
+	if (doTexCoords)
+		newTL = new ssgTexCoordArray();
+	if (doColours)
+		newCL = new ssgColourArray();
+
+	for(i=0; i<indices->getNum(); i++)
+	{ oldIndex = *indices->get(i);
+		if (oldIndex2NewIndex[ oldIndex ] != -1)
+	    indices->set((short)oldIndex2NewIndex[ oldIndex ], i);
+		else
+		{ newIndex = newVL->getNum();
+	    indices->set(newIndex , i);
+		  oldIndex2NewIndex[ oldIndex ] = newIndex;
+			newVL->add(vertices->get(oldIndex));
+			if(doNormals)
+				newNL->add(normals->get(oldIndex));
+			if (doTexCoords)
+				newTL->add(texcoords->get(oldIndex));
+			if (doColours)
+				newCL->add(colours->get(oldIndex));
+		}
+	}
+	vertices->deRef();
+	vertices = newVL;
+
+	if(doNormals)
+	{ normals->deRef();
+	  normals = newNL;
+	}
+	if (doTexCoords)
+	{ texcoords->deRef();
+	  texcoords = newTL;
+	}
+	if (doColours)
+	{ colours->deRef();
+	  colours = newCL;
+	}
+}
 
 void ssgVtxArray::draw_geometry ()
 {

@@ -1,25 +1,26 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
- 
+     Copyright (C) 1998,2002  Steve Baker
+
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
      License as published by the Free Software Foundation; either
      version 2 of the License, or (at your option) any later version.
- 
+
      This library is distributed in the hope that it will be useful,
      but WITHOUT ANY WARRANTY; without even the implied warranty of
      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
      Library General Public License for more details.
- 
+
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- 
+
      For further information visit http://plib.sourceforge.net
 
-     $Id: js.h,v 1.11 2001/07/15 12:15:25 wolfram_kuss Exp $
+     $Id: js.h,v 1.22 2002/09/02 06:05:43 sjbaker Exp $
 */
+
 #ifndef __INCLUDED_JS_H__
 #define __INCLUDED_JS_H__ 1
 
@@ -28,8 +29,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> // -dw- for memcpy
-
-#include "ul.h"
 
 #ifdef macintosh
 #  include <InputSprocket.h>
@@ -118,24 +117,24 @@
 #  define _JS_MAX_AXES 9
 #  endif
 #endif
-  
+
 class jsJoystick
 {
 #ifdef macintosh
-   
+
    #define  isp_num_axis   9
    #define  isp_num_needs  41
-   
+
    ISpElementReference     isp_elem[isp_num_needs];
    ISpNeed isp_needs       [isp_num_needs];
-    
+
 #endif
 
 
 
-#if defined(__FreeBSD__) || defined(__NetBSD__)
+/*#if defined(__FreeBSD__) || defined(__NetBSD__)
   int          id ;
-#endif
+#endif*/
 #ifdef WIN32
   JOYINFOEX    js       ;
   UINT         js_id    ;
@@ -152,6 +151,7 @@ class jsJoystick
 #endif
 
   int          error    ;
+  char         name [ 128 ] ;
   int          num_axes ;
   int          num_buttons ;
 
@@ -163,19 +163,24 @@ class jsJoystick
 
   void open ()
   {
+   name [0] = '\0' ;
 
 #ifdef macintosh
-   
+
+   /*
+     FIXME: get joystick name in Mac
+   */
+
    OSStatus err;
-      
-   err = ISpStartup ();      
-      
+
+   err = ISpStartup ();
+
 	if ( err == noErr ) {
-   	   	
+
    	#define ISP_CHECK_ERR(x) if (x != noErr) { setError(); return; }
-   	
+
    	setError ();
-    
+
       // initialize the needs structure
       ISpNeed temp_isp_needs[isp_num_needs] = 
       {
@@ -188,7 +193,7 @@ class jsJoystick
           {"\pAxis   6",  128, 0, 0, kISpElementKind_Axis,   kISpElementLabel_None, 0, 0, 0, 0 },
           {"\pAxis   7",  128, 0, 0, kISpElementKind_Axis,   kISpElementLabel_None, 0, 0, 0, 0 },
           {"\pAxis   8",  128, 0, 0, kISpElementKind_Axis,   kISpElementLabel_None, 0, 0, 0, 0 },
-         
+
           {"\pButton 0",  128, 0, 0, kISpElementKind_Button, kISpElementLabel_Btn_Select, 0, 0, 0, 0 },
           {"\pButton 1",  128, 0, 0, kISpElementKind_Button, kISpElementLabel_Btn_Select, 0, 0, 0, 0 },
           {"\pButton 2",  128, 0, 0, kISpElementKind_Button, kISpElementLabel_Btn_Select, 0, 0, 0, 0 },
@@ -224,44 +229,44 @@ class jsJoystick
       };
 
       memcpy (isp_needs, temp_isp_needs, sizeof (temp_isp_needs) );
-         
-      
+
+
       // next two calls allow keyboard and mouse to emulate other input devices (gamepads, joysticks, etc)
-      
+
       /*
       err = ISpDevices_ActivateClass (kISpDeviceClass_Keyboard);
       ISP_CHECK_ERR(err)
-      
-      
+
+
       err = ISpDevices_ActivateClass (kISpDeviceClass_Mouse);
       ISP_CHECK_ERR(err)
       */
-      
+
       err = ISpElement_NewVirtualFromNeeds (isp_num_needs, isp_needs, isp_elem, 0);
       ISP_CHECK_ERR(err)
-         
+
       err = ISpInit (isp_num_needs, isp_needs, isp_elem, 'PLIB', nil, 0, 128, 0);
       ISP_CHECK_ERR(err)
-      
+
       num_buttons = isp_num_needs - isp_num_axis;
       num_axes    = isp_num_axis;
-            
+
       for ( int i = 0; i < num_axes; i++ ) {
-      
+
          dead_band[i] = 0;
          saturate [i] = 1;
          center[i]    = kISpAxisMiddle;         
          max [i]      = kISpAxisMaximum;
          min [i]      = kISpAxisMinimum;
       }
-      
+
       error = false;
    }
    else {
      setError ();
      num_buttons = num_axes = 0; 
    }
-         
+
 #elif defined( WIN32 )
 
     JOYCAPS jsCaps ;
@@ -280,6 +285,8 @@ class jsJoystick
     }
     else
     {
+      strncpy ( name, jsCaps.szPname, sizeof(name) ) ;
+
       // Windows joystick drivers may provide any combination of
       // X,Y,Z,R,U,V,POV - not necessarily the first n of these.
       if ( jsCaps.wCaps & JOYCAPS_HASPOV ) {
@@ -325,13 +332,17 @@ class jsJoystick
 
    // fd = ::open ( fname, O_RDONLY | O_NONBLOCK ) ;
     fd = ::open ( fname, O_RDONLY ) ;
-    
+
     error = ( fd < 0 ) ;
 
     if ( error )
       return ;
 
 #  if defined(__FreeBSD__) || defined(__NetBSD__)
+
+    /*
+      FIXME: get joystick name for BSD
+    */
 
     float axes[_JS_MAX_AXES];
     int buttons[_JS_MAX_AXES];
@@ -369,6 +380,7 @@ class jsJoystick
 #  ifdef JS_NEW
     ioctl ( fd, JSIOCGAXES   , & num_axes    ) ;
     ioctl ( fd, JSIOCGBUTTONS, & num_buttons ) ;
+    ioctl ( fd, JSIOCGNAME ( sizeof(name) ), name ) ;
     fcntl ( fd, F_SETFL, O_NONBLOCK ) ;
 
     if ( num_axes > _JS_MAX_AXES )
@@ -393,7 +405,7 @@ class jsJoystick
                 counter < 100 &&
                 center[0] == 512.0f &&
                 center[1] == 512.0f ) ;
-   
+
     if ( counter >= 100 )
       setError() ;
 #endif
@@ -432,7 +444,7 @@ class jsJoystick
 #endif
   }
 
-  float fudge_axis ( float value, int axis )
+  float fudge_axis ( float value, int axis ) const
   {
     if ( value < center[axis] )
     {
@@ -480,13 +492,17 @@ public:
       default :    num_axes = 0 ; setError () ; break ;
     }
 
-   
+
 #else
 #  if defined(__FreeBSD__) || defined(__NetBSD__)
-    id = ident;
+    //id = ident;
     sprintf ( fname, "/dev/joy%d", ident ) ;
+#  elif defined(__linux__)
+    sprintf ( fname, "/dev/input/js%d", ident ) ;
+    if ( access ( fname, F_OK ) != 0 )
+      sprintf ( fname, "/dev/js%d", ident ) ;
 #  else
-    sprintf ( fname, "/dev/js%d", ident ) ;
+    sprintf ( fname, "/dev/js%d", ident ) ; /* FIXME */
 #  endif
     open () ;
 #endif
@@ -497,23 +513,24 @@ public:
     close () ;
   }
 
-  int  getNumAxes () { return num_axes ; }
-  int  notWorking () { return error ;    }
-  void setError   () { error = JS_TRUE ; }
+  const char* getName () const { return name ;     }
+  int   getNumAxes    () const { return num_axes ; }
+  int   notWorking    () const { return error ;    }
+  void  setError      () { error = JS_TRUE ; }
 
-  float getDeadBand ( int axis )             { return dead_band [ axis ] ; }
+  float getDeadBand ( int axis ) const       { return dead_band [ axis ] ; }
   void  setDeadBand ( int axis, float db )   { dead_band [ axis ] = db   ; }
 
-  float getSaturation ( int axis )           { return saturate [ axis ]  ; }
+  float getSaturation ( int axis ) const     { return saturate [ axis ]  ; }
   void  setSaturation ( int axis, float st ) { saturate [ axis ] = st    ; }
 
   void setMinRange ( float *axes ) { memcpy ( min   , axes, num_axes * sizeof(float) ) ; }
   void setMaxRange ( float *axes ) { memcpy ( max   , axes, num_axes * sizeof(float) ) ; }
   void setCenter   ( float *axes ) { memcpy ( center, axes, num_axes * sizeof(float) ) ; }
 
-  void getMinRange ( float *axes ) { memcpy ( axes, min   , num_axes * sizeof(float) ) ; }
-  void getMaxRange ( float *axes ) { memcpy ( axes, max   , num_axes * sizeof(float) ) ; }
-  void getCenter   ( float *axes ) { memcpy ( axes, center, num_axes * sizeof(float) ) ; }
+  void getMinRange ( float *axes ) const { memcpy ( axes, min   , num_axes * sizeof(float) ) ; }
+  void getMaxRange ( float *axes ) const { memcpy ( axes, max   , num_axes * sizeof(float) ) ; }
+  void getCenter   ( float *axes ) const { memcpy ( axes, center, num_axes * sizeof(float) ) ; }
 
   void read ( int *buttons, float *axes )
   {
@@ -531,7 +548,6 @@ public:
 
     rawRead ( buttons, raw_axes ) ;
 
-    
     if ( axes )
       for ( int i = 0 ; i < num_axes ; i++ )
         axes[i] = fudge_axis ( raw_axes[i], i ) ;
@@ -552,31 +568,31 @@ public:
     }
 
 #ifdef macintosh
-   
+
       int i;
       int err;
       UInt32 state;
-      
+
       if (buttons) {
-      
+
          *buttons = 0;
-      
+
          for (i = 0; i < num_buttons; i++) {
-                  
+
             err = ISpElement_GetSimpleState (isp_elem[i + isp_num_axis ], &state);
             ISP_CHECK_ERR (err)
-            
+
             *buttons  |= state << i;   
          }
       }
-      
+
       if (axes) {
-                  
+
          for (i = 0; i < num_axes; i++) {
-         
+
             err = ISpElement_GetSimpleState (isp_elem[ i ], &state);
             ISP_CHECK_ERR  (err);
-            
+
             axes [i] = (float) state;
          }
       }
@@ -614,16 +630,16 @@ public:
 						// wk: I know of no define for PI that we could use here:
 						// SG_PI would pull in sg, M_PI is undefined for MSVC
 						// But the accuracy of the value of PI is very unimportant at this point.
-            float s = sin((js.dwPOV & 0xFFFF) * (0.01 * 3.1415926535f / 180));
-            float c = cos((js.dwPOV & 0xFFFF) * (0.01 * 3.1415926535f / 180));
+            float s = (float)sin((js.dwPOV & 0xFFFF) * (0.01 * 3.1415926535f / 180));
+            float c = (float)cos((js.dwPOV & 0xFFFF) * (0.01 * 3.1415926535f / 180));
             // Convert to coordinates on a square so that North-East
             // is (1,1) not (.7,.7), etc.
             // s and c cannot both be zero so we won't divide by zero.
             if (fabs(s) < fabs(c)) {
               axes[6] = (c < 0.0) ? -s/c : s/c;
-              axes[7] = (c < 0.0) ? -1.0 : 1.0;
+              axes[7] = (c < 0.0) ? -1.0f : 1.0f;
             } else {
-              axes[6] = (s < 0.0) ? -1.0 : 1.0;
+              axes[6] = (s < 0.0) ? -1.0f : 1.0f;
               axes[7] = (s < 0.0) ? -c/s : c/s;
             }
           }
@@ -700,7 +716,7 @@ public:
 # else
 
     int status = ::read ( fd, &js, JS_RETURN ) ;
-    
+
     if ( status != JS_RETURN )
     {
       perror ( fname ) ;
@@ -724,6 +740,10 @@ public:
 #endif
   }
 } ;
+
+extern void jsInit () ;
+
 //lint -restore
 
 #endif
+

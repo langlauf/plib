@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,18 +13,18 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slScheduler.cxx,v 1.5 2001/07/16 16:00:31 alexperry Exp $
+     $Id: slScheduler.cxx,v 1.9 2002/09/02 06:05:47 sjbaker Exp $
 */
 
 
 #include "sl.h"
 
-char *__slPendingError = NULL ;
+const char *__slPendingError = NULL ;
 
 slScheduler *slScheduler::current = NULL ;
 
@@ -80,7 +80,7 @@ void slScheduler::initBuffers ()
   if ( notWorking () )
     return ;
 
-  delete mixer_buffer ;
+  delete [] mixer_buffer ;
   setMaxConcurrent ( 0 );
 
   mixer_buffer_size = getDriverBufferSize () ;
@@ -99,12 +99,12 @@ void slScheduler::setMaxConcurrent ( int mc )
            mixer_inputs[mi] = new Uchar [ mixer_buffer_size ] ;
     } else
     { if ( mixer_inputs[mi] != NULL )
-           delete mixer_inputs[mi] ;
+           delete [] mixer_inputs[mi] ;
            mixer_inputs[mi] = NULL;
     }
 }
 
-int slScheduler::getMaxConcurrent ( void )
+int slScheduler::getMaxConcurrent ( void ) const
 {
   int mi, mc = 0;
   for ( mi = 0; mi < SL_MAX_MIXERINPUTS; mi ++ )
@@ -115,7 +115,7 @@ int slScheduler::getMaxConcurrent ( void )
 
 slScheduler::~slScheduler ()
 {
-  delete mixer_buffer ;
+  delete [] mixer_buffer ;
   setMaxConcurrent(0);
   if ( current == this )
     current = NULL ;
@@ -487,7 +487,7 @@ void slScheduler::stopMusic ( int magic )
   }
 }
 
-int slScheduler::loopMusic ( char *fname, int pri,
+int slScheduler::loopMusic ( const char *fname, int pri,
                             slPreemptMode mode,
                             int magic, slCallBack cb )
 {
@@ -511,7 +511,7 @@ int slScheduler::loopMusic ( char *fname, int pri,
   return -1 ;
 }
 
-int slScheduler::playMusic ( char *fname, int pri,
+int slScheduler::playMusic ( const char *fname, int pri,
                             slPreemptMode mode,
                             int magic, slCallBack cb )
 {

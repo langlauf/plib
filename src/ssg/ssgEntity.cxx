@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgEntity.cxx,v 1.17 2001/06/16 16:27:37 stromberg Exp $
+     $Id: ssgEntity.cxx,v 1.21 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 
@@ -102,8 +102,8 @@ void ssgEntity::print ( FILE *fd, char *indent, int how_much )
 {
   ssgBase::print ( fd, indent, how_much ) ;
 
-	if ( how_much > 1 )
-		fprintf ( fd, "%s  Num Parents=%d\n", indent, parents . getNumEntities () ) ;
+  if ( how_much > 1 )
+    fprintf ( fd, "%s  Num Parents=%d\n", indent, parents.getNumEntities () ) ;
 }
 
 
@@ -183,17 +183,20 @@ int ssgEntity::preTravTests ( int *test_needed, int which )
   {
     if ( which & SSGTRAV_HOT )
       stats_hot_no_trav ++ ;
+    /*
+    if ( which & SSGTRAV_LOS )
+      stats_hot_no_trav ++ ;*/
     return FALSE ;
   }
 
   if ( preTravCB != NULL )
   {
     int result = (*preTravCB)(this,which) ;
-    
+
     if ( result == 0 ) return FALSE ;
     if ( result == 2 ) *test_needed = 0 ;
   }
-  
+
   return TRUE ;
 }
 
@@ -295,7 +298,7 @@ int ssgEntity::bindEntities ( ssgEntityBinding *bind )
 
     ++bind ;
   }
- 
+
   return success ;
 }
 
@@ -309,7 +312,7 @@ ssgCullResult ssgEntity::hot_test ( sgVec3 s, sgMat4 m, int test_needed )
 stats_hot_triv_accept++ ;
     return SSG_INSIDE ;
 }
-   
+
   sgSphere tmp = *(getBSphere()) ;
 
   if ( tmp.isEmpty () )
@@ -327,6 +330,38 @@ stats_hot_radius_reject++ ;
 }
 
 stats_hot_straddle++ ;
+  return SSG_STRADDLE ;
+}
+
+
+
+ssgCullResult ssgEntity::los_test ( sgVec3 s, sgMat4 m, int test_needed )
+{
+  stats_los_test++ ;
+
+  if ( !test_needed )
+{
+stats_los_triv_accept++ ;
+    return SSG_INSIDE ;
+}
+
+  sgSphere tmp = *(getBSphere()) ;
+
+  if ( tmp.isEmpty () )
+    return SSG_OUTSIDE ;
+
+  tmp . orthoXform ( m ) ;
+
+  float d = sgSquare ( s[0] - tmp.getCenter()[0] ) +
+            sgSquare ( s[1] - tmp.getCenter()[1] ) ;
+
+  if ( d > sgSquare ( tmp.getRadius() ) )
+{
+stats_los_radius_reject++ ;
+    return SSG_OUTSIDE ;
+}
+
+stats_los_straddle++ ;
   return SSG_STRADDLE ;
 }
 

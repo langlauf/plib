@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadX.cxx,v 1.15 2001/06/26 02:00:59 lachancew Exp $
+     $Id: ssgLoadX.cxx,v 1.20 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 //
@@ -36,13 +36,13 @@
 typedef int HandlerFunctionType(const char *sName, const char *firstToken);
 
 
-char *globEmpty="";
+static char *globEmpty="";
 
 static ssgBranch *curr_branch_;
 
 struct EntityType
 {
-  char * sName;
+  const char * sName;
 	HandlerFunctionType *HandleEntity;
 	int bMayBeIgnored;
 } ;
@@ -105,7 +105,7 @@ static int Ascii2Float(SGfloat &retVal, const char *token, const char* name )
 	}
 }
 
-int HandleHeader(const char * /* sName */, const char *firstToken)
+static int HandleHeader(const char * /* sName */, const char *firstToken)
 {
 	//parser.expectNextToken("{");
 	int Dummy;
@@ -123,7 +123,7 @@ int HandleHeader(const char * /* sName */, const char *firstToken)
 	return TRUE;
 }
 
-void IgnoreEntity(int startLevel)
+static void IgnoreEntity(int startLevel)
 // startLevel should be 0 when you are "in front of the {" (normally)
 // or 1 when you have already parsed the "{"
 { 
@@ -149,14 +149,14 @@ void IgnoreEntity(int startLevel)
 	}      
 }
 
-int HandleMesh(const char *sName, const char *firstToken);
-int HandleMeshMaterialList(const char *sName, const char *firstToken);
-int HandleTextureCoords(const char *sName, const char *firstToken);
-int HandleMaterial(const char *sName, const char *firstToken);
-int HandleTextureFileName(const char *sName, const char *firstToken);
+static int HandleMesh(const char *sName, const char *firstToken);
+static int HandleMeshMaterialList(const char *sName, const char *firstToken);
+static int HandleTextureCoords(const char *sName, const char *firstToken);
+static int HandleMaterial(const char *sName, const char *firstToken);
+static int HandleTextureFileName(const char *sName, const char *firstToken);
 
 
-EntityType aEntities[] =
+static EntityType aEntities[] =
 {
 	{ "Header", HandleHeader, FALSE}, 
 	{ "Vector", NULL, FALSE}, 
@@ -190,7 +190,7 @@ EntityType aEntities[] =
 };
 
 
-int ParseEntity(char *token)
+static int ParseEntity(char *token)
 // called recursively
 { int i=0;
 
@@ -203,17 +203,19 @@ int ParseEntity(char *token)
 				{ parser.error("unexpected end fo file\n");
 					return FALSE;
 				}
-        
-				if (0!=strcmp(sNextToken, "{"))
-				{ sName=sNextToken;
-					sNextToken=parser.getNextToken(0);
-					if (0!=strcmp(sNextToken, "{"))
+        sName = NULL;
+				if (0 != strcmp(sNextToken, "{"))
+				{ sName = new char[ strlen(sNextToken) + 1 ];
+					assert ( sName );
+					strcpy(sName, sNextToken);
+					sNextToken = parser.getNextToken(0);
+					if (0 != strcmp(sNextToken, "{"))
 						parser.error("\"{\" expected\n");
 				}
-				sNextToken=parser.getNextToken(0);
+				sNextToken = parser.getNextToken(0);
 				
-				if(sNextToken[0]=='<') // UUID
-					sNextToken=parser.getNextToken(0);
+				if(sNextToken[0] == '<') // UUID
+					sNextToken = parser.getNextToken(0);
 				if ( parser.eof ) 
 				{ parser.error("unexpected end fo file\n");
 					return FALSE;
@@ -221,6 +223,8 @@ int ParseEntity(char *token)
         
 				if (!aEntities[i].HandleEntity(sName, sNextToken))
 					return FALSE;
+				if ( sName )
+					delete [] sName;
 			}
 			else
 				if (aEntities[i].bMayBeIgnored)
@@ -247,12 +251,12 @@ int ParseEntity(char *token)
 
 #define MAX_NO_VERTICES_PER_FACE 1000
 
-class ssgLoaderWriterMesh currentMesh;
+static class ssgLoaderWriterMesh currentMesh;
 
-ssgSimpleState *currentState;
+static ssgSimpleState *currentState;
 extern sgVec4 currentDiffuse;
 
-int HandleTextureFileName(const char *sName, const char *firstToken)
+static int HandleTextureFileName(const char * /*sName*/, const char *firstToken)
 {/*
 	  TextureFilename {
     "../image/box_top.gif";
@@ -277,7 +281,7 @@ int HandleTextureFileName(const char *sName, const char *firstToken)
 	return TRUE;
 }
 
-int HandleMaterial(const char *sName, const char *firstToken)
+static int HandleMaterial(const char * /*sName*/, const char *firstToken)
 // return TRUE on success
 { SGfloat power;
   int bFoundTextureFileName = FALSE;
@@ -371,7 +375,7 @@ int HandleMaterial(const char *sName, const char *firstToken)
 	return TRUE; //lint !e527
 }
 
-int HandleTextureCoords(const char * /* sName */, const char *firstToken)
+static int HandleTextureCoords(const char * /* sName */, const char *firstToken)
 {
 	u32 nNoOfVertices, i;
 
@@ -411,7 +415,7 @@ int HandleTextureCoords(const char * /* sName */, const char *firstToken)
 	return TRUE;
 }
 
-int HandleMeshMaterialList(const char * /* sName */, const char *firstToken)
+static int HandleMeshMaterialList(const char * /* sName */, const char *firstToken)
 {
 	u32 i, nFaceIndexes, nMaterialsRead = 0, nMaterials;
 	  
@@ -481,10 +485,9 @@ int HandleMeshMaterialList(const char * /* sName */, const char *firstToken)
 }
 
 
-int HandleMesh(const char * /* sName */, const char *firstToken)
+static int HandleMesh(const char * sName, const char *firstToken)
 { u32 i, j, nNoOfVertices, nNoOfVerticesForThisFace, nNoOfFaces;
 	int iVertex, aiVertices[MAX_NO_VERTICES_PER_FACE];
-	
 	
 	//char *sMeshName = parser.getNextToken("Mesh name");
 	//parser.expectNextToken("{");
@@ -494,6 +497,7 @@ int HandleMesh(const char * /* sName */, const char *firstToken)
 	//parser.getNextInt("number of vertices");
 
 	currentMesh.reInit ();
+	currentMesh.setName( sName );
 	currentMesh.createVertices( nNoOfVertices );
  
 	parser.expectNextToken(";");
@@ -580,7 +584,7 @@ int HandleMesh(const char * /* sName */, const char *firstToken)
 	return TRUE;
 }
 
-static int TwoCharsToInt(char char1, char char2)
+inline int TwoCharsToInt(char char1, char char2)
 {
   return ((int)(char1-'0'))*256+char2-'0';
 }

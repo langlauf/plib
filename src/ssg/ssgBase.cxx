@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgBase.cxx,v 1.16 2001/06/16 16:27:37 stromberg Exp $
+     $Id: ssgBase.cxx,v 1.20 2002/09/02 06:05:47 sjbaker Exp $
 */
 
 
@@ -77,7 +77,7 @@ ssgBase::~ssgBase (void)
   deadBeefCheck () ;
   assert ( refc == 0 ) ;
 
-  delete name ;
+  delete [] name ;
 
   /*
     Set the type of deleted nodes to 0xDeadBeef so we'll
@@ -90,7 +90,7 @@ ssgBase::~ssgBase (void)
  
 void ssgBase::setName ( const char *nm )
 {
-  delete name ;
+  delete [] name ;
  
   if ( nm == NULL )
     name = NULL ;
@@ -110,21 +110,23 @@ int  ssgBase::getSpare  ()         { return spare ; }
 
 void ssgBase::print ( FILE *fd, char *indent, int how_much )
 {
-
   if ( how_much > 2 )
-  {	fprintf ( fd, "%s%s: Ref Count=%d\n", indent, getTypeName(), getRef () ) ;
-		fprintf ( fd, "%s  Name = \"%s\"\n",  indent, getPrintableName() ) ;
-	}
-	else
-		fprintf ( fd, "%s%s: Name=%s\n", indent, getTypeName(), getPrintableName() ) ;
-	if ( how_much > 1 )
+  {
+    fprintf ( fd, "%s%s: Ref Count=%d\n", indent, getTypeName(), getRef () ) ;
+    fprintf ( fd, "%s  Name = \"%s\"\n",  indent, getPrintableName() ) ;
+  }
+  else
+    fprintf ( fd, "%s%s: Name=%s\n", indent, getTypeName(), getPrintableName());
+
+  if ( how_much > 1 )
     fprintf ( fd, "%s  Userdata = %p\n",  indent, getUserData() ) ;
+
   deadBeefCheck () ;
 }
 
 int ssgBase::load ( FILE *fd )
 { 
-  delete name ;
+  delete [] name ;
   name = NULL ;
   _ssgReadString ( fd, &name ) ;
   return ! _ssgReadError () ;

@@ -57,6 +57,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
 CC = @CC@
 CPP = @CPP@
 CXX = @CXX@
@@ -68,14 +70,14 @@ VERSION = @VERSION@
 
 SUBDIRS = src
 
-EXTRA_DIST = README README.win32 README.mac              CHANGES LICENSE NOTICE acsite.m4              plib.dsp plib.dsw
+EXTRA_DIST = KNOWN_BUGS NOTICE README README.GLUT              README.win32 README.mac TODO-1.6 TODO-2.0              TODO_AFTER135 autogen.sh              plib.dsp plib.dsw transferCvs2WebSite
 
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 DIST_COMMON =  README AUTHORS COPYING ChangeLog INSTALL Makefile.am \
-Makefile.in NEWS aclocal.m4 configure configure.in install-sh missing \
-mkinstalldirs
+Makefile.in NEWS aclocal.m4 config.guess config.sub configure \
+configure.in install-sh missing mkinstalldirs
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)

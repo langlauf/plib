@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netChannel.h,v 1.4 2001/04/12 03:35:05 deca Exp $
+     $Id: netChannel.h,v 1.8 2002/09/02 06:05:44 sjbaker Exp $
 */
 
 /****
@@ -41,7 +41,7 @@
 *
 * AUTHORS
 *   Sam Rushing <rushing@nightmare.com> - original version for Medusa
-*   Dave McClurg <dpm@efn.org> - modified for use in Pegasus
+*   Dave McClurg <dpm@efn.org> - modified for use in PLIB
 *
 * CREATION DATE
 *   Dec-2000
@@ -94,19 +94,19 @@ public:
   
   // These are meant to be overridden.
   virtual void handleClose (void) {
-    //fprintf(stderr,"Network: %d: unhandled close\n",getHandle());
+    //ulSetError(UL_WARNING,"Network: %d: unhandled close",getHandle());
   }
   virtual void handleRead (void) {
-    fprintf(stderr,"Network: %d: unhandled read\n",getHandle());
+    ulSetError(UL_WARNING,"Network: %d: unhandled read",getHandle());
   }
   virtual void handleWrite (void) {
-    fprintf(stderr,"Network: %d: unhandled write\n",getHandle());
+    ulSetError(UL_WARNING,"Network: %d: unhandled write",getHandle());
   }
   virtual void handleAccept (void) {
-    fprintf(stderr,"Network: %d: unhandled accept\n",getHandle());
+    ulSetError(UL_WARNING,"Network: %d: unhandled accept",getHandle());
   }
   virtual void handleError (int error) {
-    fprintf(stderr,"Network: %d: errno: %s(%d)\n",getHandle(),strerror(errno),errno);
+    ulSetError(UL_WARNING,"Network: %d: errno: %s(%d)",getHandle(),strerror(errno),errno);
   }
 
   static bool poll (u32 timeout = 0 ) ;

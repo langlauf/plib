@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,19 +13,18 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoaderWriterStuff.h,v 1.18 2001/07/07 23:50:26 lachancew Exp $
+     $Id: ssgLoaderWriterStuff.h,v 1.22 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 //#include  "ssgLocal.h"
 
 // ********************  small utility functions  ************************
 
-void ssgFindOptConvertTexture( char * filepath, char * tfname ) ;
 void ssgAccumVerticesAndFaces( ssgEntity* node, sgMat4 transform, ssgVertexArray* vertices,
 			       ssgIndexArray*  indices, SGfloat epsilon, 
 			       ssgSimpleStateArray* ssa = NULL,
@@ -78,6 +77,7 @@ public:
 class ssgLoaderWriterMesh
 {
    // ***** general ****
+	 char *name;
    // array of Vec3s:
    class ssgVertexArray *theVertices;
    // one index per face:
@@ -116,7 +116,8 @@ class ssgLoaderWriterMesh
    void setVertices( class ssgVertexArray *vertexArray );
    class ssgTexCoordArray *getPerVertexTextureCoordinates2(void) { return perVertexTextureCoordinates2; }
    void setPerVertexTextureCoordinates2( class ssgTexCoordArray *texCoordArray );
-	  
+	 void setName( const char *meshName ); 
+
    void addToSSG(
 		 class ssgSimpleState *currentstate, 
 		 class ssgLoaderOptions* currentOptions,

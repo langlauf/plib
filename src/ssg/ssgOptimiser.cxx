@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgOptimiser.cxx,v 1.17 2001/07/06 17:31:39 stromberg Exp $
+     $Id: ssgOptimiser.cxx,v 1.27 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 
@@ -68,15 +68,15 @@ struct OptVertex
   
   int equal ( sgVec3 v, sgVec2 t, sgVec4 c, int tex_frac )
   {
-    if ( ! sgCompareVec3 ( vertex  , v, DISTANCE_SLOP ) == 0 ||
-      ! sgCompareVec4 ( colour  , c, COLOUR_SLOP   ) == 0 )
+    if ( ! sgCompareVec3 ( vertex  , v, DISTANCE_SLOP ) ||
+         ! sgCompareVec4 ( colour  , c, COLOUR_SLOP   ) )
       return FALSE ;
     
     if ( ! tex_frac )
-      return sgCompareVec2 ( texcoord, t, TEXCOORD_SLOP ) == 0 ;
+      return sgCompareVec2 ( texcoord, t, TEXCOORD_SLOP ) ;
     
-    return fabs ( frac ( texcoord[0] ) - frac ( t[0] ) ) <= TEXCOORD_SLOP &&
-      fabs ( frac ( texcoord[1] ) - frac ( t[1] ) ) <= TEXCOORD_SLOP ;
+    return ( fabs ( frac ( texcoord[0] ) - frac ( t[0] ) ) <= TEXCOORD_SLOP &&
+	     fabs ( frac ( texcoord[1] ) - frac ( t[1] ) ) <= TEXCOORD_SLOP ) ;
   }
   
   void bump () { counter++ ; }
@@ -117,8 +117,8 @@ public:
     for ( int i = 0 ; i < vnum ; i++ )
       delete vlist [ i ] ;
     
-    delete vlist ;
-    delete tlist ;
+    delete [] vlist ;
+    delete [] tlist ;
 
     if (state != NULL) ssgDeRefDelete(state); //~T.G.
   }
@@ -303,16 +303,22 @@ void OptVertexList::makeNormals()
   for ( i = 0 ; i < tnum ; i++ )
   {
     sgVec3 tmp ;
+    short j ;
     
     sgMakeNormal ( tmp, vlist [ tlist [ i*3+ 0 ] ] -> vertex,
       vlist [ tlist [ i*3+ 1 ] ] -> vertex,
       vlist [ tlist [ i*3+ 2 ] ] -> vertex ) ;
-    
-    sgAddVec3 ( vlist [ tlist [ i*3+ 0 ] ] -> normal, tmp ) ;
-    sgAddVec3 ( vlist [ tlist [ i*3+ 1 ] ] -> normal, tmp ) ;
-    sgAddVec3 ( vlist [ tlist [ i*3+ 2 ] ] -> normal, tmp ) ;
+
+    for ( j = 0; j < vnum; j++ ) {
+      if (sgEqualVec3(vlist[j]->vertex, vlist[tlist[i*3+0]]->vertex))
+	sgAddVec3(vlist[j]->normal, tmp);
+      if (sgEqualVec3(vlist[j]->vertex, vlist[tlist[i*3+1]]->vertex))
+	sgAddVec3(vlist[j]->normal, tmp);
+      if (sgEqualVec3(vlist[j]->vertex, vlist[tlist[i*3+2]]->vertex))
+	sgAddVec3(vlist[j]->normal, tmp);
+    }
   }
-  
+
   for ( i = 0 ; i < vnum ; i++ )
     if ( sgScalarProductVec2 ( vlist[i]->normal, vlist[i]->normal ) < 0.001 )
       sgSetVec3 ( vlist[i]->normal, 0.0f, 0.0f, 1.0f ) ;
@@ -750,7 +756,7 @@ void ssgStripify ( ssgEntity *ent )
         new_colours  -> add ( list.vlist[new_vlist[m]]->colour   ) ;
       }
 
-      delete new_vlist ;
+      delete [] new_vlist ;
 
       ssgVtxTable *new_vtable = new ssgVtxTable ( GL_TRIANGLE_STRIP,
                     new_coords, new_normals, new_texcoords, new_colours ) ;
@@ -761,8 +767,8 @@ void ssgStripify ( ssgEntity *ent )
     }
   }
 
-  delete  slist ;
-  delete cflist ;
+  delete []  slist ;
+  delete [] cflist ;
 }
 
 
@@ -877,9 +883,8 @@ static void flatten ( ssgBranch *parent, ssgEntity *ent, sgMat4 mat )
   */
   if ( ent -> isAKindOf ( ssgTypeCutout () ) ||
        ent -> isAKindOf ( ssgTypeRangeSelector () ) ||
-       ( ent -> isAKindOf ( ssgTypeTransform () ) &&
-	 ( ent -> getUserData () != NULL || 
-	   ! ent -> isA ( ssgTypeTransform () ) )))
+       ( ent -> isA ( ssgTypeTransform () ) &&
+         ent -> getUserData () != NULL ) )
   {
     /* Insert a transform node if needed. */
     if ( mat != NULL ) {
@@ -933,7 +938,8 @@ static void flatten ( ssgBranch *parent, ssgEntity *ent, sgMat4 mat )
     t_ent -> getTransform ( mat2 ) ;
     if ( mat != NULL )
       sgPostMultMat4 ( mat2, mat ) ;
-    mat = mat2 ;
+
+    mat = sgClassifyMat4 ( mat2 ) != 0 ? mat2 : NULL ;
     
     ssgBranch *br = new ssgBranch ;
     /*

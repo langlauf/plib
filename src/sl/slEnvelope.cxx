@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,18 +13,18 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slEnvelope.cxx,v 1.2 2001/04/12 03:37:36 deca Exp $
+     $Id: slEnvelope.cxx,v 1.5 2002/09/02 06:05:47 sjbaker Exp $
 */
 
 
 #include "sl.h"
 
-float slEnvelope::getValue ( float _time )
+float slEnvelope::getValue ( float _time ) const
 {
   float delta ;
   int   step = getStepDelta ( &_time, &delta ) ;
@@ -34,7 +34,7 @@ float slEnvelope::getValue ( float _time )
 
 
 
-int slEnvelope::getStepDelta ( float *_time, float *delta )
+int slEnvelope::getStepDelta ( float *_time, float *delta ) const
 {
   float tt ;
 

@@ -41,7 +41,8 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\util" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /Zi /O2 /I "..\util" /I ".." /D "NDEBUG" /D "_LIB" /D "NEEDNAMESPACESTD" /D "HAVE_CONFIG_H" /D "HAVE_WINDOWS_H" /D "WIN32" /D "_MBCS" /FD /c
+# SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -50,30 +51,10 @@ BSC32=bscmake.exe
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
-# Begin Custom Build - 'sl' gets installed
-ProjDir=.
-InputPath=.\Release\sl.lib
-SOURCE="$(InputPath)"
-
-BuildCmds= \
-	copy $(ProjDir)\sl.h $(ProjDir)\..\..\sl.h \
-	copy $(ProjDir)\slPortability.h $(ProjDir)\..\..\slPortability.h \
-	copy $(ProjDir)\sm.h $(ProjDir)\..\..\sm.h \
-	
-
-"$(ProjDir)\..\..\sl.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"$(ProjDir)\..\..\slPortability.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"$(ProjDir)\..\..\sm.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-# End Custom Build
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Copy Library to plib directory
-PostBuild_Cmds=copy release\*.lib ..\..\*.*
+PostBuild_Cmds=copy release\*.lib ..\..\*.*	copy sl.h ..\..\sl.h  	copy slPortability.h ..\..\slPortability.h 	copy sm.h ..\..\sm.h
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "sl - Win32 Debug"
@@ -89,7 +70,8 @@ PostBuild_Cmds=copy release\*.lib ..\..\*.*
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "..\util" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /GX /Zi /Od /I "..\util" /I ".." /D "_DEBUG" /D "_LIB" /D "NEEDNAMESPACESTD" /D "HAVE_CONFIG_H" /D "HAVE_WINDOWS_H" /D "WIN32" /D "_MBCS" /FD /GZ /c
+# SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -98,30 +80,10 @@ BSC32=bscmake.exe
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo /out:"Debug\sl_d.lib"
-# Begin Custom Build - 'sl' gets installed
-ProjDir=.
-InputPath=.\Debug\sl_d.lib
-SOURCE="$(InputPath)"
-
-BuildCmds= \
-	copy $(ProjDir)\sl.h $(ProjDir)\..\..\sl.h \
-	copy $(ProjDir)\slPortability.h $(ProjDir)\..\..\slPortability.h \
-	copy $(ProjDir)\sm.h $(ProjDir)\..\..\sm.h \
-	
-
-"$(ProjDir)\..\..\sl.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"$(ProjDir)\..\..\slPortability.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-
-"$(ProjDir)\..\..\sm.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-   $(BuildCmds)
-# End Custom Build
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Desc=Copy Library to plib directory
-PostBuild_Cmds=copy debug\*.lib ..\..\*.*
+PostBuild_Cmds=copy debug\*.lib ..\..\*.*	copy sl.h ..\..\sl.h  	copy slPortability.h ..\..\slPortability.h 	copy sm.h ..\..\sm.h
 # End Special Build Tool
 
 !ENDIF 

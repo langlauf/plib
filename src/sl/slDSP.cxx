@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slDSP.cxx,v 1.9 2001/05/18 04:05:00 sjbaker Exp $
+     $Id: slDSP.cxx,v 1.18 2002/09/02 06:05:47 sjbaker Exp $
 */
 
 
@@ -33,7 +33,7 @@ static int init_bytes ;
 /* OSSAUDIO - Linux, FreeBSD, etc                               */
 /* ------------------------------------------------------------ */
 
-void slDSP::open ( char *device, int _rate, int _stereo, int _bps )
+void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
   fd = ::open ( device, O_WRONLY | O_NONBLOCK ) ;
 
@@ -191,7 +191,7 @@ void CALLBACK waveOutProc( HWAVEOUT hwo, UINT uMsg,
 }
 
 
-void slDSP::open ( char *device, int _rate, int _stereo, int _bps )
+void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
    MMRESULT	result;
    int i;
@@ -414,7 +414,7 @@ void slDSP::stop ()
 /* ------------------------------------------------------------ */
 
 #elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(SOLARIS)
-void slDSP::open ( char *device, int _rate, int _stereo, int _bps )
+void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
 
   counter = 0;
@@ -627,45 +627,43 @@ void slDSP::stop ()
 
 #elif defined(sgi)
 
-void slDSP::open ( char *device, int _rate, int _stereo, int _bps )
+void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
-#if 0
   if ( _bps != 8 )
   {
     perror ( "slDSP: supports only 8bit audio for sgi" ) ;
     error = SL_TRUE;
     return;
   }
-#endif
 
   init_bytes = 1024 * 16;
-  config = alNewConfig();
-  
-  alSetChannels(config, _stereo ? AL_STEREO : AL_MONO);
-  alSetWidth(config, _bps == 8 ? AL_SAMPLE_8 : AL_SAMPLE_16);
-  alSetQueueSize(config, init_bytes);
-  init_bytes = alGetQueueSize(config);
 
-  port = alOpenPort(device, "w", config);
-    
+  config  = ALnewconfig();
+ 
+  ALsetchannels (  config, _stereo ? AL_STEREO : AL_MONO );
+  ALsetwidth    (  config, _bps == 8 ? AL_SAMPLE_8 : AL_SAMPLE_16 );
+  ALsetqueuesize(  config, init_bytes );
+
+  port = ALopenport( device, "w", config );
+  
   if ( port == NULL )
   {
     perror ( "slDSP: open" ) ;
     error = SL_TRUE ;
   }
   else
-  {    
-    ALpv params[1];
+  {
+    long params[2] = {AL_OUTPUT_RATE, 0 };
 
-    params[0].param = AL_OUTPUT_RATE;
-    params[0].value.i = _rate;
-    if ( alSetParams(AL_DEFAULT_OUTPUT, params, 1) != 0 )
-	{
-       perror ( "slDSP: open - alSetParams" ) ;
+    params[1] = _rate;
+
+    if ( ALsetparams(AL_DEFAULT_DEVICE, params, 2) != 0 )
+        {
+       perror ( "slDSP: open - ALsetparams" ) ;
        error = SL_TRUE ;
        return;
-	}
-  
+        }
+ 
     rate    = _rate;
     stereo  = _stereo;
     bps     = _bps;
@@ -680,8 +678,8 @@ void slDSP::close ()
 {
   if ( port != NULL )
   {
-     alClosePort(port);
-     alFreeConfig(config);
+     ALcloseport ( port   );
+     ALfreeconfig( config );
      port = NULL;
   }
 }
@@ -689,16 +687,10 @@ void slDSP::close ()
 
 int slDSP::getDriverBufferSize ()
 {
-  int res; 
-
   if ( error )
     return 0 ;
 
-  res = alGetQueueSize(config);
-  if (  stereo   ) res *= 2 ;
-  if ( bps == 16 ) res *= 2 ;
-
-  return  res;
+  return  ALgetqueuesize( config );
 }
 
 void slDSP::getBufferInfo ()
@@ -708,6 +700,8 @@ void slDSP::getBufferInfo ()
 }
 
 
+#define swap_half(a) ( ((a & 0xff) << 8) | ((unsigned short)(a) >> 8) )
+
 void slDSP::write ( void *buffer, size_t length )
 {
   char *buf = (char *)buffer;
@@ -716,13 +710,14 @@ void slDSP::write ( void *buffer, size_t length )
     return ;
 
   // Steve: is this a problem ??
-  for ( int i = 0; i < (int)length; i++ )
+
+  for ( int i = 0; i < (int)length; i++ ) {
     buf[i] = buf[i] >> 1;
+    if (bps == 16)
+       buf[i] = swap_half( buf[i] );
+  }
 
-  if (  stereo   ) length /= 2;
-  if ( bps == 16 ) length /= 2;
-
-  alWriteFrames(port, buffer, length / 2);
+  ALwritesamps(port, (void *)buf, length/2 );
 }
 
 
@@ -733,7 +728,10 @@ float slDSP::secondsRemaining ()
   if ( error )
     return 0.0f ;
 
-  samples_remain = alGetFillable(port);
+  samples_remain = ALgetfillable(port);
+
+  if (  stereo   ) samples_remain /= 2 ;
+  if ( bps == 16 ) samples_remain /= 2 ;
 
   return   (float) samples_remain / (float) rate ;
 }
@@ -742,11 +740,14 @@ float slDSP::secondsRemaining ()
 float slDSP::secondsUsed ()
 {
   int   samples_used;
-  
+
   if ( error )
     return 0.0f ;
 
-  samples_used = alGetFilled(port);
+  samples_used = ALgetfilled(port);
+
+  if (  stereo   ) samples_used /= 2 ;
+  if ( bps == 16 ) samples_used /= 2 ;
 
   return   (float) samples_used / (float) rate ;
 }
@@ -772,7 +773,7 @@ void slDSP::stop ()
 #endif
 
 
-#ifdef macintosh
+#if defined(macintosh) || defined(__APPLE__)
 	
 
 // Print out debugging info when secondsUsed is called,
@@ -832,7 +833,7 @@ void doError( OSErr theError ) {
     msg = "Buffer is too small." ;
     break;
   case paramErr:
-    msg = ("Invalid parameter specified." ;
+    msg = "Invalid parameter specified." ;
     break;
   }
 
@@ -861,7 +862,7 @@ pascal void sndCallbackProc ( SndChannelPtr chan, SndCommand *cmd )
 #endif
 }
 
-void slDSP::open ( char *device, int _rate, int _stereo, int _bps )
+void slDSP::open ( const char *device, int _rate, int _stereo, int _bps )
 {
 
   // Check for valid ranges on inputs
@@ -898,7 +899,7 @@ void slDSP::open ( char *device, int _rate, int _stereo, int _bps )
   //initOptions += initChanRight;    // Right stereo channel
 
   // Define a call-back routine - invoked via callBackCmd
-  SndCallBackUPP callBackRoutine = NewSndCallBackProc ( sndCallbackProc );
+  SndCallBackUPP callBackRoutine = NewSndCallBackUPP ( sndCallbackProc );
 
   // Allocate a sound channel
   sndChannel = new SndChannel;

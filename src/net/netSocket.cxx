@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,18 +13,23 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.cxx,v 1.15 2001/07/21 13:22:28 sjbaker Exp $
+     $Id: netSocket.cxx,v 1.23 2002/09/02 06:05:44 sjbaker Exp $
 */
 
 #include "netSocket.h"
 
 #if defined(__CYGWIN__) || !defined (WIN32)
 
+#if defined(__APPLE__)
+#  include <netinet/in.h>
+#endif
+
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <time.h>
@@ -40,7 +45,7 @@
 
 #endif
 
-#if !defined(STDC_HEADERS) && !defined(socklen_t)
+#if defined(_MSC_VER) && !defined(socklen_t)
 #define socklen_t int
 #endif
 
@@ -148,6 +153,10 @@ cchar* netAddress::getLocalHost ()
   return "127.0.0.1" ;
 }
 
+bool netAddress::getBroadcast () const {
+    return sin_addr == INADDR_BROADCAST;
+}
+
 netSocket::netSocket ()
 {
   handle = -1 ;
@@ -194,6 +203,27 @@ netSocket::setBlocking ( bool blocking )
 #endif
 }
 
+void
+netSocket::setBroadcast ( bool broadcast )
+{
+  assert ( handle != -1 ) ;
+  int result;
+  if ( broadcast ) {
+      int one = 1;
+#ifdef WIN32
+      result = ::setsockopt( handle, SOL_SOCKET, SO_BROADCAST, (char*)&one, sizeof(one) );
+#else
+      result = ::setsockopt( handle, SOL_SOCKET, SO_BROADCAST, &one, sizeof(one) );
+#endif
+  } else {
+      result = ::setsockopt( handle, SOL_SOCKET, SO_BROADCAST, NULL, 0 );
+  }
+  if ( result < 0 ) {
+      perror("set broadcast:");
+  }
+  assert ( result != -1 );
+}
+
 int
 netSocket::bind ( cchar* host, int port )
 {
@@ -222,6 +252,9 @@ netSocket::connect ( cchar* host, int port )
 {
   assert ( handle != -1 ) ;
   netAddress addr ( host, port ) ;
+  if ( addr.getBroadcast() ) {
+      setBroadcast( true );
+  }
   return ::connect(handle,(const sockaddr*)&addr,sizeof(netAddress));
 }
 
@@ -284,7 +317,7 @@ netSocket::isNonBlockingError ()
   if ( wsa_errno != 0 )
   {
     WSASetLastError(0);
-    fprintf(stderr,"WSAGetLastError() => %d\n",wsa_errno);
+    ulSetError(UL_WARNING,"WSAGetLastError() => %d",wsa_errno);
     switch (wsa_errno) {
     case WSAEWOULDBLOCK: // always == NET_EAGAIN?
     case WSAEALREADY:
@@ -393,7 +426,7 @@ int netInit ( int* argc, char** argv )
 	WSADATA wsaData;
 
 	if ( WSAStartup(version_wanted, &wsaData) != 0 ) {
-		fprintf(stderr,"Couldn't initialize Winsock 1.1\n");
+		ulSetError(UL_WARNING,"Couldn't initialize Winsock 1.1");
 		return(-1);
 	}
 #endif

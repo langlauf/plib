@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadATG.cxx,v 1.12 2001/07/14 08:58:04 wolfram_kuss Exp $
+     $Id: ssgLoadATG.cxx,v 1.17 2002/09/02 06:05:48 sjbaker Exp $
 */
 /* 
  .scenery loader for SSG/PLIB
@@ -124,7 +124,7 @@ static int _ssgNoFaces, _ssgNoVertices, _ssgNoVertexNormals, _ssgNoVertexTC; //l
 static char * _current_usemtl = NULL, * _last_usemtl = NULL;
 static int _current_material_index = -1;
 
-double _ssg_gbs_x = 0.0, _ssg_gbs_y = 0.0, _ssg_gbs_z = 1.0, _ssg_gbs_r = 0.0;
+static double _ssg_gbs_x = 0.0, _ssg_gbs_y = 0.0, _ssg_gbs_z = 1.0, _ssg_gbs_r = 0.0;
 
 void ssgGetValuesFromLastATGFile(double *x, double *y, double *z, double *r)
 // These values are the values from the "# gbs" line from the last loaded
@@ -154,7 +154,7 @@ static char* parser_getLine()
 				if ( 0 != usemtl[0] )
 				{
 					if ( _current_usemtl  != NULL )
-						delete _current_usemtl ;
+						delete [] _current_usemtl ;
 					_current_usemtl = new char [ strlen ( usemtl ) + 1 ] ;
 					strcpy ( _current_usemtl, usemtl ) ;
 				}
@@ -297,7 +297,7 @@ static int parse()
 		{ 
 			// bring _last_usemtl up to date
 			if ( _last_usemtl != NULL )
-				delete _last_usemtl;
+				delete [] _last_usemtl;
 			_last_usemtl= new char [ strlen ( _current_usemtl ) + 1 ] ;
 			strcpy ( _last_usemtl, _current_usemtl ) ;
 
@@ -429,12 +429,10 @@ static int parse()
 			break;
 	} // ******* end of reading faces *****
 	if ( token != NULL )
-		// Fixme
-		printf("f expected, got %s\n", token);
+		ulSetError ( UL_WARNING, "f expected, got %s\n", token);
 	
 	if (! parser.eof )
-		// Fixme
-		printf("Warning: no eof\n");
+		ulSetError ( UL_WARNING, "Warning: no eof\n");
 	
 	
 	// kludge. We need a state for add2SSG:

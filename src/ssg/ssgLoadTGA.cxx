@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadTGA.cxx,v 1.6 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgLoadTGA.cxx,v 1.9 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 
@@ -53,14 +53,14 @@ bool ssgLoadTGA ( const char *fname, ssgTextureInfo* info )
   }
   
   maxLen = fileinfo.st_size;
-  pData  = (char *) malloc(maxLen);
+  pData  = new char [maxLen];
   fread (pData, maxLen, 1, tfile);
   fclose (tfile);
   pData[0] = 0x00;
   
   if( memcmp( pData, DEF_targaHeaderContent, DEF_targaHeaderLength ) != 0 ) {
     ulSetError ( UL_WARNING, "ssgLoadTexture: Failed to load '%s'. Not a targa (apparently).", fname);
-    free (pData);
+    delete[] pData;
     return false ;
   }
   
@@ -79,7 +79,7 @@ bool ssgLoadTGA ( const char *fname, ssgTextureInfo* info )
   if( ( width <= 0 ) || ( height <= 0 ) )
   {
     ulSetError ( UL_WARNING, "ssgLoadTexture: Failed to load '%s'. Width and height < 0.", fname);
-    free (pData);
+    delete[] pData;
     return false ;
   }
   
@@ -90,7 +90,7 @@ bool ssgLoadTGA ( const char *fname, ssgTextureInfo* info )
   if( !( is24Bit || is32Bit ) )
   {
     ulSetError ( UL_WARNING, "ssgLoadTexture: Failed to load '%s'. Not 24 or 32 bit.", fname);
-    free (pData);
+    delete[] pData;
     return false ;
   }
   
@@ -122,7 +122,7 @@ bool ssgLoadTGA ( const char *fname, ssgTextureInfo* info )
     texels[ loop + 2 ] = tempC;
   }
   
-  free(pData);
+  delete[] pData;
   
   if ( info != NULL )
   {

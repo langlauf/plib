@@ -1,7 +1,7 @@
 
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -14,12 +14,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoaderWriterStuff.cxx,v 1.21 2001/07/07 23:50:26 lachancew Exp $
+     $Id: ssgLoaderWriterStuff.cxx,v 1.27 2002/09/02 06:05:48 sjbaker Exp $
 */
 
 // ssgLoaderWriterStuff.cxx
@@ -42,6 +42,10 @@
 #endif
 #if defined(_MSC_VER)
 #include <malloc.h>
+#endif
+
+#if defined(__MINGW32__)
+#include <libiberty.h>
 #endif
 
 #undef ABS
@@ -192,61 +196,6 @@ void ssgAccumVerticesAndFaces( ssgEntity* node, sgMat4 transform, ssgVertexArray
 	assert( vertices->getNum() == texCoordArray->getNum() );
      }
 } ;
-
-void ssgFindOptConvertTexture( char * filepath, char * tfname ) 
-// Find and optionally (= if necessary) convert texture
-{
-	char tmp[1024], *extension ;
-
-	strcpy( tmp, tfname);
-	extension = strrchr(tmp, '.');
-	if ( extension == NULL )
-	{ strcpy( filepath, tfname );
-	  return ;
-	}
-	extension[1] = 'r';
-	extension[2] = 'g';
-	extension[3] = 'b';
-	extension[4] = 0;
-
-	ssgGetCurrentOptions () -> makeTexturePath ( filepath, tmp ) ;
-	if ( ulFileExists ( filepath ) )
-		return; // found *.rgb-file
-
-	// look for original, non-rgb - file
-	ssgGetCurrentOptions () -> makeTexturePath ( filepath, tfname ) ;
-	if ( !ulFileExists ( filepath ) )
-		return; // found *.rgb nor original file
-
-	// found original file. convert it.
-	strcpy( tmp, filepath );
-
-	extension = strrchr(tmp, '.');
-	if ( extension == NULL )
-	{ strcpy( filepath, tfname );
-	  return ;
-	}
-	extension[1] = 'r';
-	extension[2] = 'g';
-	extension[3] = 'b';
-	extension[4] = 0;
-
-#ifdef WIN32
-        char command [ 1024 ] ;
-	sprintf(command, "convert -verbose %s sgi:%s", filepath, tmp);
-	unsigned int ui = WinExec(command, SW_HIDE );	
-	if ( ui < 32 )
-		ulSetError(UL_WARNING, "Couldn't convert texture. Did you install ImageMagick?");
-#else
-  ulSetError(UL_WARNING, "Converting textures not yet implemented. Please convert %s manually.",
-		    filepath);
-	//sprintf(command, "-verbose %s sgi:%s", filepath, tmp);
-	//execlp ( "convert", "convert",  command, NULL ) ;
-
-#endif
-	// Kludge; warning? NIV135
-	strcpy( filepath, tmp );
-}
 
 
 /*
@@ -466,6 +415,7 @@ void ssgLoaderWriterMesh::reInit(void) // was: ReInit
    perFaceAndVertexTextureCoordinate2Lists = NULL ;
    theMaterials	= NULL ;
    perVertexTextureCoordinates2 = NULL ;
+	 name = NULL ;
    textureCoordinatesArePerVertex = TRUE ;
 }
 	
@@ -722,7 +672,20 @@ void ssgLoaderWriterMesh::addOneNodeToSSGFromPerVertexTextureCoordinates2( class
    
    ssgEntity *model = current_options -> createLeaf ( leaf, NULL)  ;
    assert( model != NULL );
+	 model->setName(name);
    curr_branch_->addKid(model);
+}
+
+void ssgLoaderWriterMesh::setName( const char *meshName )
+{
+	delete [] name;
+	if ( !meshName )
+		name = NULL;
+	else
+	{
+		name = new char [ strlen(meshName) + 1 ];
+		strcpy(name, meshName);
+	}
 }
 
 
@@ -737,22 +700,22 @@ void ssgLoaderWriterMesh::addToSSG(
   
 #ifdef WRITE_MESH_TO_STDOUT	
 	if ( theMaterials == NULL )
-		fprintf(stdout, "( theMaterials == NULL )\n");
+		ulSetError(UL_DEBUG, "( theMaterials == NULL )");
 	else
 	{	
-		fprintf(stdout, "%d Materials:\n", theMaterials->getNum());
+		ulSetError(UL_DEBUG, "%d Materials:", theMaterials->getNum());
 		for(i=0;i<theMaterials->getNum();i++)
-		{ fprintf(stdout, "%ld\n", (long)theMaterials->get(i));
+		{ ulSetError(UL_DEBUG, "%ld", (long)theMaterials->get(i));
 		}
 	}
 	if ( materialIndices == NULL )
-		fprintf(stdout, "( materialIndices == NULL )\n");
+		ulSetError(UL_DEBUG, "( materialIndices == NULL )");
 	else
 	{
-		fprintf(stdout, "%d Material Indexes:\n", materialIndices->getNum());
+		ulSetError(UL_DEBUG, "%d Material Indexes:", materialIndices->getNum());
 		for(i=0;i<materialIndices->getNum();i++)
 		{ short s=*(materialIndices->get(i));
-			fprintf(stdout, "%ld\n", (long)s);
+			ulSetError(UL_DEBUG, "%ld", (long)s);
 		}
 	}
 #endif
@@ -827,21 +790,21 @@ void ssgLoaderWriterMesh::addToSSG(
 		      }	
 		 }
 #ifdef WRITE_MESH_TO_STDOUT	
-	     fprintf(stdout, "NumVert: %d\n", newVertices->getNum());
+	     ulSetError(UL_DEBUG, "NumVert: %d", newVertices->getNum());
 	     for(j=0;j<newVertices->getNum();j++)
 	       { float *f=newVertices->get(j);
-		  fprintf(stdout, "%f, %f, %f\n",f[0], f[1], f[2]);
+		  ulSetError(UL_DEBUG, "%f, %f, %f",f[0], f[1], f[2]);
 	       }
 	     for(j=0;j<newFaces->getNum();j++)
 			{
 			   thisFace = *((class ssgIndexArray **) newFaces->get( j )); 	
-			   fprintf(stdout, "%d EP:", thisFace->getNum());
+			   fprintf(stderr, "%d EP:", thisFace->getNum());
 			   for(k=0;k<thisFace->getNum();k++)
 			     {
 				oldVertexIndex = * thisFace->get(k);
-				fprintf(stdout, "%d, ", oldVertexIndex);
+				fprintf(stderr, "%d, ", oldVertexIndex);
 			     }
-			   fprintf(stdout, "\n");
+			   putc('\n', stderr);
 			}
 #endif	
 	     if ( newFaces->getNum() > 0 )

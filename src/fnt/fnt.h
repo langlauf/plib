@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: fnt.h,v 1.4 2001/04/09 00:24:07 deca Exp $
+     $Id: fnt.h,v 1.12 2002/09/02 06:05:43 sjbaker Exp $
 */
 
 
@@ -26,6 +26,13 @@
 #define _FNT_H_  1
 
 #include "sg.h"
+
+#ifdef __APPLE__
+#  include <OpenGL/gl.h>
+#else
+#  include <GL/gl.h>
+#endif
+
 
 #define FNTMAX_CHAR  256
 #define FNT_TRUE  1
@@ -59,7 +66,7 @@ public:
   virtual float getWidth     () const    = 0 ;
   virtual float getGap       () const    = 0 ;
 
-  virtual int hasGlyph ( char c ) = 0 ;
+  virtual int hasGlyph ( char c ) const = 0 ;
 } ;
 
 
@@ -89,6 +96,10 @@ private:
     given a negative v_bot. Most capitals will have
     v_bot==0.0 and v_top==1.0.
   */
+
+  /* Nominal baseline widths */
+
+  float widths  [ FNTMAX_CHAR ] ;
 
   /* Texture coordinates */
 
@@ -171,19 +182,39 @@ public:
   float getGap       () const { return gap       ; } 
 
 
-  void setGlyph ( char c,
+  void setGlyph ( char c, float wid,
                   float tex_left, float tex_right,
                   float tex_bot , float tex_top  ,
                   float vtx_left, float vtx_right,
                   float vtx_bot , float vtx_top  ) ;
+  void setGlyph ( char c,
+                  float tex_left, float tex_right,
+                  float tex_bot , float tex_top  ,
+                  float vtx_left, float vtx_right,
+                  float vtx_bot , float vtx_top  ) /* deprecated */
+  {
+    setGlyph ( c, vtx_right,
+               tex_left, tex_right, tex_bot, tex_top,
+               vtx_left, vtx_right, vtx_bot, vtx_top ) ;
+  }
   
-  int  getGlyph ( char c,
+  int  getGlyph ( char c, float* wid,
                   float *tex_left = NULL, float *tex_right = NULL,
                   float *tex_bot  = NULL, float *tex_top   = NULL,
                   float *vtx_left = NULL, float *vtx_right = NULL,
                   float *vtx_bot  = NULL, float *vtx_top   = NULL) ;
+  int  getGlyph ( char c,
+                  float *tex_left = NULL, float *tex_right = NULL,
+                  float *tex_bot  = NULL, float *tex_top   = NULL,
+                  float *vtx_left = NULL, float *vtx_right = NULL,
+                  float *vtx_bot  = NULL, float *vtx_top   = NULL) /* deprecated */
+  {
+    return getGlyph ( c, NULL,
+                      tex_left, tex_right, tex_bot, tex_top,
+                      vtx_left, vtx_right, vtx_bot, vtx_top ) ;
+  }
 
-  int hasGlyph ( char c ) { return getGlyph ( c ) ; }
+  int hasGlyph ( char c ) const { return exists[ c ] ; }
 
   void getBBox ( const char *s, float pointsize, float italic,
                  float *left, float *right,

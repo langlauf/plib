@@ -1,7 +1,7 @@
 
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -14,16 +14,18 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgTweenController.cxx,v 1.1 2001/07/13 21:11:44 sjbaker Exp $
+     $Id: ssgTweenController.cxx,v 1.5 2002/09/02 06:05:49 sjbaker Exp $
 */
 
 
 #include "ssgLocal.h"
+
+const char *ssgTweenController::getTypeName (void) { return "ssgTweenController" ; }
 
 void ssgTweenController::copy_from ( ssgTweenController *src, int clone_flags )
 {
@@ -77,6 +79,18 @@ int ssgTweenController::save ( FILE *fd )
 {
   _ssgWriteFloat ( fd, curr_bank ) ;
   return ssgBranch::save ( fd ) ;
+}
+
+ 
+ 
+void ssgTweenController::print ( FILE *fd, char *indent, int how_much )
+{
+  if ( how_much == 0 )
+    return ;
+ 
+  fprintf ( fd, "%sCurrent Bank = %f\n", indent, curr_bank );
+ 
+  ssgBranch::print ( fd, indent, how_much ) ;
 }
 
 

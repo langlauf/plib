@@ -1,6 +1,6 @@
 /*
      PLIB - A Suite of Portable Game Libraries
-     Copyright (C) 2001  Steve Baker
+     Copyright (C) 1998,2002  Steve Baker
  
      This library is free software; you can redistribute it and/or
      modify it under the terms of the GNU Library General Public
@@ -13,12 +13,12 @@
      Library General Public License for more details.
  
      You should have received a copy of the GNU Library General Public
-     License along with this library; if not, write to the Free
+     License along with this library; if not, write to the Free Software
      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVtxTable.cxx,v 1.20 2001/07/14 15:26:53 sjbaker Exp $
+     $Id: ssgVtxTable.cxx,v 1.30 2002/09/02 06:05:49 sjbaker Exp $
 */
 
 
@@ -182,9 +182,9 @@ void ssgVtxTable::getTriangle ( int n, short *v1, short *v2, short *v3 )
       return ;
 
     case GL_QUADS :
-      *v1 = (n/2)*4 + (n&1) + 0 ;
-      *v2 = (n/2)*4 + (n&1) + 1 ;
-      *v3 = (n/2)*4 + (n&1) + 2 ;
+      *v1 = n*2 + 0 ;
+      *v2 = n*2 + 1 ;
+      *v3 = n*2 + 2 - (n&1)*4 ;
       return ;
 
     default : return ;
@@ -286,15 +286,77 @@ void ssgVtxTable::getLine ( int n, short *v1, short *v2 )
   return ;   
 }
 
+
 void ssgVtxTable::transform ( const sgMat4 m )
 {
   int i ;
+  int flags = sgClassifyMat4 ( m ) ;
+
+  if ( flags == 0 )
+    return ;
+
+
+  if ( ( flags & SG_PROJECTION ) )
+    ulSetError ( UL_WARNING, "ssgVtxTable: Projection matrices currently not supported." ) ;
+  /*
+    note: it is possible to handle projections, but for each normal we would
+    have to know the corresponding vertex coordinates. setting:
+        n[3] = dot(v, n) / v[3]
+    and then transforming with the full 4x4 transposed inverse matrix would do it.
+    see the OpenGL spec.
+  */
+
 
   for ( i = 0 ; i < getNumVertices() ; i++ )
     sgXformPnt3 ( vertices->get(i), vertices->get(i), m ) ;
 
+
+  sgMat4 w ;
+
+  if ( ( flags & ( SG_SCALE | SG_MIRROR | SG_NONORTHO ) ) )
+  {
+    if ( ( flags & SG_NONORTHO ) )
+    {
+      // use the transposed adjoint matrix (only the upper 3x3 is needed)
+      sgVectorProductVec3 ( w[0], m[1], m[2] ) ;
+      sgVectorProductVec3 ( w[1], m[2], m[0] ) ;
+      sgVectorProductVec3 ( w[2], m[0], m[1] ) ;
+    }
+    else
+    {
+      SGfloat scale = SG_ONE ;
+
+      if ( ( flags & SG_SCALE ) )
+      {
+	// prescale matrix to avoid renormalisation
+	scale = scale / sgLengthVec3 ( m[0] ) ;
+      }
+
+      if ( ( flags & SG_MIRROR ) )
+      {
+	// negate to keep normals consistent with triangle orientations
+	scale = - scale ;
+      }
+
+      sgScaleVec3 ( w[0], m[0], scale ) ;
+      sgScaleVec3 ( w[1], m[1], scale ) ;
+      sgScaleVec3 ( w[2], m[2], scale ) ;
+    }
+
+    m = w ;
+  }
+
+
   for ( i = 0 ; i < getNumNormals() ; i++ )
     sgXformVec3 ( normals->get(i), normals->get(i), m ) ;
+
+
+  if ( ( flags & SG_NONORTHO ) )
+  {
+    for ( i = 0 ; i < getNumNormals() ; i++ )
+      sgNormaliseVec3 ( normals->get(i) ) ;
+  }
+
 
   recalcBSphere () ;
 }
@@ -427,32 +489,41 @@ void ssgVtxTable::pick ( int baseName )
 
 void ssgVtxTable::draw_geometry ()
 {
+  int num_vertices  = getNumVertices  () ;
   int num_colours   = getNumColours   () ;
   int num_normals   = getNumNormals   () ;
-  int num_vertices  = getNumVertices  () ;
   int num_texcoords = getNumTexCoords () ;
 
-  sgVec3 *vx = (sgVec3 *) vertices  -> get(0) ;
-  sgVec3 *nm = (sgVec3 *) normals   -> get(0) ;
-  sgVec2 *tx = (sgVec2 *) texcoords -> get(0) ;
-  sgVec4 *cl = (sgVec4 *) colours   -> get(0) ;
-
-  glBegin ( gltype ) ;
-
   if ( num_colours == 0 ) glColor4f   ( 1.0f, 1.0f, 1.0f, 1.0f ) ;
-  if ( num_colours == 1 ) glColor4fv  ( cl [ 0 ] ) ;
-  if ( num_normals == 1 ) glNormal3fv ( nm [ 0 ] ) ;
+  if ( num_colours == 1 ) glColor4fv  ( colours -> get(0) ) ;
+  if ( num_normals == 1 ) glNormal3fv ( normals -> get(0) ) ;
   
-  for ( int i = 0 ; i < num_vertices ; i++ )
-  {
-    if ( num_colours   > 1 ) glColor4fv    ( cl [ i ] ) ;
-    if ( num_normals   > 1 ) glNormal3fv   ( nm [ i ] ) ;
-    if ( num_texcoords > 1 ) glTexCoord2fv ( tx [ i ] ) ;
+  glPushClientAttrib ( GL_CLIENT_VERTEX_ARRAY_BIT ) ;
 
-    glVertex3fv ( vx [ i ] ) ;
+  if ( num_colours > 1 )
+  {
+    glEnableClientState ( GL_COLOR_ARRAY ) ;
+    glColorPointer ( 4, GL_FLOAT, 0, colours->get(0) ) ;
   }
- 
-  glEnd () ;
+
+  if ( num_normals > 1 )
+  {
+    glEnableClientState ( GL_NORMAL_ARRAY ) ;
+    glNormalPointer ( GL_FLOAT, 0, normals->get(0) ) ;
+  }
+
+  if ( num_texcoords > 1 )
+  {
+    glEnableClientState ( GL_TEXTURE_COORD_ARRAY ) ;
+    glTexCoordPointer ( 2, GL_FLOAT, 0, texcoords->get(0) ) ;
+  }
+
+  glEnableClientState ( GL_VERTEX_ARRAY ) ;
+  glVertexPointer ( 3, GL_FLOAT, 0, vertices->get(0) ) ;
+
+  glDrawArrays ( gltype, 0, num_vertices ) ;
+
+  glPopClientAttrib () ;
 }
 
 
@@ -497,20 +568,20 @@ void ssgVtxTable::hot_triangles ( sgVec3 s, sgMat4 m, int /* test_needed */ )
         continue ;
 
       /* Find the point vertically below the text point
-	as it crosses the plane of the polygon */
+      as it crosses the plane of the polygon */
 
       float z = sgHeightOfPlaneVec2 ( plane, s ) ;
 
       /* No HOT from below the triangle */
 
       if ( z > s[2] )
-	continue ;
+         continue ;
 
       /* Outside the vertical extent of the triangle? */
 
       if ( ( z < vv1[2] && z < vv2[2] && z < vv3[2] ) ||
-	   ( z > vv1[2] && z > vv2[2] && z > vv3[2] ) )
-	continue ;
+         ( z > vv1[2] && z > vv2[2] && z > vv3[2] ) )
+         continue ;
     }
 
     /*
@@ -534,6 +605,72 @@ void ssgVtxTable::hot_triangles ( sgVec3 s, sgMat4 m, int /* test_needed */ )
     if ( ai > ap * 1.01 )
       continue ;
 
+    _ssgAddHit ( this, i, m, plane ) ;
+  }
+}
+
+void ssgVtxTable::los_triangles ( sgVec3 s, sgMat4 m, int /* test_needed */ )
+{
+  int nt = getNumTriangles () ;
+
+  stats_los_triangles += nt ;
+
+  for ( int i = 0 ; i < nt ; i++ )
+  {
+    short   v1,  v2,  v3 ;
+    sgVec3 vv1, vv2, vv3 ;
+    sgVec4 plane ;
+
+    SGfloat edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
+    SGfloat det,inv_det;
+    SGfloat /*t,*/u,v;
+
+    getTriangle ( i, &v1, &v2, &v3 ) ;
+
+    sgXformPnt3 ( vv1, getVertex(v1), m ) ;
+    sgXformPnt3 ( vv2, getVertex(v2), m ) ;
+    sgXformPnt3 ( vv3, getVertex(v3), m ) ;
+    sgVec3 cam;
+    cam[0] = m[0][3];
+    cam[1] = m[1][3];
+    cam[2] = m[2][3];
+    //if ( _ssgIsLosTest )
+    //{
+
+      /* find vectors for two edges sharing vert0 */
+      sgSubVec3(edge1, vv2, vv1);
+      sgSubVec3(edge2, vv3, vv1);
+
+      /* begin calculating determinant - also used to calculate U parameter */
+      sgVectorProductVec3(pvec, s, edge2);
+
+      /* if determinant is near zero, ray lies in plane of triangle */
+      det = sgScalarProductVec3(edge1, pvec);
+
+      if (det > -0.0000001 && det < 0.0000001) continue;
+      inv_det = (float)1.0 / det;
+
+      /* calculate distance from vert0 to ray origin */
+      sgSubVec3(tvec, cam, vv1);
+
+      /* calculate U parameter and test bounds */
+      u = sgScalarProductVec3(tvec, pvec) * inv_det;
+      if (u < 0.0 || u > 1.0)
+         continue;
+
+      /* prepare to test V parameter */
+      sgVectorProductVec3(qvec, tvec, edge1);
+
+      /* calculate V parameter and test bounds */
+      v = sgScalarProductVec3(s, qvec) * inv_det;
+      if (v < 0.0 || u + v > 1.0)
+         continue;
+
+      /* calculate t, ray intersects triangle */
+      //t = sgScalarProductVec3(edge2, qvec) * inv_det;
+    //}
+
+    sgMakePlane ( plane, vv1, vv2, vv3 ) ;
     _ssgAddHit ( this, i, m, plane ) ;
   }
 }
@@ -663,10 +800,25 @@ void ssgVtxTable::print ( FILE *fd, char *indent, int how_much )
 	
   ssgLeaf  ::print ( fd, indent, how_much ) ;
 		
-  vertices  -> print ( fd, in, how_much ) ;
-  normals   -> print ( fd, in, how_much ) ;
-  texcoords -> print ( fd, in, how_much ) ;
-  colours   -> print ( fd, in, how_much ) ;
+  if ( vertices == NULL )
+    fprintf ( fd, "%s  No Vertices!\n", indent ) ;
+  else
+    vertices  -> print ( fd, in, how_much ) ;
+
+  if ( normals == NULL )
+    fprintf ( fd, "%s  No Normals!\n", indent ) ;
+  else
+    normals   -> print ( fd, in, how_much ) ;
+
+  if ( texcoords == NULL )
+    fprintf ( fd, "%s  No Texcoords!\n", indent ) ;
+  else
+    texcoords -> print ( fd, in, how_much ) ;
+
+  if ( colours == NULL )
+    fprintf ( fd, "%s  No Colours!\n", indent ) ;
+  else
+    colours   -> print ( fd, in, how_much ) ;
 }
 
 
