@@ -2,8 +2,19 @@
 PLIB Change Log.
 ================
 
+PLIB v1.1.8  (Jan 23rd 2000)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Added ssgContext.  This makes it a lot easier
+    to write programs that need to render multiple
+    eyepoints in quick succession.
+
+  * Added functionality to ssgVtxTable to enable
+    applications to construct a vertex table and
+    then add the vertex arrays instead of doing
+    it all in one step.
+
 PLIB v1.1.7  (Jan 20th 2000)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * Ooops!  1.1.6 accidentally went out set up to
     REQUIRE the 'freeglut' library instead of the
     original GLUT.  That's fixed now - it'll pick

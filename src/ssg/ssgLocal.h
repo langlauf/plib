@@ -16,18 +16,13 @@
 extern void (*__ssgEnableTable[64])() ;
 extern void (*__ssgDisableTable[64])() ;
 
-extern int    _ssgOrthographic ;
+extern char  *_ssgModelPath ;
+extern char  *_ssgTexturePath ;
+
 extern sgMat4 _ssgOpenGLAxisSwapMatrix ;
-extern int    _ssgCurrentCullFace ;
-extern int    _ssgOverrideTexture  ;
-extern int    _ssgOverrideCullface ;
 extern int    _ssgIsHotTest ;
-extern void   _ssgForceLineState () ;
 
-extern char *_ssgModelPath ;
-extern char *_ssgTexturePath ;
-
-void _ssgInitState () ;
+void _ssgForceLineState () ;
 
 void _ssgDrawDList () ;
 void _ssgPushMatrix ( sgMat4 m ) ;

@@ -9,8 +9,8 @@
   going on to save my poor aching fingers.
 */
 
-#define E0  { if ( ! _ssgOverrideTexture ) glEnable ( GL_TEXTURE_2D ) ; }
-#define E1  { if ( ! _ssgOverrideCullface) glEnable ( GL_CULL_FACE  ) ; }
+#define E0  { if ( ! _ssgCurrentContext->textureOverridden ()) glEnable ( GL_TEXTURE_2D ) ; }
+#define E1  { if ( ! _ssgCurrentContext->cullfaceOverridden()) glEnable ( GL_CULL_FACE  ) ; }
 #define E2  glEnable ( GL_COLOR_MATERIAL  ) ;
 #define E3  glEnable ( GL_BLEND           ) ;
 #define E4  glEnable ( GL_ALPHA_TEST      ) ;

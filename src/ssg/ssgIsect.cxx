@@ -7,6 +7,8 @@ static int next_hit = 0 ;
 static ssgEntity *pathlist [ SSG_MAXPATH ] ;
 static int next_path = 0 ;
 
+int _ssgIsHotTest = FALSE ;
+
 void _ssgPushPath ( ssgEntity *e )
 {
   if ( next_path + 1 >= SSG_MAXPATH )

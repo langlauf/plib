@@ -1,45 +1,15 @@
 
 #include "ssgLocal.h"
 
-static ssgSimpleState *ssgCurrentState = NULL ;
-static ssgSimpleState *ssgBasicState   = NULL ;
-
-void _ssgInitState ()
-{
-  ssgCurrentState = new ssgSimpleState ( 1 ) ;
-  ssgBasicState   = new ssgSimpleState ( 0 ) ;
-  ssgCurrentState -> force () ;
-
-  ssgBasicState -> dont_care      = 0 ;
-  ssgBasicState -> texture_handle = 0 ;
-  ssgBasicState -> colour_material_mode = GL_AMBIENT_AND_DIFFUSE ;
-  sgSetVec4 ( ssgBasicState -> specular_colour, 1.0f, 1.0f, 1.0f, 1.0f ) ;
-  sgSetVec4 ( ssgBasicState -> emission_colour, 0.0f, 0.0f, 0.0f, 1.0f ) ;
-  sgSetVec4 ( ssgBasicState ->  ambient_colour, 1.0f, 1.0f, 1.0f, 1.0f ) ;
-  sgSetVec4 ( ssgBasicState ->  diffuse_colour, 1.0f, 1.0f, 1.0f, 1.0f ) ;
-  ssgBasicState -> shade_model = GL_SMOOTH ;
-  ssgBasicState -> shininess   = 0.0f ;
-  ssgBasicState -> alpha_clamp = 0.01f ;
-}
-
-
 void _ssgForceLineState ()
 {
-  ssgCurrentState->enables &= ~((1<<SSG_GL_TEXTURE_EN) |
+  _ssgCurrentContext->getState()->enables &= ~((1<<SSG_GL_TEXTURE_EN) |
                                 (1<<SSG_GL_LIGHTING_EN)|
                                 (1<<SSG_GL_COLOR_MATERIAL_EN)) ;
   glDisable ( GL_TEXTURE_2D ) ;
   glDisable ( GL_COLOR_MATERIAL ) ;
   glDisable ( GL_LIGHTING  ) ;
   glDisable ( GL_DEPTH_TEST ) ;
-}
-
-void ssgForceBasicState ()
-{
-  if ( ssgBasicState == NULL )
-    _ssgInitState () ;
-
-  ssgBasicState -> force () ;
 }
 
 
@@ -78,64 +48,64 @@ void ssgSimpleState::apply (void)
     int switched_modes = FALSE ;
 
     if ( ~ dont_care & (1<<SSG_GL_COLOR_MATERIAL ) &&
-      ssgCurrentState -> colour_material_mode != colour_material_mode )
+      _ssgCurrentContext->getState()->colour_material_mode != colour_material_mode )
     {
       glColorMaterial ( GL_FRONT_AND_BACK, (GLenum) colour_material_mode ) ;
-      ssgCurrentState -> colour_material_mode = colour_material_mode ;
+      _ssgCurrentContext->getState()->colour_material_mode = colour_material_mode ;
       switched_modes = TRUE ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_SHININESS) ) &&
-      ssgCurrentState -> shininess != shininess )
+      _ssgCurrentContext->getState()->shininess != shininess )
     {
       glMaterialf ( GL_FRONT_AND_BACK, GL_SHININESS, shininess ) ;
-      ssgCurrentState -> shininess = shininess ;
+      _ssgCurrentContext->getState()->shininess = shininess ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_SPECULAR) ) &&
       ( switched_modes ||
-        ! sgEqualVec3 ( ssgCurrentState -> specular_colour, specular_colour ) ) )
+        ! sgEqualVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_SPECULAR, specular_colour ) ;
-      sgCopyVec3 ( ssgCurrentState -> specular_colour, specular_colour ) ;
+      sgCopyVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_EMISSION) ) &&
       ( switched_modes ||
-      ! sgEqualVec3 ( ssgCurrentState -> emission_colour, emission_colour ) ) )
+      ! sgEqualVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_EMISSION, emission_colour ) ;
-      sgCopyVec3 ( ssgCurrentState -> emission_colour, emission_colour ) ;
+      sgCopyVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_AMBIENT) ) &&
       ( switched_modes ||
-      ! sgEqualVec3 ( ssgCurrentState -> ambient_colour, ambient_colour ) ) )
+      ! sgEqualVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_AMBIENT, ambient_colour ) ;
-      sgCopyVec3 ( ssgCurrentState -> ambient_colour, ambient_colour ) ;
+      sgCopyVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ;
     }
 
     if ( ( ~ dont_care & (1<<SSG_GL_DIFFUSE) ) &&
       ( switched_modes ||
-      ! sgEqualVec4 ( ssgCurrentState -> diffuse_colour, diffuse_colour ) ) )
+      ! sgEqualVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_colour ) ;
-      sgCopyVec4 ( ssgCurrentState -> diffuse_colour, diffuse_colour ) ;
+      sgCopyVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ;
     }
   }
 
-  int turn_on  = ~dont_care &  enables & ~ssgCurrentState->enables & 0x3F ;
-  int turn_off = ~dont_care & ~enables &  ssgCurrentState->enables & 0x3F ;
+  int turn_on  = ~dont_care &  enables & ~_ssgCurrentContext->getState()->enables & 0x3F ;
+  int turn_off = ~dont_care & ~enables &  _ssgCurrentContext->getState()->enables & 0x3F ;
 
   (*(__ssgEnableTable [turn_on ]))() ;
   (*(__ssgDisableTable[turn_off]))() ;
 
-  ssgCurrentState -> enables |=  turn_on  ;
-  ssgCurrentState -> enables &= ~turn_off ;
+  _ssgCurrentContext->getState()->enables |=  turn_on  ;
+  _ssgCurrentContext->getState()->enables &= ~turn_off ;
 
   if ( ( ~ dont_care & (1<<SSG_GL_TEXTURE) ) && 
-    ssgCurrentState -> texture_handle != texture_handle )
+    _ssgCurrentContext->getState()->texture_handle != texture_handle )
   {
     stats_bind_textures++ ;
 #ifdef GL_VERSION_1_1
@@ -144,21 +114,21 @@ void ssgSimpleState::apply (void)
     /* For ancient SGI machines */
     glBindTextureEXT ( GL_TEXTURE_2D, texture_handle ) ;
 #endif
-    ssgCurrentState -> texture_handle = texture_handle ;
+    _ssgCurrentContext->getState()->texture_handle = texture_handle ;
   }
 
   if ( ( ~ dont_care & (1<<SSG_GL_SHADE_MODEL) ) &&
-    ssgCurrentState -> shade_model != shade_model )
+    _ssgCurrentContext->getState()->shade_model != shade_model )
   {
     glShadeModel ( shade_model ) ;
-    ssgCurrentState -> shade_model = shade_model ;
+    _ssgCurrentContext->getState()->shade_model = shade_model ;
   }
 
   if ( ( ~ dont_care & (1<<SSG_GL_ALPHA_TEST) ) &&
-    ssgCurrentState -> alpha_clamp != alpha_clamp )
+    _ssgCurrentContext->getState()->alpha_clamp != alpha_clamp )
   {
     glAlphaFunc ( GL_GREATER, alpha_clamp ) ;
-    ssgCurrentState -> alpha_clamp = alpha_clamp ;
+    _ssgCurrentContext->getState()->alpha_clamp = alpha_clamp ;
   }
 }
 
@@ -166,15 +136,15 @@ void ssgSimpleState::force (void)
 {
 /*
   glMaterialf ( GL_FRONT_AND_BACK, GL_SHININESS, shininess ) ;
-  ssgCurrentState -> shininess = shininess ;
+  _ssgCurrentContext->getState()->shininess = shininess ;
   glMaterialfv ( GL_FRONT_AND_BACK, GL_SPECULAR, specular_colour ) ;
-  sgCopyVec3 ( ssgCurrentState -> specular_colour, specular_colour ) ;
+  sgCopyVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ;
   glMaterialfv ( GL_FRONT_AND_BACK, GL_EMISSION, emission_colour ) ;
-  sgCopyVec3 ( ssgCurrentState -> emission_colour, emission_colour ) ;
+  sgCopyVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ;
   glMaterialfv ( GL_FRONT_AND_BACK, GL_AMBIENT, ambient_colour ) ;
-  sgCopyVec3 ( ssgCurrentState -> ambient_colour, ambient_colour ) ;
+  sgCopyVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ;
   glMaterialfv ( GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_colour ) ;
-  sgCopyVec4 ( ssgCurrentState -> diffuse_colour, diffuse_colour ) ;
+  sgCopyVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ;
 */
   if ( ~ dont_care & ( (1<<SSG_GL_COLOR_MATERIAL ) |
                        (1<<SSG_GL_DIFFUSE        ) |
@@ -186,37 +156,37 @@ void ssgSimpleState::force (void)
     if ( ~ dont_care & (1<<SSG_GL_COLOR_MATERIAL ) )
     {
       glColorMaterial ( GL_FRONT_AND_BACK, (GLenum) colour_material_mode ) ;
-      ssgCurrentState -> colour_material_mode = colour_material_mode ;
+      _ssgCurrentContext->getState()->colour_material_mode = colour_material_mode ;
     }
 
     if ( ~ dont_care & (1<<SSG_GL_SHININESS ) )
     {
       glMaterialf ( GL_FRONT_AND_BACK, GL_SHININESS, shininess ) ;
-      ssgCurrentState -> shininess = shininess ;
+      _ssgCurrentContext->getState()->shininess = shininess ;
     }
 
     if ( ~ dont_care & (1<<SSG_GL_DIFFUSE ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_colour ) ;
-      sgCopyVec4 ( ssgCurrentState -> diffuse_colour, diffuse_colour ) ;
+      sgCopyVec4 ( _ssgCurrentContext->getState()->diffuse_colour, diffuse_colour ) ;
     }
 
     if ( ~ dont_care & (1<<SSG_GL_EMISSION ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_EMISSION, emission_colour ) ;
-      sgCopyVec3 ( ssgCurrentState -> emission_colour, emission_colour ) ;
+      sgCopyVec3 ( _ssgCurrentContext->getState()->emission_colour, emission_colour ) ;
     }
 
     if ( ~ dont_care & (1<<SSG_GL_AMBIENT ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_AMBIENT, ambient_colour ) ;
-      sgCopyVec3 ( ssgCurrentState -> ambient_colour, ambient_colour ) ;
+      sgCopyVec3 ( _ssgCurrentContext->getState()->ambient_colour, ambient_colour ) ;
     }
 
     if ( ~ dont_care & (1<<SSG_GL_SPECULAR ) )
     {
       glMaterialfv ( GL_FRONT_AND_BACK, GL_SPECULAR, specular_colour ) ;
-      sgCopyVec3 ( ssgCurrentState -> specular_colour, specular_colour ) ;
+      sgCopyVec3 ( _ssgCurrentContext->getState()->specular_colour, specular_colour ) ;
     }
   }
 
@@ -226,8 +196,8 @@ void ssgSimpleState::force (void)
   (*(__ssgEnableTable [turn_on ]))() ;
   (*(__ssgDisableTable[turn_off]))() ;
 
-  ssgCurrentState -> enables |=  turn_on  ;
-  ssgCurrentState -> enables &= ~turn_off ;
+  _ssgCurrentContext->getState()->enables |=  turn_on  ;
+  _ssgCurrentContext->getState()->enables &= ~turn_off ;
 
   if ( ~ dont_care & (1<<SSG_GL_TEXTURE ) )
   {
@@ -238,19 +208,19 @@ void ssgSimpleState::force (void)
     /* For ancient SGI machines */
     glBindTextureEXT ( GL_TEXTURE_2D, texture_handle ) ;
 #endif
-    ssgCurrentState -> texture_handle = texture_handle ;
+    _ssgCurrentContext->getState()->texture_handle = texture_handle ;
   }
 
   if ( ~ dont_care & (1<<SSG_GL_SHADE_MODEL ) )
   {
     glShadeModel ( shade_model ) ;
-    ssgCurrentState -> shade_model = shade_model ;
+    _ssgCurrentContext->getState()->shade_model = shade_model ;
   }
 
   if ( ~ dont_care & (1<<SSG_GL_ALPHA_TEST ) )
   {
     glAlphaFunc ( GL_GREATER, alpha_clamp ) ;
-    ssgCurrentState -> alpha_clamp = alpha_clamp ;
+    _ssgCurrentContext->getState()->alpha_clamp = alpha_clamp ;
   }
 }
 

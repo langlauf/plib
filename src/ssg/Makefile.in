@@ -70,7 +70,7 @@ lib_LIBRARIES = libplibssg.a
 
 include_HEADERS = ssg.h ssgKeyFlier.h
 
-libplibssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx 	ssgBaseTransform.cxx ssgBranch.cxx ssgCutout.cxx ssgDList.cxx 	ssgEntity.cxx ssgIsect.cxx ssgLeaf.cxx ssgList.cxx 	ssgLoadAC.cxx ssgLocal.h ssgOptimiser.cxx ssgRoot.cxx ssgSaveAC.cxx 	ssgSelector.cxx ssgSimpleState.cxx ssgState.cxx ssgStateTables.cxx 	ssgStats.cxx  ssgTexTrans.cxx ssgTexture.cxx ssgTransform.cxx 	ssgStateSelector.cxx ssgRangeSelector.cxx ssgImageLoader.cxx         ssgInvisible.cxx ssgLoadSSG.cxx ssgLoadVRML.cxx ssgVTable.cxx         ssgSimpleList.cxx ssgVtxTable.cxx ssgIO.cxx ssgLoad3ds.cxx
+libplibssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx 	ssgBaseTransform.cxx ssgBranch.cxx ssgContext.cxx ssgCutout.cxx 	ssgDList.cxx ssgEntity.cxx ssgIsect.cxx ssgLeaf.cxx ssgList.cxx 	ssgLoadAC.cxx ssgLocal.h ssgOptimiser.cxx ssgRoot.cxx ssgSaveAC.cxx 	ssgSelector.cxx ssgSimpleState.cxx ssgState.cxx ssgStateTables.cxx 	ssgStats.cxx  ssgTexTrans.cxx ssgTexture.cxx ssgTransform.cxx 	ssgStateSelector.cxx ssgRangeSelector.cxx ssgImageLoader.cxx         ssgInvisible.cxx ssgLoadSSG.cxx ssgLoadVRML.cxx ssgVTable.cxx         ssgSimpleList.cxx ssgVtxTable.cxx ssgIO.cxx ssgLoad3ds.cxx
 
 
 INCLUDES =  -I$(top_srcdir)/src/sg
@@ -91,13 +91,13 @@ X_EXTRA_LIBS = @X_EXTRA_LIBS@
 X_PRE_LIBS = @X_PRE_LIBS@
 libplibssg_a_LIBADD = 
 libplibssg_a_OBJECTS =  ssg.o ssgAnimation.o ssgBase.o \
-ssgBaseTransform.o ssgBranch.o ssgCutout.o ssgDList.o ssgEntity.o \
-ssgIsect.o ssgLeaf.o ssgList.o ssgLoadAC.o ssgOptimiser.o ssgRoot.o \
-ssgSaveAC.o ssgSelector.o ssgSimpleState.o ssgState.o ssgStateTables.o \
-ssgStats.o ssgTexTrans.o ssgTexture.o ssgTransform.o ssgStateSelector.o \
-ssgRangeSelector.o ssgImageLoader.o ssgInvisible.o ssgLoadSSG.o \
-ssgLoadVRML.o ssgVTable.o ssgSimpleList.o ssgVtxTable.o ssgIO.o \
-ssgLoad3ds.o
+ssgBaseTransform.o ssgBranch.o ssgContext.o ssgCutout.o ssgDList.o \
+ssgEntity.o ssgIsect.o ssgLeaf.o ssgList.o ssgLoadAC.o ssgOptimiser.o \
+ssgRoot.o ssgSaveAC.o ssgSelector.o ssgSimpleState.o ssgState.o \
+ssgStateTables.o ssgStats.o ssgTexTrans.o ssgTexture.o ssgTransform.o \
+ssgStateSelector.o ssgRangeSelector.o ssgImageLoader.o ssgInvisible.o \
+ssgLoadSSG.o ssgLoadVRML.o ssgVTable.o ssgSimpleList.o ssgVtxTable.o \
+ssgIO.o ssgLoad3ds.o
 AR = ar
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -253,6 +253,7 @@ ssgBase.o: ssgBase.cxx ssgLocal.h ssg.h ../../src/sg/sg.h
 ssgBaseTransform.o: ssgBaseTransform.cxx ssgLocal.h ssg.h \
 	../../src/sg/sg.h
 ssgBranch.o: ssgBranch.cxx ssgLocal.h ssg.h ../../src/sg/sg.h
+ssgContext.o: ssgContext.cxx ssgLocal.h ssg.h ../../src/sg/sg.h
 ssgCutout.o: ssgCutout.cxx ssgLocal.h ssg.h ../../src/sg/sg.h
 ssgDList.o: ssgDList.cxx ssgLocal.h ssg.h ../../src/sg/sg.h
 ssgEntity.o: ssgEntity.cxx ssgLocal.h ssg.h ../../src/sg/sg.h

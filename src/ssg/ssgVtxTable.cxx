@@ -36,6 +36,43 @@ ssgVtxTable::ssgVtxTable ( GLenum ty,
   recalcBSphere () ;
 }
 
+void ssgVtxTable::setVertices ( ssgVertexArray *vl )
+{
+  ssgDeRefDelete ( vertices ) ;
+  vertices = vl ;
+
+  if ( vertices != NULL )
+    vertices -> ref () ;
+
+  recalcBSphere () ;
+}
+
+void ssgVtxTable::setNormals ( ssgNormalArray *nl )
+{
+  ssgDeRefDelete ( normals ) ;
+  normals = nl ;
+
+  if ( normals != NULL )
+    normals -> ref () ;
+}
+
+void ssgVtxTable::setTexCoords ( ssgTexCoordArray *tl )
+{
+  ssgDeRefDelete ( texcoords ) ;
+  texcoords = tl ;
+
+  if ( texcoords != NULL )
+    texcoords -> ref () ;
+}
+
+void ssgVtxTable::setColours ( ssgColourArray *cl )
+{
+  ssgDeRefDelete ( colours ) ;
+  colours = cl ;
+
+  if ( colours != NULL )
+    colours -> ref () ;
+}
 
 ssgVtxTable::~ssgVtxTable ()
 {

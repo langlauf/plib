@@ -224,6 +224,7 @@ public:
 } ;
 
 
+
 class ssgSimpleList : public ssgBase
 {
 protected:
@@ -906,6 +907,11 @@ public:
   void setPrimitiveType ( GLenum ty ) { gltype = ty ; }
   GLenum getPrimitiveType () { return gltype ; }
 
+  void setVertices  ( ssgVertexArray   *vl ) ;
+  void setNormals   ( ssgNormalArray   *nl ) ;
+  void setTexCoords ( ssgTexCoordArray *tl ) ;
+  void setColours   ( ssgColourArray   *cl ) ;
+
   int getNumVertices  () { return vertices  -> getNum () ; }
   int getNumNormals   () { return normals   -> getNum () ; }
   int getNumColours   () { return colours   -> getNum () ; }
@@ -1426,36 +1432,172 @@ public:    /* Yuk!  Need to hide some of this public stuff! */
 } ;
 
 
+class ssgContext
+{
+  ssgSimpleState *currentState ;
+  ssgSimpleState *basicState   ;
+  sgFrustum      *frustum      ;
+
+  int    orthographic         ;
+  sgMat4 cameraMatrix         ;
+  int    cullFace             ;
+  int    ovTexture            ;
+  int    ovCullface           ;
+
+public:
+
+  ssgContext() ;
+  ~ssgContext () ;
+
+  void forceBasicState () { basicState -> force () ; }
+
+  void makeCurrent () ;
+  int  isCurrent () ;
+
+  void overrideTexture   ( int on_off ) ;
+  void overrideCullface  ( int on_off ) ;
+  int  textureOverridden  () { return ovTexture  ; }
+  int  cullfaceOverridden () { return ovCullface ; }
+  void setCullface ( int on_off ) { cullFace = on_off ; }
+  int  cullfaceIsEnabled () { return cullFace ; }
+
+  sgFrustum *getFrustum () { return frustum ; }
+
+  void getNearFar ( float *n, float *f ) ;
+  void getFOV     ( float *w, float *h ) ;
+  void getOrtho   ( float *w, float *h ) ;
+  void setNearFar ( float  n, float  f ) ;
+  void setOrtho   ( float  w, float  h ) ;
+  void setFOV     ( float  w, float  h ) ;
+
+  int  isOrtho () { return orthographic ; }
+
+  ssgSimpleState *getState () { return currentState ; }
+  void cull ( ssgRoot *r ) ;
+
+  void getCameraPosition ( sgVec3 pos ) ;
+  void setCamera ( sgMat4 mat ) ;
+  void setCamera ( sgCoord *coord ) ;
+
+  void loadProjectionMatrix () ;
+  void loadModelviewMatrix  () ;
+
+  void getProjectionMatrix  ( sgMat4 dst ) ;
+  void getModelviewMatrix   ( sgMat4 dst ) ;
+
+  void pushProjectionMatrix () ;
+  void pushProjectionMatrix ( sgFrustum *f ) ;
+  void loadModelviewMatrix  ( sgMat4 mat ) ;
+
+} ;
+
+
+
+/* Compatibility inlines for pre-ssgContext applications */
+
+extern ssgContext *_ssgCurrentContext ;
+
+inline ssgContext *ssgGetCurrentContext () { return _ssgCurrentContext ; }
+
+inline void ssgGetCameraPosition ( sgVec3 pos )
+{
+  _ssgCurrentContext -> getCameraPosition ( pos ) ;
+}
+
+inline void ssgOverrideTexture ( int on_off )
+{
+  _ssgCurrentContext->overrideTexture ( on_off ) ;
+}
+
+inline void ssgOverrideCullface ( int on_off )
+{
+  _ssgCurrentContext->overrideCullface ( on_off ) ;
+}
+
+inline void ssgGetNearFar ( float *n, float *f )
+{
+  _ssgCurrentContext->getNearFar ( n, f ) ;
+}
+
+inline void ssgGetFOV ( float *w, float *h )
+{
+  _ssgCurrentContext->getFOV ( w, h ) ;
+}
+
+inline void ssgGetOrtho ( float *w, float *h )
+{
+  _ssgCurrentContext->getOrtho ( w, h ) ;
+}
+
+inline void ssgSetFOV ( float w, float h )
+{
+  _ssgCurrentContext->setFOV ( w, h ) ;
+}
+
+inline void ssgSetOrtho ( float w, float h )
+{
+  _ssgCurrentContext->setOrtho ( w, h ) ;
+}
+
+inline void ssgSetNearFar ( float n, float f )
+{
+  _ssgCurrentContext->setNearFar ( n, f ) ;
+}
+
+inline void ssgSetCamera ( sgMat4 mat )
+{
+  _ssgCurrentContext-> setCamera ( mat ) ;
+}
+
+inline void ssgSetCamera ( sgCoord *coord )
+{
+  _ssgCurrentContext-> setCamera ( coord ) ;
+}
+
+inline void ssgLoadProjectionMatrix ()
+{
+  _ssgCurrentContext->loadProjectionMatrix () ;
+}
+
+inline void ssgLoadProjectionMatrix ( sgFrustum *f )
+{
+  glLoadIdentity () ;
+  _ssgCurrentContext->pushProjectionMatrix ( f ) ;
+}
+
+inline void ssgGetProjectionMatrix ( sgMat4 dst )
+{
+  _ssgCurrentContext->getProjectionMatrix ( dst ) ;
+}
+
+inline void ssgGetModelviewMatrix ( sgMat4 dst )
+{
+  _ssgCurrentContext->getModelviewMatrix ( dst ) ;
+}
+
+inline void ssgLoadModelviewMatrix ()
+{
+  _ssgCurrentContext->loadModelviewMatrix () ;
+}
+
+inline void ssgLoadModelviewMatrix ( sgMat4 mat )
+{
+  _ssgCurrentContext->loadModelviewMatrix ( mat ) ;
+}
+
+inline void ssgForceBasicState ()
+{
+  _ssgCurrentContext -> forceBasicState () ;
+}
+
+
 void ssgInit () ;
-
-void ssgSetOrtho    ( float  w, float  h ) ;
-void ssgGetOrtho    ( float *w, float *h ) ;
-
-void ssgSetFOV      ( float  w, float  h ) ;
-void ssgSetNearFar  ( float  n, float  f ) ;
-
-void ssgGetFOV      ( float *w, float *h ) ;
-void ssgGetNearFar  ( float *n, float *f ) ;
-
-void ssgGetProjectionMatrix ( sgMat4 dst ) ;
-void ssgGetModelviewMatrix  ( sgMat4 dst ) ;
-
-void ssgLoadProjectionMatrix () ;
-void ssgLoadProjectionMatrix ( sgFrustum *f ) ;
-
-void ssgLoadModelviewMatrix  () ;
-void ssgLoadModelviewMatrix  ( sgMat4 m ) ;
-
-void ssgSetCamera   ( sgCoord *coord ) ;
-void ssgSetCamera   ( sgMat4 m ) ;
 
 void ssgCullAndDraw ( ssgRoot *root ) ;
 void ssgCullAndPick ( ssgRoot *root, sgVec2 botleft, sgVec2 topright ) ;
-void ssgForceBasicState () ;
 int  ssgIsect       ( ssgRoot *root, sgSphere *s, sgMat4 m, ssgHit **results ) ;
 int  ssgHOT         ( ssgRoot *root, sgVec3    s, sgMat4 m, ssgHit **results ) ;
 int  ssgLOS         ( ssgRoot *root, sgVec3    s, sgMat4 m, ssgHit **results ) ;
-void ssgGetCameraPosition ( sgVec3 pos ) ;
 
 typedef ssgBranch *(*ssgHookFunc)(char *) ;
 
@@ -1476,17 +1618,10 @@ void ssgTexturePath ( char *path ) ;
 
 ssgLight *ssgGetLight ( int i ) ;
 
-int ssgGetNumTexelsLoaded () ;
-
-void ssgOverrideTexture  ( int on_off ) ;
-void ssgOverrideCullface ( int on_off ) ;
-
-void ssgSetAppStateCallback ( ssgState *(*cb)(char *) ) ;
-
+int   ssgGetNumTexelsLoaded () ;
+void  ssgSetAppStateCallback ( ssgState *(*cb)(char *) ) ;
 char *ssgShowStats () ;
-
-void ssgDelete ( ssgBranch *br ) ;
-
+void  ssgDelete ( ssgBranch *br ) ;
 char *ssgGetVersion () ;
 
 #endif
