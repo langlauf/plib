@@ -3,46 +3,51 @@
 #define _INCLUDED_SSGPARSER_H_
 
 
-//*********** base types
-#define u8  unsigned char
-#define u16 unsigned short
-#define u32 unsigned int
-#define s16 short
-#define s32 int
-#define f32 float
-#define f64 double
-#define cchar const char
-//*********** base types
+struct _ssgParserSpec
+{
+  const char* delim_chars ;
+  const char* open_brace_chars ;
+  const char* close_brace_chars ;
+  char quote_char ;
+  char comment_char ;
+} ;
 
 
 class _ssgParser
 {
-  char path[ 256 ];
-  FILE* ptr;
-  int linenum;
-  char linebuf[ 256 ];
-  char tokbuf[ 256 ];
-  char* tokptr;
+  enum { MAX_TOKENS = 32 } ;
+
+  char path[ 256 ] ;
+  _ssgParserSpec spec ;
+  FILE* fileptr ;
+
+  int linenum ;
+  char linebuf[ 256 ] ;
+
+  char tokbuf[ 256 ] ;
+  char* tokptr[ MAX_TOKENS ] ;
+  int numtok ;
+  int curtok ;
   
 public :
 
   int level;
 
-  void openFile( cchar* fname );
+  void openFile( const char* fname, const _ssgParserSpec* spec = 0 );
   void closeFile();
 
-  char* getLine( s32 startLevel=0 );
+  char* getLine( int startLevel=0 );
 
-  char* parseToken( cchar* name );
-  f32 parseFloat( cchar* name );
-  s32 parseInt( cchar* name );
-  char* parseString( cchar* name );
+  char* parseToken( const char* name );
+  SGfloat parseFloat( const char* name );
+  int parseInt( const char* name );
+  char* parseString( const char* name );
   
-  void expect( cchar* name );
+  void expect( const char* name );
   
-  void error( cchar *format, ... );
-  void message( cchar *format, ... );
-};
+  void error( const char *format, ... );
+  void message( const char *format, ... );
+} ;
 
 
 #endif

@@ -208,7 +208,7 @@ void _ssgWriteMat4 ( FILE *fd, const sgMat4 var ) { _ssgWriteFloat ( fd, 16, (fl
   offering:
 */
 
-int _ssgStrNEqual ( char *s1, char *s2, int len )
+int _ssgStrNEqual ( const char *s1, const char *s2, int len )
 {
   int l1 = (s1==NULL) ? 0 : strlen ( s1 ) ;
   int l2 = (s2==NULL) ? 0 : strlen ( s2 ) ;
@@ -226,7 +226,6 @@ int _ssgStrNEqual ( char *s1, char *s2, int len )
     if ( c1 == c2 )
      continue ;
 
-    if ( c1 >= 'a' && c1 <= 'z' )
     if ( c1 >= 'a' && c1 <= 'z' )
       c1 = c1 - ('a'-'A') ;
 
@@ -247,20 +246,19 @@ void ssgSetAppStateCallback ( ssgState *(*cb)(char *) )
   _ssgGetAppState = cb ;
 }
 
-
 enum { MAX_SHARED_TEXTURES = 100, MAX_SHARED_STATES = 1000 };
 static ssgTexture* shared_textures [ MAX_SHARED_TEXTURES ] ;
 static ssgSimpleState* shared_states [ MAX_SHARED_STATES ] ;
 static int num_shared_textures = 0 ;
 static int num_shared_states = 0 ;
 
-void _ssgShareReset ()
+static void _ssgShareReset ()
 {
    num_shared_textures = 0 ;
    num_shared_states = 0 ;
 }
 
-GLuint _ssgShareTexture ( char* tfname )
+static GLuint _ssgShareTexture ( char* tfname )
 {
   if ( tfname == NULL || tfname[0] == 0 )
      return 0 ;
@@ -280,7 +278,7 @@ GLuint _ssgShareTexture ( char* tfname )
   return 0 ;
 }
 
-ssgSimpleState* _ssgShareState ( ssgSimpleState* st )
+static ssgSimpleState* _ssgShareState ( ssgSimpleState* st )
 {
   if ( st == NULL )
      return NULL ;
@@ -335,11 +333,14 @@ ssgSimpleState* _ssgShareState ( ssgSimpleState* st )
 ssgCreateData::ssgCreateData ()
 {
   parentName = NULL ;
+
   gltype = GL_TRIANGLES ;
   vl = NULL ;
   nl = NULL ;
   tl = NULL ;
   cl = NULL ;
+  il = NULL ;
+
   st = NULL ;
   tfname = NULL ;
   cull_face = TRUE ;
@@ -352,22 +353,28 @@ ssgCreateData::~ssgCreateData ()
   delete nl ;
   delete tl ;
   delete cl ;
+  delete il ;
   delete st ;
   delete tfname ;
 }
 
-ssgLeaf* _ssgCreateFunc ( ssgCreateData* data )
+static ssgLeaf* default_createfunc ( ssgCreateData* data )
 {
   ssgState *st = NULL ;
   ssgVtxTable *vtab = 0 ;
 
   if ( data )
   {
-    vtab = new ssgVtxTable ( data->gltype,
-      data->vl, data->nl, data->tl, data->cl ) ;
+    if ( data -> il != NULL )
+      vtab = new ssgVtxArray ( data->gltype,
+        data->vl, data->nl, data->tl, data->cl, data->il ) ;
+    else
+      vtab = new ssgVtxTable ( data->gltype,
+        data->vl, data->nl, data->tl, data->cl ) ;
+
     vtab -> setCullFace ( data -> cull_face ) ;
 
-    //an old hack
+    /* do we have a global AppState function? */
     if ( _ssgGetAppState != NULL &&
          data -> tfname != NULL && data -> tfname[0] != 0 )
     {
@@ -397,17 +404,14 @@ ssgLeaf* _ssgCreateFunc ( ssgCreateData* data )
       }
       else
         data -> st -> disable ( GL_TEXTURE_2D ) ;
- 
-/*
-This allows the code to run...but
-screws up the 'sharing' code.
-Dunno what's wrong with it.
-*/
 
-      /* Replaced this... */
-      /* st = _ssgShareState ( data -> st ) ; */
-      /* With this... */
+      // DaveM 10-Sept-2000: re-enabled state sharing
+      // let me know if it breaks any applications
+#if 1
+      st = _ssgShareState ( data -> st ) ;
+#else
       st = data -> st ;
+#endif
     }
 
     vtab -> setState ( st ) ;
@@ -421,14 +425,21 @@ Dunno what's wrong with it.
 }
 
 
-void ssgModelPath ( char *s )
+ssgLeaf *(*_ssgCreateFunc)(ssgCreateData *) = default_createfunc ;
+
+void ssgSetCreateFunc ( ssgLeaf *(*cb)(ssgCreateData *) )
+{
+   _ssgCreateFunc = cb ;
+}
+
+void ssgModelPath ( const char *s )
 {
   delete _ssgModelPath ;
   _ssgModelPath = new char [ strlen ( s ) + 1 ] ;
   strcpy ( _ssgModelPath, s ) ;
 }
 
-void ssgTexturePath ( char *s )
+void ssgTexturePath ( const char *s )
 {
   delete _ssgTexturePath ;
   _ssgTexturePath = new char [ strlen ( s ) + 1 ] ;
@@ -436,9 +447,9 @@ void ssgTexturePath ( char *s )
 }
 
 
-static char *file_extension ( char *fname )
+static const char *file_extension ( const char *fname )
 {
-  char *p = & ( fname [ strlen(fname) ] ) ;
+  const char *p = & ( fname [ strlen(fname) ] ) ;
 
   while ( p != fname && *p != '/' && *p != '.' )
     p-- ;
@@ -447,12 +458,12 @@ static char *file_extension ( char *fname )
 }
 
 
-typedef ssgEntity *_ssgLoader ( char *, ssgHookFunc, ssgCreateFunc ) ;
-typedef int         _ssgSaver ( char *, ssgEntity * ) ;
+typedef ssgEntity *_ssgLoader ( const char *, ssgHookFunc ) ;
+typedef int         _ssgSaver ( const char *, ssgEntity * ) ;
 
 struct _ssgFileFormat
 {
-  char *extension ;
+  const char *extension ;
   _ssgLoader *loadfunc ;
   _ssgSaver  *savefunc ;
 } ;
@@ -468,16 +479,17 @@ static _ssgFileFormat formats[] =
   { ".ssg", ssgLoadSSG , ssgSaveSSG },
   { ".tri", ssgLoadTRI , ssgSaveTRI },
   { ".wrl", ssgLoadVRML, NULL       },
+  { ".md2", ssgLoadMD2 , NULL       },
   { NULL  , NULL       , NULL       }
 } ;
 
   
-ssgEntity *ssgLoad ( char *fname, ssgHookFunc hookfunc, ssgCreateFunc createfunc )
+ssgEntity *ssgLoad ( const char *fname, ssgHookFunc hookfunc )
 {
   if ( fname == NULL || *fname == '\0' )
     return NULL ;
 
-  char *extn = file_extension ( fname ) ;
+  const char *extn = file_extension ( fname ) ;
 
   if ( *extn != '.' )
   {
@@ -488,19 +500,19 @@ ssgEntity *ssgLoad ( char *fname, ssgHookFunc hookfunc, ssgCreateFunc createfunc
   for ( _ssgFileFormat *f = formats; f->extension != NULL; f++ )
     if ( f->loadfunc != NULL &&
          _ssgStrNEqual ( extn, f->extension, strlen(f->extension) ) )
-      return f->loadfunc( fname, hookfunc, createfunc ) ;
+      return f->loadfunc( fname, hookfunc ) ;
 
   ulSetError ( UL_WARNING, "ssgLoad: Unrecognised file type '%s'", extn ) ;
   return NULL ;
 }
 
 
-int ssgSave ( char *fname, ssgEntity *ent )
+int ssgSave ( const char *fname, ssgEntity *ent )
 {
   if ( fname == NULL || ent == NULL || *fname == '\0' )
     return FALSE ;
 
-  char *extn = file_extension ( fname ) ;
+  const char *extn = file_extension ( fname ) ;
 
   if ( *extn != '.' )
   {
@@ -551,7 +563,7 @@ char* _ssgMakePath( char* path, const char* dir, const char* fname )
   offering:
 */
 
-int _ssgStrEqual ( char *s1, char *s2 )
+int _ssgStrEqual ( const char *s1, const char *s2 )
 {
   int l1 = (s1==NULL) ? 0 : strlen ( s1 ) ;
   int l2 = (s2==NULL) ? 0 : strlen ( s2 ) ;

@@ -1,11 +1,159 @@
 
-#include "ul.h"
 #include "ssgLocal.h"
 
-/*
-  Original source for BMP loader kindly
-  donated by "Sean L. Palmer" <spalmer@pobox.com>
-*/
+#ifdef _SSG_USE_GLPNG
+#include "glpng.h"
+#endif
+
+static FILE          *curr_image_fd ;
+static char           curr_image_fname [ 512 ] ;
+static int            isSwapped ;
+static unsigned char *rle_temp ;
+static int total_texels_loaded = 0 ;
+
+
+static void loadTextureDummy () ;
+
+
+static void make_mip_maps ( GLubyte *image, int xsize, int ysize, int zsize )
+{
+  if ( ! ((xsize & (xsize-1))==0) ||
+       ! ((ysize & (ysize-1))==0) )
+  {
+    ulSetError ( UL_WARNING, "%s: Map is not a power-of-two in size!", curr_image_fname ) ;
+    loadTextureDummy () ;
+    return ;
+  }
+
+  GLubyte *texels [ 20 ] ;   /* One element per level of MIPmap */
+
+  for ( int l = 0 ; l < 20 ; l++ )
+    texels [ l ] = NULL ;
+
+  texels [ 0 ] = image ;
+
+  int lev ;
+
+  for ( lev = 0 ; (( xsize >> (lev+1) ) != 0 ||
+                   ( ysize >> (lev+1) ) != 0 ) ; lev++ )
+  {
+    /* Suffix '1' is the higher level map, suffix '2' is the lower level. */
+
+    int l1 = lev   ;
+    int l2 = lev+1 ;
+    int w1 = xsize >> l1 ;
+    int h1 = ysize >> l1 ;
+    int w2 = xsize >> l2 ;
+    int h2 = ysize >> l2 ;
+
+    if ( w1 <= 0 ) w1 = 1 ;
+    if ( h1 <= 0 ) h1 = 1 ;
+    if ( w2 <= 0 ) w2 = 1 ;
+    if ( h2 <= 0 ) h2 = 1 ;
+
+    texels [ l2 ] = new GLubyte [ w2 * h2 * zsize ] ;
+
+    for ( int x2 = 0 ; x2 < w2 ; x2++ )
+      for ( int y2 = 0 ; y2 < h2 ; y2++ )
+        for ( int c = 0 ; c < zsize ; c++ )
+        {
+          int x1   = x2 + x2 ;
+          int x1_1 = ( x1 + 1 ) % w1 ;
+          int y1   = y2 + y2 ;
+          int y1_1 = ( y1 + 1 ) % h1 ;
+
+	  int t1 = texels [ l1 ] [ (y1   * w1 + x1  ) * zsize + c ] ;
+	  int t2 = texels [ l1 ] [ (y1_1 * w1 + x1  ) * zsize + c ] ;
+	  int t3 = texels [ l1 ] [ (y1   * w1 + x1_1) * zsize + c ] ;
+	  int t4 = texels [ l1 ] [ (y1_1 * w1 + x1_1) * zsize + c ] ;
+
+          texels [ l2 ] [ (y2 * w2 + x2) * zsize + c ] =
+                                           ( t1 + t2 + t3 + t4 ) / 4 ;
+        }
+  }
+
+  texels [ lev+1 ] = NULL ;
+
+  glPixelStorei ( GL_UNPACK_ALIGNMENT, 1 ) ;
+
+  int map_level = 0 ;
+
+#ifdef PROXY_TEXTURES_ARE_NOT_BROKEN
+  int ww ;
+
+  do
+  {
+    glTexImage2D  ( GL_PROXY_TEXTURE_2D,
+                     map_level, zsize, xsize, ysize, FALSE /* Border */,
+                            (zsize==1)?GL_LUMINANCE:
+                            (zsize==2)?GL_LUMINANCE_ALPHA:
+                            (zsize==3)?GL_RGB:
+                                       GL_RGBA,
+                            GL_UNSIGNED_BYTE, NULL ) ;
+
+    glGetTexLevelParameteriv ( GL_PROXY_TEXTURE_2D, 0,GL_TEXTURE_WIDTH, &ww ) ;
+
+    if ( ww == 0 )
+    {
+      delete texels [ 0 ] ;
+      xsize >>= 1 ;
+      ysize >>= 1 ;
+
+      for ( int l = 0 ; texels [ l ] != NULL ; l++ )
+	texels [ l ] = texels [ l+1 ] ;
+
+      if ( xsize < 64 && ysize < 64 )
+      {
+        ulSetError ( UL_FATAL,
+           "SSG: OpenGL will not accept a downsized version of '%s' ?!?",
+           curr_image_fname ) ;
+      }
+    }
+  } while ( ww == 0 ) ;
+#endif
+
+  for ( int i = 0 ; texels [ i ] != NULL ; i++ )
+  {
+    int w = xsize>>i ;
+    int h = ysize>>i ;
+
+    if ( w <= 0 ) w = 1 ;
+    if ( h <= 0 ) h = 1 ;
+
+    total_texels_loaded += w * h ;
+
+    glTexImage2D  ( GL_TEXTURE_2D,
+                     map_level, zsize, w, h, FALSE /* Border */,
+                            (zsize==1)?GL_LUMINANCE:
+                            (zsize==2)?GL_LUMINANCE_ALPHA:
+                            (zsize==3)?GL_RGB:
+                                       GL_RGBA,
+                            GL_UNSIGNED_BYTE, (GLvoid *) texels[i] ) ;
+    map_level++ ;
+    delete texels [ i ] ;
+  }
+}
+
+
+int ssgGetNumTexelsLoaded ()
+{
+  return total_texels_loaded ;
+}
+
+
+static void loadTextureDummy ()
+{
+  GLubyte *image = new GLubyte [ 4 * 3 ] ;
+
+  /* Red and white chequerboard */
+
+  image [ 0 ] = 255 ; image [ 1 ] =  0  ; image [ 2 ] =  0  ;
+  image [ 3 ] = 255 ; image [ 4 ] = 255 ; image [ 5 ] = 255 ;
+  image [ 6 ] = 255 ; image [ 7 ] = 255 ; image [ 8 ] = 255 ;
+  image [ 9 ] = 255 ; image [ 10] =  0  ; image [ 11] =  0  ;
+
+  make_mip_maps ( image, 2, 2, 3 ) ;
+}
 
 
 /* Some magic constants in the file header. */
@@ -15,32 +163,29 @@
 #define SGI_IMG_VERBATIM        0
 #define SGI_IMG_RLE             1
 
-static int            total_texels_loaded = 0 ;
-
-static FILE          *curr_image_fd ;
-static char           curr_image_fname [ 512 ] ;
-static int            isSwapped ;
-static unsigned char *rle_temp ;
-
-
-struct BMPHeader
+class ssgSGIHeader
 {
-  unsigned short  FileType      ;
-  unsigned int    FileSize      ;
-  unsigned short  Reserved1     ;
-  unsigned short  Reserved2     ;
-  unsigned int    OffBits       ;
-  unsigned int    Size          ;
-  unsigned int    Width         ;
-  unsigned int    Height        ;
-  unsigned short  Planes        ;
-  unsigned short  BitCount      ;
-  unsigned int    Compression   ;
-  unsigned int    SizeImage     ;
-  unsigned int    XPelsPerMeter ;
-  unsigned int    YPelsPerMeter ;
-  unsigned int    ClrUsed       ;
-  unsigned int    ClrImportant  ;
+public:    /* Yuk!  Need to hide some of this public stuff! */
+  unsigned short magic ;
+  int            max ;
+  int            min ;
+  int            colormap ;
+  char           type ;
+  char           bpp ;
+  unsigned int  *start ;
+  int           *leng ;
+  unsigned short dim ;
+  unsigned short xsize ;
+  unsigned short ysize ;
+  unsigned short zsize ;
+  int           tablen ;
+
+  ssgSGIHeader () ;
+  void makeConsistant () ;
+  void getRow   ( unsigned char *buf, int y, int z ) ;
+  void getPlane ( unsigned char *buf, int z ) ;
+  void getImage ( unsigned char *buf ) ;
+  void readHeader () ;
 } ;
 
 
@@ -71,7 +216,7 @@ void ssgSGIHeader::makeConsistant ()
 
   if ( bpp == 2 )
   {
-    ulSetError ( UL_FATAL, "ssgImageLoader: Can't work with SGI images with %d bpp", bpp ) ;
+    ulSetError ( UL_FATAL, "ssgLoadTexture: Can't work with SGI images with %d bpp", bpp ) ;
   }
 
   bpp = 1 ;
@@ -276,362 +421,7 @@ void ssgSGIHeader::readHeader ()
 }
 
 
-struct RGBA
-{
-  unsigned char r,g,b,a ;
-} ;
-
-
-
-
-void ssgImageLoader::make_mip_maps ( GLubyte *image, int xsize,
-                                                 int ysize, int zsize )
-{
-  if ( ! ((xsize & (xsize-1))==0) ||
-       ! ((ysize & (ysize-1))==0) )
-  {
-    ulSetError ( UL_WARNING, "%s: Map is not a power-of-two in size!", curr_image_fname ) ;
-    loadDummyTexture () ;
-    return ;
-  }
-
-  GLubyte *texels [ 20 ] ;   /* One element per level of MIPmap */
-
-  for ( int l = 0 ; l < 20 ; l++ )
-    texels [ l ] = NULL ;
-
-  texels [ 0 ] = image ;
-
-  int lev ;
-
-  for ( lev = 0 ; (( xsize >> (lev+1) ) != 0 ||
-                   ( ysize >> (lev+1) ) != 0 ) ; lev++ )
-  {
-    /* Suffix '1' is the higher level map, suffix '2' is the lower level. */
-
-    int l1 = lev   ;
-    int l2 = lev+1 ;
-    int w1 = xsize >> l1 ;
-    int h1 = ysize >> l1 ;
-    int w2 = xsize >> l2 ;
-    int h2 = ysize >> l2 ;
-
-    if ( w1 <= 0 ) w1 = 1 ;
-    if ( h1 <= 0 ) h1 = 1 ;
-    if ( w2 <= 0 ) w2 = 1 ;
-    if ( h2 <= 0 ) h2 = 1 ;
-
-    texels [ l2 ] = new GLubyte [ w2 * h2 * zsize ] ;
-
-    for ( int x2 = 0 ; x2 < w2 ; x2++ )
-      for ( int y2 = 0 ; y2 < h2 ; y2++ )
-        for ( int c = 0 ; c < zsize ; c++ )
-        {
-          int x1   = x2 + x2 ;
-          int x1_1 = ( x1 + 1 ) % w1 ;
-          int y1   = y2 + y2 ;
-          int y1_1 = ( y1 + 1 ) % h1 ;
-
-	  int t1 = texels [ l1 ] [ (y1   * w1 + x1  ) * zsize + c ] ;
-	  int t2 = texels [ l1 ] [ (y1_1 * w1 + x1  ) * zsize + c ] ;
-	  int t3 = texels [ l1 ] [ (y1   * w1 + x1_1) * zsize + c ] ;
-	  int t4 = texels [ l1 ] [ (y1_1 * w1 + x1_1) * zsize + c ] ;
-
-          texels [ l2 ] [ (y2 * w2 + x2) * zsize + c ] =
-                                           ( t1 + t2 + t3 + t4 ) / 4 ;
-        }
-  }
-
-  texels [ lev+1 ] = NULL ;
-
-  glPixelStorei ( GL_UNPACK_ALIGNMENT, 1 ) ;
-
-  int map_level = 0 ;
-
-#ifdef PROXY_TEXTURES_ARE_NOT_BROKEN
-  int ww ;
-
-  do
-  {
-    glTexImage2D  ( GL_PROXY_TEXTURE_2D,
-                     map_level, zsize, xsize, ysize, FALSE /* Border */,
-                            (zsize==1)?GL_LUMINANCE:
-                            (zsize==2)?GL_LUMINANCE_ALPHA:
-                            (zsize==3)?GL_RGB:
-                                       GL_RGBA,
-                            GL_UNSIGNED_BYTE, NULL ) ;
-
-    glGetTexLevelParameteriv ( GL_PROXY_TEXTURE_2D, 0,GL_TEXTURE_WIDTH, &ww ) ;
-
-    if ( ww == 0 )
-    {
-      delete texels [ 0 ] ;
-      xsize >>= 1 ;
-      ysize >>= 1 ;
-
-      for ( int l = 0 ; texels [ l ] != NULL ; l++ )
-	texels [ l ] = texels [ l+1 ] ;
-
-      if ( xsize < 64 && ysize < 64 )
-      {
-        ulSetError ( UL_FATAL,
-           "SSG: OpenGL will not accept a downsized version of '%s' ?!?",
-           curr_image_fname ) ;
-      }
-    }
-  } while ( ww == 0 ) ;
-#endif
-
-  for ( int i = 0 ; texels [ i ] != NULL ; i++ )
-  {
-    int w = xsize>>i ;
-    int h = ysize>>i ;
-
-    if ( w <= 0 ) w = 1 ;
-    if ( h <= 0 ) h = 1 ;
-
-    total_texels_loaded += w * h ;
-
-    glTexImage2D  ( GL_TEXTURE_2D,
-                     map_level, zsize, w, h, FALSE /* Border */,
-                            (zsize==1)?GL_LUMINANCE:
-                            (zsize==2)?GL_LUMINANCE_ALPHA:
-                            (zsize==3)?GL_RGB:
-                                       GL_RGBA,
-                            GL_UNSIGNED_BYTE, (GLvoid *) texels[i] ) ;
-    map_level++ ;
-    delete texels [ i ] ;
-  }
-}
-
-
-void ssgImageLoader::loadDummyTexture ()
-{
-  GLubyte *image = new GLubyte [ 4 * 3 ] ;
-
-  /* Red and white chequerboard */
-
-  image [ 0 ] = 255 ; image [ 1 ] =  0  ; image [ 2 ] =  0  ;
-  image [ 3 ] = 255 ; image [ 4 ] = 255 ; image [ 5 ] = 255 ;
-  image [ 6 ] = 255 ; image [ 7 ] = 255 ; image [ 8 ] = 255 ;
-  image [ 9 ] = 255 ; image [ 10] =  0  ; image [ 11] =  0  ;
-
-  make_mip_maps ( image, 2, 2, 3 ) ;
-}
-
-
-void ssgImageLoader::loadTexture ( char *fname )
-{
-  char *p = & fname [ strlen ( fname ) ] ;
-
-  while ( p != fname && *p != '.' && *p != '/' && *p != '\\' )
-    p-- ;
-
-  if ( *p == '.' )
-  {
-    if ( _ssgStrEqual ( p, ".bmp"  ) ) { loadTextureBMP ( fname ) ; return ; }
-    if ( _ssgStrEqual ( p, ".png"  ) ) { loadTexturePNG ( fname ) ; return ; }
-    if ( _ssgStrEqual ( p, ".rgb"  ) ||
-         _ssgStrEqual ( p, ".rgba" ) ||
-         _ssgStrEqual ( p, ".int"  ) ||
-         _ssgStrEqual ( p, ".inta" ) ||
-         _ssgStrEqual ( p, ".bw"   ) ) { loadTextureSGI ( fname ) ; return ; }
-  }
-
-  ulSetError ( UL_WARNING, "ssgImageLoader: '%s' - unrecognised file extension.",
-                                                    fname ) ;
-  loadDummyTexture () ;
-}
-
-void ssgImageLoader::loadTexturePNG ( char *fname )
-{
-  ulSetError ( UL_WARNING, "ssgImageLoader: '%s' - PNG format images are not supported (yet)",
-        fname ) ;
-  loadDummyTexture () ;
-}
-
-
-void ssgImageLoader::loadTextureBMP ( char *fname )
-{
-  int w, h, bpp ;
-  RGBA pal [ 256 ] ;
-
-  BMPHeader bmphdr ;
-
-  /* Open file & get size */
-
-  strcpy ( curr_image_fname, fname ) ;
-
-  if ( ( curr_image_fd = fopen ( curr_image_fname, "rb" ) ) == NULL )
-  {
-    perror ( "ssgImageLoader" ) ;
-    ulSetError ( UL_WARNING, "ssgImageLoader: Failed to open '%s' for reading.", curr_image_fname ) ;
-    return ;
-  }
-
-  /*
-    Load the BMP piecemeal to avoid struct packing issues
-  */
-
-  isSwapped = FALSE ;
-  bmphdr.FileType = readShort () ;
-
-  if ( bmphdr.FileType == ((int)'B' + ((int)'M'<<8)) )
-    isSwapped = FALSE ;
-  else
-  if ( bmphdr.FileType == ((int)'M' + ((int)'B'<<8)) )
-    isSwapped = TRUE  ;
-  else
-  {
-    ulSetError ( UL_FATAL, "%s: Unrecognised magic number 0x%04x",
-                            curr_image_fname, bmphdr.FileType ) ;
-  }
-
-  bmphdr.FileSize      = readInt   () ;
-  bmphdr.Reserved1     = readShort () ;
-  bmphdr.Reserved2     = readShort () ;
-  bmphdr.OffBits       = readInt   () ;
-  bmphdr.Size          = readInt   () ;
-  bmphdr.Width         = readInt   () ;
-  bmphdr.Height        = readInt   () ;
-  bmphdr.Planes        = readShort () ;
-  bmphdr.BitCount      = readShort () ;
-  bmphdr.Compression   = readInt   () ;
-  bmphdr.SizeImage     = readInt   () ;
-  bmphdr.XPelsPerMeter = readInt   () ;
-  bmphdr.YPelsPerMeter = readInt   () ;
-  bmphdr.ClrUsed       = readInt   () ;
-  bmphdr.ClrImportant  = readInt   () ;
- 
-  w   = bmphdr.Width  ;
-  h   = bmphdr.Height ;
-  bpp = bmphdr.Planes * bmphdr.BitCount ;
-
-#ifdef PRINT_BMP_HEADER_DEBUG
-  ulSetError ( UL_DEBUG, "Filetype %04x",      bmphdr.FileType      ) ;
-  ulSetError ( UL_DEBUG, "Filesize %08x",      bmphdr.FileSize      ) ;
-  ulSetError ( UL_DEBUG, "R1 %04x",            bmphdr.Reserved1     ) ;
-  ulSetError ( UL_DEBUG, "R2 %04x",            bmphdr.Reserved2     ) ;
-  ulSetError ( UL_DEBUG, "Offbits %08x",       bmphdr.OffBits       ) ;
-  ulSetError ( UL_DEBUG, "Size %08x",          bmphdr.Size          ) ;
-  ulSetError ( UL_DEBUG, "Width %08x",         bmphdr.Width         ) ;
-  ulSetError ( UL_DEBUG, "Height %08x",        bmphdr.Height        ) ;
-  ulSetError ( UL_DEBUG, "Planes %04x",        bmphdr.Planes        ) ;
-  ulSetError ( UL_DEBUG, "Bitcount %04x",      bmphdr.BitCount      ) ;
-  ulSetError ( UL_DEBUG, "Compression %08x",   bmphdr.Compression   ) ;
-  ulSetError ( UL_DEBUG, "SizeImage %08x",     bmphdr.SizeImage     ) ;
-  ulSetError ( UL_DEBUG, "XPelsPerMeter %08x", bmphdr.XPelsPerMeter ) ;
-  ulSetError ( UL_DEBUG, "YPelsPerMeter %08x", bmphdr.YPelsPerMeter ) ;
-  ulSetError ( UL_DEBUG, "ClrUsed %08x",       bmphdr.ClrUsed       ) ;
-  ulSetError ( UL_DEBUG, "ClrImportant %08x",  bmphdr.ClrImportant  ) ;
-#endif
-
-  int isMonochrome = TRUE ;
-  int isOpaque     = TRUE ;
-
-  if ( bpp <= 8 )
-  {
-    for ( int i = 0 ; i < 256 ; i++ )
-    {
-      pal[i].b = readByte () ;
-      pal[i].g = readByte () ;
-      pal[i].r = readByte () ;
-      pal[i].a = readByte () ;
-
-      if ( pal[i].a != 255 ) isOpaque = FALSE ;
-
-      if ( pal[i].r != pal[i].g ||
-           pal[i].g != pal[i].b ) isMonochrome = FALSE ;
-    }
-  }
-
-  fseek ( curr_image_fd, bmphdr.OffBits, SEEK_SET ) ;
-
-  if ( bmphdr.SizeImage == 0 )
-    bmphdr.SizeImage = w * h * (bpp / 8) ;
-
-  GLubyte *data = new GLubyte [ bmphdr.SizeImage ] ;
-
-  if ( fread ( data, 1, bmphdr.SizeImage, curr_image_fd ) != bmphdr.SizeImage )
-  {
-    ulSetError ( UL_WARNING, "Premature EOF in '%s'", curr_image_fname ) ;
-    return ;
-  }
-
-  fclose ( curr_image_fd ) ;
-
-  GLubyte *image ;
-  int z ;
-
-  if ( bpp == 8 )
-  {
-    if ( isMonochrome )
-      z = isOpaque ? 1 : 2 ;
-    else
-      z = isOpaque ? 3 : 4 ;
-
-    image = new GLubyte [ w * h * z ] ;
-
-    for ( int i = 0 ; i < w * h ; i++ )
-      switch ( z )
-      {
-        case 1 : image [ i       ] = pal[data[i]].r ; break ;
-        case 2 : image [ i*2     ] = pal[data[i]].r ;
-                 image [ i*2 + 1 ] = pal[data[i]].a ; break ;
-        case 3 : image [ i*3     ] = pal[data[i]].r ;
-                 image [ i*3 + 1 ] = pal[data[i]].g ;
-                 image [ i*3 + 2 ] = pal[data[i]].b ; break ;
-        case 4 : image [ i*4     ] = pal[data[i]].r ;
-                 image [ i*4 + 1 ] = pal[data[i]].g ;
-                 image [ i*4 + 2 ] = pal[data[i]].b ;
-                 image [ i*4 + 3 ] = pal[data[i]].a ; break ;
-        default : break ;
-      }
-
-    delete data ;
-  }
-  else
-  if ( bpp == 24 )
-  {
-    z = 3 ;
-    image = data ;
-
-    /* BGR --> RGB */
-
-    for ( int i = 0 ; i < w * h ; i++ )
-    {
-      GLubyte tmp = image [ 3 * i ] ;
-      image [ 3 * i ] = image [ 3 * i + 2 ];
-      image [ 3 * i + 2 ] = tmp ;
-    }
-  }
-  else
-  if ( bpp == 32 )
-  {
-    z = 4 ;
-    image = data ;
-
-    /* BGRA --> RGBA */
-
-    for ( int i = 0 ; i < w * h ; i++ )
-    {
-      GLubyte tmp = image [ 4 * i ] ;
-      image [ 4 * i ] = image [ 4 * i + 2 ];
-      image [ 4 * i + 2 ] = tmp ;
-    }
-  }
-  else
-  {
-    ulSetError ( UL_WARNING, "ssgImageLoader: Can't load %d bpp BMP textures.", bpp ) ;
-    loadDummyTexture () ;
-    return ;
-  }
-
-  make_mip_maps ( image, w, h, z ) ;
-}
-
-
-void ssgImageLoader::loadTextureSGI ( char *fname )
+static void loadTextureSGI ( const char *fname )
 {
   ssgSGIHeader *sgihdr = new ssgSGIHeader () ;
 
@@ -640,9 +430,9 @@ void ssgImageLoader::loadTextureSGI ( char *fname )
 
   if ( curr_image_fd == NULL )
   {
-    perror ( "ssgImageLoader" ) ;
-    ulSetError ( UL_WARNING, "ssgImageLoader: Failed to open '%s' for reading.", curr_image_fname ) ;
-    loadDummyTexture () ;
+    perror ( "ssgLoadTexture" ) ;
+    ulSetError ( UL_WARNING, "ssgLoadTexture: Failed to open '%s' for reading.", curr_image_fname ) ;
+    loadTextureDummy () ;
     return ;
   }
 
@@ -677,7 +467,7 @@ void ssgImageLoader::loadTextureSGI ( char *fname )
 
   if ( sgihdr->zsize <= 0 || sgihdr->zsize > 4 )
   {
-    ulSetError ( UL_FATAL, "ssgImageLoader: '%s' is corrupted.", curr_image_fname ) ;
+    ulSetError ( UL_FATAL, "ssgLoadTexture: '%s' is corrupted.", curr_image_fname ) ;
   }
 
   GLubyte *image = new GLubyte [ sgihdr->xsize *
@@ -759,9 +549,285 @@ void ssgImageLoader::loadTextureSGI ( char *fname )
 }
 
 
-int ssgGetNumTexelsLoaded ()
+/*
+  Original source for BMP loader kindly
+  donated by "Sean L. Palmer" <spalmer@pobox.com>
+*/
+
+
+struct BMPHeader
 {
-  return total_texels_loaded ;
+  unsigned short  FileType      ;
+  unsigned int    FileSize      ;
+  unsigned short  Reserved1     ;
+  unsigned short  Reserved2     ;
+  unsigned int    OffBits       ;
+  unsigned int    Size          ;
+  unsigned int    Width         ;
+  unsigned int    Height        ;
+  unsigned short  Planes        ;
+  unsigned short  BitCount      ;
+  unsigned int    Compression   ;
+  unsigned int    SizeImage     ;
+  unsigned int    XPelsPerMeter ;
+  unsigned int    YPelsPerMeter ;
+  unsigned int    ClrUsed       ;
+  unsigned int    ClrImportant  ;
+} ;
+
+
+struct RGBA
+{
+  unsigned char r,g,b,a ;
+} ;
+
+
+static void loadTextureBMP ( const char *fname )
+{
+  int w, h, bpp ;
+  RGBA pal [ 256 ] ;
+
+  BMPHeader bmphdr ;
+
+  /* Open file & get size */
+
+  strcpy ( curr_image_fname, fname ) ;
+
+  if ( ( curr_image_fd = fopen ( curr_image_fname, "rb" ) ) == NULL )
+  {
+    perror ( "ssgLoadTexture" ) ;
+    ulSetError ( UL_WARNING, "ssgLoadTexture: Failed to open '%s' for reading.", curr_image_fname ) ;
+    return ;
+  }
+
+  /*
+    Load the BMP piecemeal to avoid struct packing issues
+  */
+
+  isSwapped = FALSE ;
+  bmphdr.FileType = readShort () ;
+
+  if ( bmphdr.FileType == ((int)'B' + ((int)'M'<<8)) )
+    isSwapped = FALSE ;
+  else
+  if ( bmphdr.FileType == ((int)'M' + ((int)'B'<<8)) )
+    isSwapped = TRUE  ;
+  else
+  {
+    ulSetError ( UL_FATAL, "%s: Unrecognised magic number 0x%04x",
+                            curr_image_fname, bmphdr.FileType ) ;
+  }
+
+  bmphdr.FileSize      = readInt   () ;
+  bmphdr.Reserved1     = readShort () ;
+  bmphdr.Reserved2     = readShort () ;
+  bmphdr.OffBits       = readInt   () ;
+  bmphdr.Size          = readInt   () ;
+  bmphdr.Width         = readInt   () ;
+  bmphdr.Height        = readInt   () ;
+  bmphdr.Planes        = readShort () ;
+  bmphdr.BitCount      = readShort () ;
+  bmphdr.Compression   = readInt   () ;
+  bmphdr.SizeImage     = readInt   () ;
+  bmphdr.XPelsPerMeter = readInt   () ;
+  bmphdr.YPelsPerMeter = readInt   () ;
+  bmphdr.ClrUsed       = readInt   () ;
+  bmphdr.ClrImportant  = readInt   () ;
+ 
+  w   = bmphdr.Width  ;
+  h   = bmphdr.Height ;
+  bpp = bmphdr.Planes * bmphdr.BitCount ;
+
+#ifdef PRINT_BMP_HEADER_DEBUG
+  ulSetError ( UL_DEBUG, "Filetype %04x",      bmphdr.FileType      ) ;
+  ulSetError ( UL_DEBUG, "Filesize %08x",      bmphdr.FileSize      ) ;
+  ulSetError ( UL_DEBUG, "R1 %04x",            bmphdr.Reserved1     ) ;
+  ulSetError ( UL_DEBUG, "R2 %04x",            bmphdr.Reserved2     ) ;
+  ulSetError ( UL_DEBUG, "Offbits %08x",       bmphdr.OffBits       ) ;
+  ulSetError ( UL_DEBUG, "Size %08x",          bmphdr.Size          ) ;
+  ulSetError ( UL_DEBUG, "Width %08x",         bmphdr.Width         ) ;
+  ulSetError ( UL_DEBUG, "Height %08x",        bmphdr.Height        ) ;
+  ulSetError ( UL_DEBUG, "Planes %04x",        bmphdr.Planes        ) ;
+  ulSetError ( UL_DEBUG, "Bitcount %04x",      bmphdr.BitCount      ) ;
+  ulSetError ( UL_DEBUG, "Compression %08x",   bmphdr.Compression   ) ;
+  ulSetError ( UL_DEBUG, "SizeImage %08x",     bmphdr.SizeImage     ) ;
+  ulSetError ( UL_DEBUG, "XPelsPerMeter %08x", bmphdr.XPelsPerMeter ) ;
+  ulSetError ( UL_DEBUG, "YPelsPerMeter %08x", bmphdr.YPelsPerMeter ) ;
+  ulSetError ( UL_DEBUG, "ClrUsed %08x",       bmphdr.ClrUsed       ) ;
+  ulSetError ( UL_DEBUG, "ClrImportant %08x",  bmphdr.ClrImportant  ) ;
+#endif
+
+  int isMonochrome = TRUE ;
+  int isOpaque     = TRUE ;
+
+  if ( bpp <= 8 )
+  {
+    for ( int i = 0 ; i < 256 ; i++ )
+    {
+      pal[i].b = readByte () ;
+      pal[i].g = readByte () ;
+      pal[i].r = readByte () ;
+      pal[i].a = readByte () ;
+
+      if ( pal[i].a != 255 ) isOpaque = FALSE ;
+
+      if ( pal[i].r != pal[i].g ||
+           pal[i].g != pal[i].b ) isMonochrome = FALSE ;
+    }
+  }
+
+  fseek ( curr_image_fd, bmphdr.OffBits, SEEK_SET ) ;
+
+  bmphdr.SizeImage = w * h * (bpp / 8) ;
+  GLubyte *data = new GLubyte [ bmphdr.SizeImage ] ;
+
+  /* read and flip image */
+  {
+    int row_size = w * (bpp / 8) ;
+    for ( int y = h-1 ; y >= 0 ; y-- )
+    {
+      GLubyte *row_ptr = &data [ y * row_size ] ;
+      if ( fread ( row_ptr, 1, row_size, curr_image_fd ) != (unsigned)row_size )
+      {
+        ulSetError ( UL_WARNING, "Premature EOF in '%s'", curr_image_fname ) ;
+        return ;
+      }
+    }
+  }
+
+  fclose ( curr_image_fd ) ;
+
+  GLubyte *image ;
+  int z ;
+
+  if ( bpp == 8 )
+  {
+    if ( isMonochrome )
+      z = isOpaque ? 1 : 2 ;
+    else
+      z = isOpaque ? 3 : 4 ;
+
+    image = new GLubyte [ w * h * z ] ;
+
+    for ( int i = 0 ; i < w * h ; i++ )
+      switch ( z )
+      {
+        case 1 : image [ i       ] = pal[data[i]].r ; break ;
+        case 2 : image [ i*2     ] = pal[data[i]].r ;
+                 image [ i*2 + 1 ] = pal[data[i]].a ; break ;
+        case 3 : image [ i*3     ] = pal[data[i]].r ;
+                 image [ i*3 + 1 ] = pal[data[i]].g ;
+                 image [ i*3 + 2 ] = pal[data[i]].b ; break ;
+        case 4 : image [ i*4     ] = pal[data[i]].r ;
+                 image [ i*4 + 1 ] = pal[data[i]].g ;
+                 image [ i*4 + 2 ] = pal[data[i]].b ;
+                 image [ i*4 + 3 ] = pal[data[i]].a ; break ;
+        default : break ;
+      }
+
+    delete data ;
+  }
+  else
+  if ( bpp == 24 )
+  {
+    z = 3 ;
+    image = data ;
+
+    /* BGR --> RGB */
+
+    for ( int i = 0 ; i < w * h ; i++ )
+    {
+      GLubyte tmp = image [ 3 * i ] ;
+      image [ 3 * i ] = image [ 3 * i + 2 ];
+      image [ 3 * i + 2 ] = tmp ;
+    }
+  }
+  else
+  if ( bpp == 32 )
+  {
+    z = 4 ;
+    image = data ;
+
+    /* BGRA --> RGBA */
+
+    for ( int i = 0 ; i < w * h ; i++ )
+    {
+      GLubyte tmp = image [ 4 * i ] ;
+      image [ 4 * i ] = image [ 4 * i + 2 ];
+      image [ 4 * i + 2 ] = tmp ;
+    }
+  }
+  else
+  {
+    ulSetError ( UL_WARNING, "ssgLoadTexture: Can't load %d bpp BMP textures.", bpp ) ;
+    loadTextureDummy () ;
+    return ;
+  }
+
+  make_mip_maps ( image, w, h, z ) ;
 }
 
 
+void loadTexturePNG ( const char *fname )
+{
+#ifdef _SSG_USE_GLPNG
+  pngInfo info;
+  if (!pngLoad(fname, PNG_BUILDMIPMAP, PNG_ALPHA, &info)) {
+    ulSetError ( UL_WARNING, "ssgLoadTexture: Failed to load '%s'.", fname ) ;
+    return ;
+  }
+#else
+  ulSetError ( UL_WARNING, "ssgLoadTexture: '%s' - you need glpng for PNG format support",
+        fname ) ;
+  loadTextureDummy () ;
+#endif
+}
+
+
+struct _ssgTextureFormat
+{
+  char *extension ;
+  void (*loadfunc) ( const char * ) ;
+} ;
+
+
+static _ssgTextureFormat formats[] =
+{
+  { ".bmp" ,   loadTextureBMP },
+  { ".png" ,   loadTexturePNG },
+  { ".rgb" ,   loadTextureSGI },
+  { ".rgba" ,  loadTextureSGI },
+  { ".int" ,   loadTextureSGI },
+  { ".inta" ,  loadTextureSGI },
+  { ".bw" ,    loadTextureSGI },
+  { NULL ,     NULL           }
+} ;
+
+
+void ssgLoadTexture ( const char *fname )
+{
+  if ( fname == NULL || *fname == '\0' )
+    return ;
+
+  //find extension
+  const char *extn = & ( fname [ strlen(fname) ] ) ;
+  while ( extn != fname && *extn != '/' && *extn != '.' )
+    extn-- ;
+
+  if ( *extn != '.' )
+  {
+    ulSetError ( UL_WARNING, "ssgLoadTexture: Cannot determine file type for '%s'", fname );
+    return ;
+  }
+
+  for ( _ssgTextureFormat *f = formats; f->extension != NULL; f++ )
+    if ( f->loadfunc != NULL &&
+         _ssgStrNEqual ( extn, f->extension, strlen(f->extension) ) )
+    {
+      f->loadfunc( fname ) ;
+      return ;
+    }
+
+  ulSetError ( UL_WARNING, "ssgLoadTexture: Unrecognised file type '%s'", extn ) ;
+  loadTextureDummy () ;
+}

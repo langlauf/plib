@@ -20,10 +20,11 @@ ssgContext::ssgContext ()
   currentState     = NULL  ;
   basicState       = NULL  ;
   orthographic     = FALSE ;
-  sgMakeIdentMat4 ( cameraMatrix ) ;
   cullFace         = TRUE  ;
   ovTexture        = FALSE ;
   ovCullface       = FALSE ;
+
+  sgCopyMat4 ( cameraMatrix, _ssgOpenGLAxisSwapMatrix ) ;
 
   frustum = new sgFrustum ;
   frustum -> setNearFar ( 1.0, 10000.0 ) ;
@@ -139,6 +140,25 @@ void ssgContext::setCamera ( sgCoord *coord )
 
   sgCopyMat4      ( cameraMatrix, _ssgOpenGLAxisSwapMatrix ) ;
   sgPreMultMat4   ( cameraMatrix, viewmat ) ;
+}
+
+void ssgContext::setCameraLookAt ( const sgVec3 eye, const sgVec3 center, const sgVec3 up )
+{
+  sgMat4 mat ;
+  sgMakeLookAtMat4 ( mat, eye, center, up ) ;
+
+  setCamera ( mat ) ;
+}
+
+void ssgContext::setCameraLookAt ( const sgVec3 eye, const sgVec3 center )
+{
+  sgVec3 up ;
+  sgSetVec3 ( up, 0.0f, 0.0f, 1.0f ) ;
+
+  sgMat4 mat ;
+  sgMakeLookAtMat4 ( mat, eye, center, up ) ;
+
+  setCamera ( mat ) ;
 }
 
 void ssgContext::loadProjectionMatrix()

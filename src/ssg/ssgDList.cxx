@@ -222,5 +222,3 @@ void _ssgDrawLeaf ( ssgLeaf *l )
   else
     dlist [ next_dlist++ ] . setDrawLeaf ( l ) ;
 }
-
-

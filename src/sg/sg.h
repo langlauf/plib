@@ -2,28 +2,7 @@
 #ifndef SG_H
 #define SG_H  1
 
-#include <limits.h>
-#include <math.h>
-
-/* the next lines are to define BSD */
-/* see http://www.freebsd.org/handbook/porting.html for why we do this */
-
-#if (defined(__unix__) || defined(unix)) && !defined(USG)
-#include <sys/param.h>
-#endif
- 
-#ifdef BSD
-#include <float.h>
-#endif
-#ifdef __MWERKS__
-#include <float.h>
-#endif
-#ifdef WIN32
-#include <float.h>
-#endif
-#ifdef __CYGWIN__
-#include <float.h>
-#endif
+#include "ul.h"
 
 #define sgFloat float
 #define SGfloat float
@@ -127,6 +106,9 @@ inline void sgMakeCoordMat4( sgMat4 dst, const sgCoord *src )
 {
   sgMakeCoordMat4 ( dst, src->xyz, src->hpr ) ;
 }
+
+extern void sgMakeLookAtMat4 ( sgMat4 dst,
+        const sgVec3 eye, const sgVec3 center, const sgVec3 up ) ;
 
 extern void sgMakeRotMat4   ( sgMat4 dst, const SGfloat angle, const sgVec3 axis ) ;
 
@@ -533,6 +515,26 @@ inline SGfloat sgScalarProductVec4 ( const sgVec4 a, const sgVec4 b )
 
 extern void sgVectorProductVec3 ( sgVec3 dst, const sgVec3 a, const sgVec3 b ) ;
 
+inline void sgLerpVec4 ( sgVec4 dst, const sgVec4 a, const sgVec4 b, const SGfloat f )
+{
+  dst[0] = a[0] + f * ( b[0] - a[0] ) ;
+  dst[1] = a[1] + f * ( b[1] - a[1] ) ;
+  dst[2] = a[2] + f * ( b[2] - a[2] ) ;
+  dst[3] = a[3] + f * ( b[3] - a[3] ) ;
+}
+
+inline void sgLerpVec3 ( sgVec3 dst, const sgVec3 a, const sgVec3 b, const SGfloat f )
+{
+  dst[0] = a[0] + f * ( b[0] - a[0] ) ;
+  dst[1] = a[1] + f * ( b[1] - a[1] ) ;
+  dst[2] = a[2] + f * ( b[2] - a[2] ) ;
+}
+
+inline void sgLerpVec2 ( sgVec2 dst, const sgVec2 a, const sgVec2 b, const SGfloat f )
+{
+  dst[0] = a[0] + f * ( b[0] - a[0] ) ;
+  dst[1] = a[1] + f * ( b[1] - a[1] ) ;
+}
 
 inline SGfloat sgDistanceSquaredVec2 ( const sgVec2 a, const sgVec2 b )
 {
@@ -902,7 +904,9 @@ public:
     update () ;
   }
 
-  void setFrustum ( const SGfloat l, const SGfloat r, const SGfloat b, const SGfloat t, const SGfloat n, const SGfloat f )
+  void setFrustum ( const SGfloat l, const SGfloat r,
+                    const SGfloat b, const SGfloat t,
+                    const SGfloat n, const SGfloat f )
   {
     left  = l ; right = r ;
     top   = t ; bot   = b ;
@@ -1095,25 +1099,52 @@ inline void sgPreMultQuat ( sgQuat dst, const sgQuat q )
 /* Rotate a quaternion by a given angle and axis (convenience function) */
 
 
-inline void sgRotQuat ( sgQuat dst, const SGfloat angle, const sgVec3 axis )
+inline void sgPreRotQuat ( sgQuat dst, const SGfloat angle, const sgVec3 axis )
 {
   sgQuat q ;
+  sgAngleAxisToQuat ( q, angle, axis ) ;
+  sgPreMultQuat ( dst, q ) ;
+  sgNormaliseQuat ( dst ) ;
+}
 
+
+inline void sgPostRotQuat ( sgQuat dst, const SGfloat angle, const sgVec3 axis )
+{
+  sgQuat q ;
   sgAngleAxisToQuat ( q, angle, axis ) ;
   sgPostMultQuat ( dst, q ) ;
   sgNormaliseQuat ( dst ) ;
 }
 
 
-inline void sgRotQuat ( sgQuat dst,
+inline void sgPreRotQuat ( sgQuat dst,
                         const SGfloat angle,
                         const SGfloat x, const SGfloat y, const SGfloat z )
 {
   sgVec3 axis ;
 
   sgSetVec3 ( axis, x, y, z ) ;
-  sgRotQuat ( dst, angle, axis ) ;
+  sgPreRotQuat ( dst, angle, axis ) ;
 }
+
+inline void sgPostRotQuat ( sgQuat dst,
+                        const SGfloat angle,
+                        const SGfloat x, const SGfloat y, const SGfloat z )
+{
+  sgVec3 axis ;
+
+  sgSetVec3 ( axis, x, y, z ) ;
+  sgPostRotQuat ( dst, angle, axis ) ;
+}
+
+
+/* more meaningful names */
+#define sgWorldRotQuat  sgPostRotQuat
+#define sgLocalRotQuat  sgPreRotQuat
+
+/* for backwards compatibility */
+#define sgRotQuat       sgPostRotQuat
+
 
 /* SWC - Interpolate between to quaternions */
 
@@ -1312,6 +1343,7 @@ inline void sgdFullXformPnt4 ( sgdVec4 dst, const sgdMat4 mat ) { sgdFullXformPn
   ScalarProduct - scalar (dot) product.
   VectorProduct - vector (cross) product (3-element vectors ONLY!).
   Normalise/Normalize - make vector be one unit long.
+  Lerp      - linear interpolation by a fraction 'f'.
 */
 
 inline void sgdZeroVec2 ( sgdVec2 dst ) { dst[0]=dst[1]=SGD_ZERO ; }
@@ -1655,6 +1687,29 @@ inline SGDfloat sgdScalarProductVec4 ( const sgdVec4 a, const sgdVec4 b )
 
 
 extern void sgdVectorProductVec3 ( sgdVec3 dst, const sgdVec3 a, const sgdVec3 b ) ;
+
+
+inline void sgdLerpVec4 ( sgdVec4 dst, const sgdVec4 a, const sgdVec4 b, const SGDfloat f )
+{
+  dst[0] = a[0] + f * ( b[0] - a[0] ) ;
+  dst[1] = a[1] + f * ( b[1] - a[1] ) ;
+  dst[2] = a[2] + f * ( b[2] - a[2] ) ;
+  dst[3] = a[3] + f * ( b[3] - a[3] ) ;
+}
+
+inline void sgdLerpVec3 ( sgdVec3 dst, const sgdVec3 a, const sgdVec3 b, const SGDfloat f )
+{
+  dst[0] = a[0] + f * ( b[0] - a[0] ) ;
+  dst[1] = a[1] + f * ( b[1] - a[1] ) ;
+  dst[2] = a[2] + f * ( b[2] - a[2] ) ;
+}
+
+inline void sgdLerpVec2 ( sgdVec2 dst, const sgdVec2 a, const sgdVec2 b, const SGDfloat f )
+{
+  dst[0] = a[0] + f * ( b[0] - a[0] ) ;
+  dst[1] = a[1] + f * ( b[1] - a[1] ) ;
+}
+
 
 inline SGDfloat sgdDistanceSquaredVec2 ( const sgdVec2 a, const sgdVec2 b )
 {
@@ -2021,7 +2076,9 @@ public:
     update () ;
   }
 
-  void setFrustum ( const SGDfloat l, const SGDfloat r, const SGDfloat b, const SGDfloat t, const SGDfloat n, const SGDfloat f )
+  void setFrustum ( const SGDfloat l, const SGDfloat r,
+                    const SGDfloat b, const SGDfloat t,
+                    const SGDfloat n, const SGDfloat f )
   {
     left  = l ; right = r ;
     top   = t ; bot   = b ;

@@ -2,14 +2,11 @@
 //  UL - utility library
 //
 //  Contains:
+//  - necessary system includes
+//  - basic types
 //  - error message routines
-//  - more to come (basic types, endian support, version ID)
-//
-//  Note: No library is actually created.
-//  To generate code you must #define _UL_GENERATE_CODE_
-//  in exactly one place.  Currently ssg.cxx does this.
-//  If you don't use ssg then you will need to do
-//  this on the application side.
+//  - high performance clocks
+//  - more to come (endian support, version ID)
 //
 
 #ifndef _INCLUDED_UL_H_
@@ -17,14 +14,174 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
+#include <string.h>
+#include <ctype.h>
+#include <assert.h>
 
 #ifdef WIN32
 #include <windows.h>
+ #ifdef __CYGWIN__
+ #include <unistd.h>
+ #endif
+#else
+#include <unistd.h>
 #endif
 
 #include <assert.h>
+
+#include <limits.h>
+#include <math.h>
+
+/* the next lines are to define BSD */
+/* see http://www.freebsd.org/handbook/porting.html for why we do this */
+
+#if (defined(__unix__) || defined(unix)) && !defined(USG)
+#include <sys/param.h>
+#endif
+ 
+#ifdef BSD
+#include <float.h>
+#endif
+#ifdef __MWERKS__
+#include <float.h>
+#endif
+#ifdef WIN32
+#include <float.h>
+#endif
+#ifdef __CYGWIN__
+#include <float.h>
+#endif
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+
+#ifndef WIN32
+#  ifndef macintosh
+#    include <GL/glx.h>
+#  else
+#    include <agl.h>
+#  endif
+#endif
+
+/*
+  glGetCurrentContext()
+*/
+
+#ifdef WIN32
+#  define glGetCurrentContext() wglGetCurrentContext()
+#else
+#  if defined(macintosh)
+#     define glGetCurrentContext() aglGetCurrentContext()
+#  else
+#     define glGetCurrentContext() glXGetCurrentContext()
+#  endif
+#endif
+
+/* SGI machines seem to suffer from a lack of FLT_EPSILON so... */
+
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1.19209290e-07f        
+#endif
+
+#ifndef DBL_EPSILON
+#define DBL_EPSILON 1.19209290e-07f
+#endif
+
+#ifndef TRUE
+#define TRUE  1
+#define FALSE 0
+#endif
+
+/* SUNWspro 4.2 and earlier need bool to be defined */
+
+#if defined(__SUNPRO_CC) && __SUNPRO_CC < 0x500
+typedef int bool ;
+const   int true  = 1 ;
+const   int false = 0 ;
+#endif
+
+
+/*
+  Basic Types
+*/
+
+
+/*
+  High precision clocks.
+*/
+
+class ulClock
+{
+  double start ;
+  double now   ;
+  double delta ;
+  double last_time ;
+  double max_delta ;
+  
+#ifdef WIN32
+  static double res ;
+  static int perf_timer ;
+  void initPerformanceTimer () ;
+#endif
+
+  double getRawTime () const ;
+
+public:
+
+  ulClock () { reset () ; }
+
+  void reset ()
+  {
+#ifdef WIN32
+	  initPerformanceTimer () ;
+#endif
+    start     = getRawTime () ;
+    now       = start ;
+    max_delta = 0.2 ; 
+    delta     = 1.0 / 30.0 ;  /* Faked so stoopid programs won't div0 */
+    last_time = now - delta ;
+  }
+
+  void   setMaxDelta  ( double maxDelta ) { max_delta = maxDelta ; }
+  double getMaxDelta  () const { return max_delta ; }
+  void   update       () ;
+  double getAbsTime   () const { return now   ; }
+  double getDeltaTime () const { return delta ; }
+  double getFrameRate () const { return 1.0 / delta ; }
+} ;
+
+
+inline void ulSleep ( int seconds )
+{
+#ifdef WIN32
+  Sleep ( 1000 * seconds ) ;
+#else
+  sleep ( seconds ) ;
+#endif
+}
+
+
+inline void ulMilliSecondSleep ( int milliseconds )
+{
+#ifdef WIN32
+  Sleep ( milliseconds ) ;
+#else
+  usleep ( milliseconds * 1000 ) ;
+#endif
+}
+
+
+/*
+  This is extern C to enable 'configure.in' to
+  find it with a C-coded probe.
+*/
+
+extern "C" void ulInit () ;
+
+/*
+  Error handler.
+*/
 
 enum ulSeverity
 {
@@ -34,80 +191,93 @@ enum ulSeverity
   UL_MAX_SEVERITY
 } ;
 
-void ulInit ( void ) ;
 
-void ulSetError ( int severity, const char *fmt, ... ) ;
-char* ulGetError ( void ) ;
-void ulClearError ( void ) ;
+typedef void (*ulErrorCallback) ( int severity, char* msg ) ;
 
-typedef void (*ulErrorCallback)( int severity, char* msg ) ;
+void            ulSetError         ( int severity, const char *fmt, ... ) ;
+char*           ulGetError         ( void ) ;
+void            ulClearError       ( void ) ;
 ulErrorCallback ulGetErrorCallback ( void ) ;
-void ulSetErrorCallback ( ulErrorCallback cb ) ;
+void            ulSetErrorCallback ( ulErrorCallback cb ) ;
 
-//
-//  Note: No library is actually created.
-//  To generate code you must #define _UL_GENERATE_CODE_
-//  in exactly one place.  Currently ssg.cxx does this.
-//  If you don't use ssg then you will need to do
-//  this on the application side.
-//
+/*
+  Directory Reading
+*/
 
-#ifdef _UL_GENERATE_CODE_
-
-static char _ulErrorBuffer [ 256 ] ;
-static ulErrorCallback _ulErrorCB = 0 ;
-static const char* _ulSeverityText [ UL_MAX_SEVERITY ] =
+#define UL_NAME_MAX 256
+typedef struct _ulDir ulDir ;
+struct ulDirEnt
 {
-  "DEBUG",
-  "WARNING",
-  "FATAL",
-};
+  char d_name [ UL_NAME_MAX+1 ];
+  bool d_isdir ;
+} ;
 
-void ulInit ( void )
+ulDir* ulOpenDir ( const char* dirname ) ;
+ulDirEnt* ulReadDir ( ulDir* dir ) ;
+void ulCloseDir ( ulDir* dir ) ;
+
+/*
+  UDP Networking Class NetWork Libriary
+  by Ben Woodhead
+*/
+
+#define UL_UDP_DEFAULT_PORT_NUMBER  5100
+
+class ulUDPConnection
 {
-  _ulErrorBuffer [0] = 0 ;
-}
+  struct sockaddr_in  *in_addr ;
+  struct sockaddr_in *out_addr ;
 
-void ulSetError ( int severity, const char *fmt, ... )
+  int sockfd ;
+  int  port  ;
+  int iport  ;
+  int oport  ;
+
+ public:
+
+   ulUDPConnection () ;
+  ~ulUDPConnection () ;
+  
+  void disconnect  () ;
+
+  int connect      ( char *hostname = "localhost",
+                     int   _port    = UL_UDP_DEFAULT_PORT_NUMBER ) ;
+
+  int sendMessage  ( char *mesg, int length ) ;
+  int recvMessage  ( char *mesg, int length ) ;
+} ;
+
+/*
+  TCP Networking Class NetWork Library
+  by Ben Woodhead
+*/
+
+#define UL_TCP_DEFAULT_PORT_NUMBER  5100
+
+class ulTCPConnection
 {
-  va_list argp;
-  va_start ( argp, fmt ) ;
-  vsprintf ( _ulErrorBuffer, fmt, argp ) ;
-  va_end ( argp ) ;
+  struct sockaddr_in  *in_addr ;
+  struct sockaddr_in *out_addr ;
 
-  if ( _ulErrorCB )
-  {
-    (*_ulErrorCB)( severity, _ulErrorBuffer ) ;
-  }
-  else
-  {
-    fprintf ( stderr, "%s: %s\n",
-       _ulSeverityText[ severity ], _ulErrorBuffer ) ;
-    if ( severity == UL_FATAL )
-      exit (1) ;
-  }
-}
+  int sockfd ;
+  int c_sockfd;  /* This is questionable if I actually need this,
+			  I would love it if someone would tighten my code */
+  int  port  ;
 
-char* ulGetError ( void )
-{
-  return _ulErrorBuffer ;
-}
+ public:
 
-void ulClearError ( void )
-{
-  _ulErrorBuffer [0] = 0 ;
-}
+  ulTCPConnection () ; 
+  ~ulTCPConnection () ;
 
-ulErrorCallback ulGetErrorCallback ( void )
-{
-  return _ulErrorCB ;
-}
+  void disconnect  () ;
+  int startServer  (int _port = UL_TCP_DEFAULT_PORT_NUMBER ) ;  
 
-void ulSetErrorCallback ( ulErrorCallback cb )
-{
-  _ulErrorCB = cb ;
-}
+  int connect      ( char *hostname = "localhost",
+                     int   _port    = UL_TCP_DEFAULT_PORT_NUMBER ) ;
 
-#endif
+  int sendMessage  ( char *mesg, int length ) ;
+  int recvMessage  ( char *mesg, int length ) ;
+} ;
+
 #endif
 

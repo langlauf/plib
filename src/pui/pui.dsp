@@ -23,8 +23,8 @@ CFG=pui - Win32 Debug
 
 # Begin Project
 # PROP AllowPerConfigDependencies 0
-# PROP Scc_ProjName ""
-# PROP Scc_LocalPath ""
+# PROP Scc_ProjName "pui"
+# PROP Scc_LocalPath "."
 CPP=cl.exe
 RSC=rc.exe
 
@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\sg" /I "..\fnt" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GLUT_IS_PRESENT" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\fnt" /I "..\sg" /I "..\util" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GLUT_IS_PRESENT" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -110,6 +110,10 @@ SOURCE=.\puDialogBox.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\puFilePicker.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\puFont.cxx
 # End Source File
 # Begin Source File
@@ -127,6 +131,10 @@ SOURCE=.\puInput.cxx
 # Begin Source File
 
 SOURCE=.\puInterface.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\puListBox.cxx
 # End Source File
 # Begin Source File
 

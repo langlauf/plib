@@ -72,6 +72,8 @@ include_HEADERS = sg.h
 
 libplibsg_a_SOURCES = sg.cxx sgd.cxx sgIsect.cxx
 
+INCLUDES =  -I$(top_srcdir)/src/util
+
 EXTRA_DIST = sg.dsp libsg.bpr
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -233,9 +235,9 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-sg.o: sg.cxx sg.h
-sgIsect.o: sgIsect.cxx sg.h
-sgd.o: sgd.cxx sg.h
+sg.o: sg.cxx sg.h ../../src/util/ul.h
+sgIsect.o: sgIsect.cxx sg.h ../../src/util/ul.h
+sgd.o: sgd.cxx sg.h ../../src/util/ul.h
 
 info-am:
 info: info-am

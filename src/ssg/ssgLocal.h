@@ -1,26 +1,7 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef WIN32
-#  include <windows.h>
-#  include <GL/gl.h>
-#else
-#  include <GL/gl.h>
-#  ifndef macintosh
-#    include <GL/glx.h>
-#  else
-#    include <agl.h>
-#  endif
-#endif
-
-
 #define _SSG_PUBLIC  public
 
 #include "ssg.h"
-#include "ul.h"
 
 extern void (*__ssgEnableTable[64])() ;
 extern void (*__ssgDisableTable[64])() ;
@@ -100,7 +81,7 @@ void _ssgWriteMat4   ( FILE *fd, const sgMat4 var ) ;
 int _ssgReadError    ( void ) ;
 int _ssgWriteError   ( void ) ;
 
-int _ssgStrNEqual ( char *s1, char *s2, int len ) ;
+int _ssgStrNEqual ( const char *s1, const char *s2, int len ) ;
 
 ssgBase *_ssgGetFromList ( int key ) ;
 void     _ssgAddToList   ( int key, ssgBase *b ) ;

@@ -3,7 +3,7 @@
 #define PUMENU_BUTTON_HEIGHT       25
 #define PUMENU_BUTTON_EXTRA_WIDTH  25
 
-puObject *puPopupMenu::add_item ( char *str, puCallback cb )
+puObject *puPopupMenu::add_item ( const char *str, puCallback cb )
 {
   int w, h ;
   getSize ( &w, &h ) ;
@@ -89,7 +89,7 @@ int puPopupMenu::checkKey ( int key, int updown )
 
 int puPopupMenu::checkHit ( int button, int updown, int x, int y )
 {
-  if ( dlist == NULL || ! isVisible () || ! isActive () )
+  if ( dlist == NULL || ! isVisible () || ! isActive () || ( window != puGetWindow () ) )
     return FALSE ;
 
   /* Must test 'isHit' before making the menu invisible! */

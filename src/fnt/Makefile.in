@@ -71,8 +71,7 @@ lib_LIBRARIES = libplibfnt.a
 include_HEADERS = fnt.h fntLocal.h
 
 libplibfnt_a_SOURCES = fnt.cxx fntTXF.cxx fntLocal.h
-
-INCLUDES =  -I$(top_srcdir)/src/sg
+INCLUDES =  -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/util
 
 EXTRA_DIST = fnt.dsp libfnt.bpr
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -239,8 +238,9 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-fnt.o: fnt.cxx fntLocal.h fnt.h ../../src/sg/sg.h
-fntTXF.o: fntTXF.cxx fntLocal.h fnt.h ../../src/sg/sg.h
+fnt.o: fnt.cxx fntLocal.h fnt.h ../../src/sg/sg.h ../../src/util/ul.h
+fntTXF.o: fntTXF.cxx fntLocal.h fnt.h ../../src/sg/sg.h \
+	../../src/util/ul.h
 
 info-am:
 info: info-am

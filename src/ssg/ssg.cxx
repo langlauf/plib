@@ -14,7 +14,7 @@ sgVec3 _ssgVertex000   = { 0.0f, 0.0f, 0.0f } ;
 sgVec4 _ssgColourWhite = { 1.0f, 1.0f, 1.0f, 1.0f } ;
 sgVec3 _ssgNormalUp    = { 0.0f, 0.0f, 1.0f } ;
 sgVec2 _ssgTexCoord00  = { 0.0f, 0.0f } ;
-int    _ssgIndex0      = 0;
+short  _ssgIndex0      = 0;
 
 char *_ssgModelPath   = NULL ;
 char *_ssgTexturePath = NULL ;
@@ -60,15 +60,7 @@ ssgLight *ssgGetLight ( int i )
 
 void ssgInit ()
 {
-#ifdef WIN32
-  if ( wglGetCurrentContext () == NULL )
-#else
-#if defined(macintosh)
-  if ( aglGetCurrentContext () == NULL )
-#else
-  if ( glXGetCurrentContext () == NULL )
-#endif
-#endif
+  if ( glGetCurrentContext () == NULL )
   {
     ulSetError ( UL_FATAL, "ssgInit called without a valid OpenGL context.");
   }
@@ -89,6 +81,7 @@ void ssgInit ()
 }
 
 
+#ifdef _SSG_USE_PICK
 void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
 {
   if ( _ssgCurrentContext == NULL )
@@ -132,6 +125,7 @@ void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
   glMatrixMode ( GL_MODELVIEW ) ;
   glLoadIdentity () ;
 }
+#endif // #ifdef _SSG_USE_PICK
 
 
 void ssgCullAndDraw ( ssgRoot *r )
@@ -140,8 +134,6 @@ void ssgCullAndDraw ( ssgRoot *r )
   {
     ulSetError ( UL_FATAL, "ssg: No Current Context: Did you forgot to call ssgInit()?" ) ;
   }
-
-  _ssgFrameCounter++ ;
 
   ssgForceBasicState () ;
 
@@ -168,6 +160,8 @@ void ssgCullAndDraw ( ssgRoot *r )
 
   glMatrixMode ( GL_MODELVIEW ) ;
   glLoadIdentity () ;
+
+  _ssgFrameCounter++ ;
 }
 
 
