@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.cxx,v 1.13 2001/06/16 21:03:27 sjbaker Exp $
+     $Id: netSocket.cxx,v 1.14 2001/06/23 02:30:18 sjbaker Exp $
 */
 
 #include "netSocket.h"
@@ -44,6 +44,12 @@
 #define socklen_t int
 #endif
 
+/* Paul Wiltsey says we need this for Solaris 2.8 */
+ 
+#ifndef INADDR_NONE
+#define INADDR_NONE ((unsigned long)-1)
+#endif
+                                                                                               
 netAddress::netAddress ( cchar* host, int port )
 {
   set ( host, port ) ;

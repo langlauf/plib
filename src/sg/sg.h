@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sg.h,v 1.19 2001/06/15 23:14:52 sjbaker Exp $
+     $Id: sg.h,v 1.20 2001/06/22 13:35:07 wolfram_kuss Exp $
 */
 
 
@@ -824,6 +824,22 @@ inline void sgMakePlane ( sgVec4 dst, const sgVec3 a, const sgVec3 b, const sgVe
 }
 
 float sgTriArea( sgVec3 p0, sgVec3 p1, sgVec3 p2 );
+
+
+// Fast code. Result is in the range  0..pi:
+inline SGfloat sgAngleBetweenNormalizedVec3 ( sgVec3 v1, sgVec3 v2 )
+{
+  return (float)(acos(sgScalarProductVec3(v1,v2))*SG_RADIANS_TO_DEGREES) ;
+}
+
+// Fast code. Result is in the range  0..pi:
+SGfloat sgAngleBetweenVec3 ( sgVec3 v1, sgVec3 v2 );
+
+// all three have to be normalized. Slow code. Result is in the range  0..2*pi:
+SGfloat sgAngleBetweenNormalizedVec3 (sgVec3 first, sgVec3 second, sgVec3 normal);
+
+// normal has to be normalized. Slow code. Result is in the range  0..2*pi:
+SGfloat sgAngleBetweenVec3 ( sgVec3 v1, sgVec3 v2, sgVec3 normal );
 
 class sgSphere
 {

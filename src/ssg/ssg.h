@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssg.h,v 1.115 2001/06/16 16:27:37 stromberg Exp $
+     $Id: ssg.h,v 1.116 2001/06/22 11:28:09 wolfram_kuss Exp $
 */
 
 
@@ -2550,6 +2550,9 @@ inline void ssgTexturePath ( const char *path )
 }
 
 ssgEntity *ssgLoadAC   ( const char *fname, const ssgLoaderOptions *options = NULL ) ;
+
+
+void ssgGetValuesFromLastATGFile(double *x, double *y, double *z, double *r);
 
 /* scene walkers */
 

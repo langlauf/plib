@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ul.cxx,v 1.14 2001/04/12 03:39:07 deca Exp $
+     $Id: ul.cxx,v 1.16 2001/06/24 01:43:02 sjbaker Exp $
 */
 
 
@@ -81,6 +81,12 @@ ulDir* ulOpenDir ( const char* dirname )
     }
 #else
     dir->dirp = opendir(dirname) ;
+
+    if ( dir->dirp == NULL )
+    {
+      delete dir ;
+      dir = NULL ;
+    }
 #endif
   }
   return dir;
@@ -108,7 +114,7 @@ ulDirEnt* ulReadDir ( ulDir* dir )
   strcpy( dir->curr.d_name, direntp->d_name );
 #endif
 
-  char path[ UL_NAME_MAX+1 ];
+  char path[ 1000 + UL_NAME_MAX+1 ];
   sprintf( path, "%s/%s", dir->dirname, dir->curr.d_name );
 
   //determine if this entry is a directory
@@ -139,9 +145,9 @@ void ulCloseDir ( ulDir* dir )
 #if defined(WIN32) && !defined(__CYGWIN__)
     FindClose(dir->hFind);
 #else
-    closedir(dir->dirp);
+    closedir ( dir->dirp ) ;
 #endif
-    delete dir;
+    delete dir ;
   }
 }
 
