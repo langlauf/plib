@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puListBox.cxx,v 1.9 2001/06/19 02:42:18 sjbaker Exp $
+     $Id: puListBox.cxx,v 1.12 2001/06/24 03:01:26 sjbaker Exp $
 */
 
 /****
@@ -45,9 +45,20 @@ puListBox::puListBox  ( int minx, int miny, int maxx, int maxy, char** _list ) :
 {
   type |= PUCLASS_LISTBOX ;
 
+  newList ( _list ) ;
+}
+
+
+void puListBox::newList ( char ** _list )
+{
   list = _list ;
-  for ( num = 0 ; list [ num ] != NULL ; num++ )
-    /* Count number of items */ ;
+
+  if ( list == NULL )
+    num = 0 ;
+  else
+    for ( num = 0 ; list [ num ] != NULL ; num++ )
+      /* Count number of items */ ;
+
   top = 0 ;
 
   /* Set index of selected item */
@@ -67,7 +78,7 @@ void puListBox::setTopItem( int item_index )
 
 void puListBox::draw ( int dx, int dy )
 {
-  if ( !visible || ( window != puGetWindow () ) ) return ;
+  if ( !visible || ( window != puGetWindow () ) || list == NULL ) return ;
 
   abox . draw ( dx, dy, style, colour, isReturnDefault() ) ;
 
@@ -81,6 +92,8 @@ void puListBox::draw ( int dx, int dy )
                 colour [ PUCOL_LEGEND ][2],
                 colour [ PUCOL_LEGEND ][3] / 2.0f ) ; /* 50% more transparent */
 
+  int xsize = abox.max[0] - abox.min[0] + 1 ;
+
   if ( r_cb )
     r_cb ( this, dx, dy, render_data ) ;
   else
@@ -92,7 +105,7 @@ void puListBox::draw ( int dx, int dy )
     int selected ;
     getValue ( &selected ) ;
 
-    for ( int i=top; i<num && i<top+num_vis; i++ )
+    for ( int i = top ; i < num && i < top + num_vis ; i++ )
     {
       if ( i == selected )
         glColor4f ( 1.0, 1.0, 1.0, 1.0 ) ;
@@ -100,12 +113,37 @@ void puListBox::draw ( int dx, int dy )
         glColor4f ( 0.0, 0.0, 0.0, 1.0 ) ;
 
       int x = PUSTR_LGAP ;
-      int y = PUSTR_BGAP + yinc * ((i-top)+1) ;
+      int y = yinc * ((i-top)+1) ;
 
       int xx = dx + abox.min[0] + x ;
       int yy = dy + abox.max[1] - y ;
 
-      const char* str = list [ i ] ;
+      int width ;
+      char str [ PUSTRING_MAX ] ;
+      strcpy ( str, list [ i ] ) ;
+
+      /*
+        Does the string fit into the box?
+
+        If not, chop it down one character at a time until
+        it does fit.
+      */
+
+      while ( 1 )
+      {
+        width = puGetStringWidth ( legendFont, (char *)str ) + PUSTR_LGAP ;
+
+        if ( width < xsize )
+          break ;
+
+        /*
+          Nibble off one character and try again
+          (Do that sneakily by replacing the last 4 characters with 3 dots)
+        */
+
+        strcpy ( & str [ strlen(str) - 4 ], "..." ) ;
+      }
+
       puDrawString ( legendFont, (char*)str, xx, yy ) ;
     }
   }

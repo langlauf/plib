@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sg.h,v 1.19 2001/06/15 23:14:52 sjbaker Exp $
+     $Id: sg.h,v 1.21 2001/07/13 21:11:44 sjbaker Exp $
 */
 
 
@@ -538,6 +538,7 @@ inline SGfloat sgScalarProductVec4 ( const sgVec4 a, const sgVec4 b )
 
 extern void sgVectorProductVec3 ( sgVec3 dst, const sgVec3 a, const sgVec3 b ) ;
 
+
 inline void sgLerpVec4 ( sgVec4 dst, const sgVec4 a, const sgVec4 b, const SGfloat f )
 {
   dst[0] = a[0] + f * ( b[0] - a[0] ) ;
@@ -546,6 +547,7 @@ inline void sgLerpVec4 ( sgVec4 dst, const sgVec4 a, const sgVec4 b, const SGflo
   dst[3] = a[3] + f * ( b[3] - a[3] ) ;
 }
 
+
 inline void sgLerpVec3 ( sgVec3 dst, const sgVec3 a, const sgVec3 b, const SGfloat f )
 {
   dst[0] = a[0] + f * ( b[0] - a[0] ) ;
@@ -553,11 +555,35 @@ inline void sgLerpVec3 ( sgVec3 dst, const sgVec3 a, const sgVec3 b, const SGflo
   dst[2] = a[2] + f * ( b[2] - a[2] ) ;
 }
 
+
 inline void sgLerpVec2 ( sgVec2 dst, const sgVec2 a, const sgVec2 b, const SGfloat f )
 {
   dst[0] = a[0] + f * ( b[0] - a[0] ) ;
   dst[1] = a[1] + f * ( b[1] - a[1] ) ;
 }
+
+
+inline void sgLerpAnglesVec3 ( sgVec3 dst, const sgVec3 a,
+                                           const sgVec3 b,
+                                           const SGfloat f )
+{
+  sgVec3 tmp ;
+ 
+  if ( b[0] - a[0] >  180.0f ) tmp[0] = a[0] + 360.0f ; else
+  if ( b[0] - a[0] < -180.0f ) tmp[0] = a[0] - 360.0f ; else tmp[0] = a[0] ;
+ 
+  if ( b[1] - a[1] >  180.0f ) tmp[1] = a[1] + 360.0f ; else
+  if ( b[1] - a[1] < -180.0f ) tmp[1] = a[1] - 360.0f ; else tmp[1] = a[1] ;
+ 
+  if ( b[2] - a[2] >  180.0f ) tmp[2] = a[2] + 360.0f ; else
+  if ( b[2] - a[2] < -180.0f ) tmp[2] = a[2] - 360.0f ; else tmp[2] = a[2] ;
+ 
+  dst[0] = tmp[0] + f * ( b[0] - tmp[0] ) ;
+  dst[1] = tmp[1] + f * ( b[1] - tmp[1] ) ;
+  dst[2] = tmp[2] + f * ( b[2] - tmp[2] ) ;
+}                                                                               
+
+
 
 inline SGfloat sgDistanceSquaredVec2 ( const sgVec2 a, const sgVec2 b )
 {
@@ -824,6 +850,22 @@ inline void sgMakePlane ( sgVec4 dst, const sgVec3 a, const sgVec3 b, const sgVe
 }
 
 float sgTriArea( sgVec3 p0, sgVec3 p1, sgVec3 p2 );
+
+
+// Fast code. Result is in the range  0..pi:
+inline SGfloat sgAngleBetweenNormalizedVec3 ( sgVec3 v1, sgVec3 v2 )
+{
+  return (float)(acos(sgScalarProductVec3(v1,v2))*SG_RADIANS_TO_DEGREES) ;
+}
+
+// Fast code. Result is in the range  0..pi:
+SGfloat sgAngleBetweenVec3 ( sgVec3 v1, sgVec3 v2 );
+
+// all three have to be normalized. Slow code. Result is in the range  0..2*pi:
+SGfloat sgAngleBetweenNormalizedVec3 (sgVec3 first, sgVec3 second, sgVec3 normal);
+
+// normal has to be normalized. Slow code. Result is in the range  0..2*pi:
+SGfloat sgAngleBetweenVec3 ( sgVec3 v1, sgVec3 v2, sgVec3 normal );
 
 class sgSphere
 {
@@ -1783,6 +1825,28 @@ inline void sgdLerpVec2 ( sgdVec2 dst, const sgdVec2 a, const sgdVec2 b, const S
   dst[0] = a[0] + f * ( b[0] - a[0] ) ;
   dst[1] = a[1] + f * ( b[1] - a[1] ) ;
 }
+
+inline void sgdLerpAnglesVec3 ( sgdVec3 dst, const sgdVec3 a,
+                                             const sgdVec3 b,
+                                             const SGDfloat f )
+{
+  sgdVec3 tmp ;
+ 
+  if ( b[0] - a[0] >  180.0 ) tmp[0] = a[0] + 360.0 ; else
+  if ( b[0] - a[0] < -180.0 ) tmp[0] = a[0] - 360.0 ; else tmp[0] = a[0] ;
+ 
+  if ( b[1] - a[1] >  180.0 ) tmp[1] = a[1] + 360.0 ; else
+  if ( b[1] - a[1] < -180.0 ) tmp[1] = a[1] - 360.0 ; else tmp[1] = a[1] ;
+ 
+  if ( b[2] - a[2] >  180.0 ) tmp[2] = a[2] + 360.0 ; else
+  if ( b[2] - a[2] < -180.0 ) tmp[2] = a[2] - 360.0 ; else tmp[2] = a[2] ;
+ 
+  dst[0] = tmp[0] + f * ( b[0] - tmp[0] ) ;
+  dst[1] = tmp[1] + f * ( b[1] - tmp[1] ) ;
+  dst[2] = tmp[2] + f * ( b[2] - tmp[2] ) ;
+}                                                                               
+
+
 
 
 inline SGDfloat sgdDistanceSquaredVec2 ( const sgdVec2 a, const sgdVec2 b )

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puMenuBar.cxx,v 1.8 2001/04/12 03:36:12 deca Exp $
+     $Id: puMenuBar.cxx,v 1.9 2001/06/23 02:30:18 sjbaker Exp $
 */
 
 
@@ -33,6 +33,11 @@ void puMenuBar_drop_down_the_menu ( puObject *b )
 
   if ( b -> getValue () )
   {
+/*
+  SJBL Test hack.
+*/
+    puDeactivateWidget () ;
+
     p->reveal () ;   // Reveal the submenu
 
     // If the parent floats in its own window, and the submenu drops off the window,

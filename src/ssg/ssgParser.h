@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgParser.h,v 1.10 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgParser.h,v 1.13 2001/07/15 05:09:23 lachancew Exp $
 */
 
 
@@ -45,22 +45,22 @@ struct _ssgParserSpec
 
 class _ssgParser
 {
-	enum { MAX_TOKENS = 256 } ; // wk: I have > 32 Tokens per line
-  enum { MAX_DELIMITER_CHARS = 256 } ;
+	enum { MAX_TOKENS = 50000 } ; 
+  enum { MAX_DELIMITER_CHARS = 5000 } ;
 
   char path[ 256 ] ;
   _ssgParserSpec spec ;
   FILE* fileptr ;
 
   int linenum ;
-  char linebuf[ 4096 ] ;
-  char tokbuf[ 4096 ] ;
+  char linebuf[ 50000 ] ;
+  char tokbuf[ 50000 ] ;
 	char anyDelimiter [ MAX_DELIMITER_CHARS ] ;
   char* tokptr[ MAX_TOKENS ] ;
   int numtok ;
   int curtok ;
 
-	char onechartokenbuf [ 4096 ];
+	char onechartokenbuf [ 50000 ];
 	char *onechartokenbuf_ptr;
 	void addOneCharToken ( char *ptr ) ;
   
@@ -77,8 +77,8 @@ public :
 // ************************** line-by-line API **************************
   int level;
 
-  char* getLine( int startLevel=0 ); // may return NULL
-
+   char* getLine( int startLevel=0 ); // may return NULL
+   char* getRawLine();
 	// All the name -parameters are only for error-messages
 
 	// The parse... - functions get the next token from the current line
@@ -88,6 +88,7 @@ public :
   char* parseToken( const char* name );
 	// These return TRUE on success:
   int parseFloat( SGfloat &retVal, const char* name ); 
+  int parseDouble( double &retVal, const char* name ); 
   int parseInt(int &retVal, const char* name ); 
   int parseUInt(unsigned int &retVal, const char* name ); 
   int parseString(char *&retVal, const char* name ); 
@@ -96,14 +97,15 @@ public :
 
 // ************************** line structure independant API **************************
 
-	// These six functions get the next token - regardless of what line it is on
-	char *getNextToken( const char* name );
+  // These six functions get the next token - regardless of what line it is on
+  char *getNextToken( const char* name );
   char *peekAtNextToken( const char* name );
   // These return TRUE on success:
   int getNextFloat( SGfloat &retVal, const char* name ); 
-  int getNextInt( int & retVal, const char* name ); 
-	int getNextUInt( unsigned int & retVal, const char* name ); 
-	void expectNextToken( const char* name );
+  int getNextInt( int & retVal, const char* name );
+  int getNextString(char *&retVal, const char* name );
+  int getNextUInt( unsigned int & retVal, const char* name );
+  void expectNextToken( const char* name );
  } ;
 
 

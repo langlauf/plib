@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssg.cxx,v 1.38 2001/06/16 16:27:37 stromberg Exp $
+     $Id: ssg.cxx,v 1.40 2001/07/14 04:57:00 lachancew Exp $
 */
 
 
@@ -136,6 +136,8 @@ void ssgInit ()
   ssgAddModelFormat ( ".off"  , ssgLoadOFF  , ssgSaveOFF ) ;
   ssgAddModelFormat ( ".atg"  , ssgLoadATG  , ssgSaveATG ) ;
   ssgAddModelFormat ( ".qhi"  , NULL        , ssgSaveQHI ) ;
+  ssgAddModelFormat ( ".wrl", ssgLoadVRML1 , NULL ) ;
+  ssgAddModelFormat ( ".iv", ssgLoadIV , NULL ) ;
 
 
 #ifdef SSG_LOAD_MDL_SUPPORTED

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgVtxArray.cxx,v 1.19 2001/06/16 16:27:37 stromberg Exp $
+     $Id: ssgVtxArray.cxx,v 1.20 2001/06/28 04:29:38 sjbaker Exp $
 */
 
 
@@ -353,3 +353,4 @@ int ssgVtxArray::save ( FILE *fd )
    
   return TRUE ;
 }
+

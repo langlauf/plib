@@ -73,7 +73,7 @@ include_HEADERS = fnt.h fntLocal.h
 libplibfnt_a_SOURCES = fnt.cxx fntTXF.cxx fntLocal.h
 INCLUDES =  -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/util
 
-EXTRA_DIST = fnt.dsp libfnt.bpr
+EXTRA_DIST = fnt.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(lib_LIBRARIES)

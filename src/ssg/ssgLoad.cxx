@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoad.cxx,v 1.18 2001/06/14 16:59:31 mcdave Exp $
+     $Id: ssgLoad.cxx,v 1.19 2001/06/26 19:03:44 mcdave Exp $
 */
 
 
@@ -36,7 +36,7 @@ char* ssgLoaderOptions::make_path ( char* path,
 {
   if ( fname != NULL && fname [ 0 ] != '\0' )
   {
-    if ( fname [ 0 ] != '/' &&
+    if ( ! ulIsAbsolutePathName ( fname ) &&
        dir != NULL && dir[0] != '\0' )
     {
       strcpy ( path, dir ) ;

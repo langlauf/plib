@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgList.cxx,v 1.4 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgList.cxx,v 1.5 2001/07/13 21:11:44 sjbaker Exp $
 */
 
 
@@ -95,7 +95,6 @@ void ssgList::removeAllEntities ()
 
 void ssgList::removeEntity ( unsigned int n )
 {
-entity_list[n]->deadBeefCheck();
   memmove ( &(entity_list[n]), &(entity_list[n+1]), sizeof(ssgEntity *) * (total-n-1) ) ;
   total-- ;
 

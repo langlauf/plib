@@ -117,10 +117,10 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"Debug\ssg_d.lib"
 # Begin Custom Build - 'ssg' gets installed
 ProjDir=.
-InputPath=.\Debug\ssg.lib
+InputPath=.\Debug\ssg_d.lib
 SOURCE="$(InputPath)"
 
 BuildCmds= \
@@ -284,6 +284,10 @@ SOURCE=.\ssgLoadFLT.cxx
 # End Source File
 # Begin Source File
 
+SOURCE=.\ssgLoadIV.cxx
+# End Source File
+# Begin Source File
+
 SOURCE=.\ssgLoadM.cxx
 # End Source File
 # Begin Source File
@@ -333,6 +337,14 @@ SOURCE=.\ssgLoadTGA.cxx
 # Begin Source File
 
 SOURCE=.\ssgLoadTRI.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgLoadVRML.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgLoadVRML1.cxx
 # End Source File
 # Begin Source File
 
@@ -449,6 +461,14 @@ SOURCE=.\ssgTexture.cxx
 # Begin Source File
 
 SOURCE=.\ssgTransform.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgTween.cxx
+# End Source File
+# Begin Source File
+
+SOURCE=.\ssgTweenController.cxx
 # End Source File
 # Begin Source File
 

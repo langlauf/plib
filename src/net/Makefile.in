@@ -248,14 +248,6 @@ netMessage.o: netMessage.cxx netMessage.h netBuffer.h netChannel.h \
 	netSocket.h ../../src/util/ul.h
 netMonitor.o: netMonitor.cxx netMonitor.h netChat.h netBuffer.h \
 	netChannel.h netSocket.h ../../src/util/ul.h
-netRoom.o: netRoom.cxx netRoom.h netList.h netMessage.h netBuffer.h \
-	netChannel.h netSocket.h ../../src/util/ul.h
-netRoomClient.o: netRoomClient.cxx netRoom.h netList.h netMessage.h \
-	netBuffer.h netChannel.h netSocket.h ../../src/util/ul.h
-netRoomMaster.o: netRoomMaster.cxx netRoom.h netList.h netMessage.h \
-	netBuffer.h netChannel.h netSocket.h ../../src/util/ul.h
-netRoomServer.o: netRoomServer.cxx netRoom.h netList.h netMessage.h \
-	netBuffer.h netChannel.h netSocket.h ../../src/util/ul.h
 netSocket.o: netSocket.cxx netSocket.h ../../src/util/ul.h
 
 info-am:

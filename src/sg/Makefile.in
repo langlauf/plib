@@ -74,7 +74,7 @@ libplibsg_a_SOURCES = sg.cxx sgd.cxx sgIsect.cxx
 
 INCLUDES =  -I$(top_srcdir)/src/util
 
-EXTRA_DIST = sg.dsp libsg.bpr
+EXTRA_DIST = sg.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(lib_LIBRARIES)

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgParser.cxx,v 1.19 2001/05/20 10:28:43 wolfram_kuss Exp $
+     $Id: ssgParser.cxx,v 1.22 2001/07/15 05:09:23 lachancew Exp $
 */
 
 //
@@ -213,6 +213,30 @@ int _ssgParser::getNextInt( int & retVal, const char* name )
 	}
 }
 
+int _ssgParser::getNextString(char *&retVal, const char* name ) // returns TRUE on success
+// wk: This is only for strings where we know they are inside spec.quote_chars, correct?
+{
+   char *token = getNextToken( NULL );
+   
+   if ( spec.quote_char && *token == spec.quote_char )
+     {
+	//knock off the quotes
+	token++ ;
+	int len = strlen( token ) ;
+	if (len > 0 && token[len-1] == spec.quote_char)
+	  token[len-1] = 0;
+     }
+   
+   if( name != NULL && strcmp( token, name  ) ) 
+     {
+	error("Expected %s but got %s instead", name, token) ;
+	return FALSE;	
+     }
+      
+   retVal = token;
+   return TRUE;
+}
+
 int _ssgParser::getNextUInt( unsigned int & retVal, const char* name )
 // returns TRUE on success
 { char *endptr, *token = getNextToken(name);
@@ -253,6 +277,28 @@ char *mystrchr( const char *string, int c )
 		return NULL;
 	else
 		return strchr( string, c );
+}
+
+
+// gets the next line (no matter where it is), without tokenizing it
+// useful for parsing text-formatted files which are identified by
+// comments at the very beginning
+char* _ssgParser::getRawLine()
+// return NULL on eof
+{
+   tokbuf[0]=0;
+   
+   //get the next line with something on it
+   if ( fgets ( linebuf, sizeof(linebuf), fileptr ) == NULL )
+     { 
+	eol = TRUE;
+	eof = TRUE;
+	return(0) ;
+     }
+   
+   memcpy( tokbuf, linebuf, sizeof(linebuf) ) ;
+
+   return tokbuf;
 }
 
 // wk: This works and is IMHO robust.
@@ -412,10 +458,22 @@ int _ssgParser::parseString(char *&retVal, const char* name ) // returns TRUE on
 	    error("missing %s",name) ;
 		return FALSE;
 	}
-	retVal = token;
+   retVal = token;
   return TRUE;
 }
 
+int _ssgParser::parseDouble( double &retVal, const char* name )
+// returns TRUE on success
+{
+  char *endptr, *token = parseToken(name);
+  retVal = strtod( token, &endptr);
+	if ( (endptr == NULL) || (*endptr == 0))
+    return TRUE;
+	else
+	{ error("The field %s should contain a floating point number but contains %s",name, token) ;
+		return FALSE;
+	}
+}
 
 int _ssgParser::parseFloat( SGfloat &retVal, const char* name )
 // returns TRUE on success

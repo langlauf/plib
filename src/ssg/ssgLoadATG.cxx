@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLoadATG.cxx,v 1.7 2001/06/12 07:50:45 wolfram_kuss Exp $
+     $Id: ssgLoadATG.cxx,v 1.12 2001/07/14 08:58:04 wolfram_kuss Exp $
 */
 /* 
  .scenery loader for SSG/PLIB
@@ -89,7 +89,8 @@ static _ssgParserSpec parser_spec =
    NULL,          // open_brace_chars
    NULL,          // close_brace_chars
    '"',        // quote_char. not used for scenery
-   0,          // comment_char # is handled in this module, since it may contin the name of the material
+   0,          // comment_char # is handled in this module, since it may contain 
+	             // important info like the name of the material or the gbs
 	 NULL        // comment_string
 } ;
 
@@ -112,7 +113,7 @@ static int Ascii2Int(int &retVal, const char *token, const char* name )
 
 
 
-#define MAX_NO_VERTICES_PER_FACE 1000
+#define MAX_NO_VERTICES_PER_FACE 10000
 
 static class ssgLoaderWriterMesh _theMesh;
 
@@ -122,6 +123,19 @@ static int _ssgNoFaces, _ssgNoVertices, _ssgNoVertexNormals, _ssgNoVertexTC; //l
 
 static char * _current_usemtl = NULL, * _last_usemtl = NULL;
 static int _current_material_index = -1;
+
+double _ssg_gbs_x = 0.0, _ssg_gbs_y = 0.0, _ssg_gbs_z = 1.0, _ssg_gbs_r = 0.0;
+
+void ssgGetValuesFromLastATGFile(double *x, double *y, double *z, double *r)
+// These values are the values from the "# gbs" line from the last loaded
+// ATG file, or 0, 0, 1, 0 if there is no ATG file with a # gbs line loaded yet
+// The values are the vector from the centre of the earth to the tile and 
+// a radius.
+{ *x = _ssg_gbs_x;
+  *y = _ssg_gbs_y;
+	*z = _ssg_gbs_z;
+	*r = _ssg_gbs_r;
+}
 
 static char* parser_getLine()
 // replaces parser.getLine, but handles '#'
@@ -133,8 +147,8 @@ static char* parser_getLine()
 		return NULL;
 
 	while ( token[0] == '#' )
-	{ 
-		if ( ulStrEqual ("usemtl" , parser.parseToken( 0 ))) // name has to be 0 
+	{ char * token0 = parser.parseToken( 0 );
+		if ( ulStrEqual ("usemtl" , token0)) // name has to be 0 
 		{ char * usemtl = parser.parseToken( 0 );
 		  if ( usemtl != NULL)
 				if ( 0 != usemtl[0] )
@@ -145,12 +159,30 @@ static char* parser_getLine()
 					strcpy ( _current_usemtl, usemtl ) ;
 				}
 		}
+    //# gbs -2710586.16105 -4275323.15743 3867065.62925 7623.60
+		else if ( ulStrEqual ("gbs" , token0)) // name has to be 0 
+		{ char * temp;
+			temp = parser.parseToken( 0 );
+		  _ssg_gbs_x = atof (temp);
+			temp = parser.parseToken( 0 );
+		  _ssg_gbs_y = atof (temp);
+			temp = parser.parseToken( 0 );
+		  _ssg_gbs_z = atof (temp);
+			temp = parser.parseToken( 0 );
+		  _ssg_gbs_r = atof (temp);
+		}
 		token = parser.getLine(0);
 		if ( token == NULL )
 			return NULL;
 	}
 	return token;
 }
+
+static int reduce_numbers; // some ATG files (from BTG converted ones?) have vertex coordinates that include gbs, for example
+									// 2713547.89986. Others have coordinates excluding gbs, for example 2961.50684
+// I need to reduce the big numbers beacuse float a,b; a-b is dangerous if a large and b small.
+// Therefore I reduce the numbers by gbs while I have vertex coords and gbs as double and add it back in using double in PPE
+
 
 static int parse()
 {
@@ -161,12 +193,12 @@ static int parse()
 	_ssgNoVertexNormals = 0;
 	_ssgNoVertexTC = 0;
 
-	_theMesh.ReInit ();
-	_theMesh.ThereAreNVertices(); 
-	_theMesh.ThereAreNFaces(); 
-	_theMesh.ThereAreNTCPFAV();
-	_theMesh.ThereAreNMaterials();
-	_theMesh.ThereAreNMaterialIndexes() ;
+	_theMesh.reInit ();
+	_theMesh.createVertices(); 
+	_theMesh.createFaces(); 
+	_theMesh.createPerFaceAndVertexTextureCoordinates2();
+	_theMesh.createMaterials();
+	_theMesh.createMaterialIndices() ;
   
 	token = parser_getLine();
 	if ( token == NULL )
@@ -174,16 +206,33 @@ static int parse()
 		return FALSE;
 	}
 	// ****** read vertices ************
-
+	int first = TRUE;
 	while ( 0 == strcmp( token, "v") ) 
-	{ sgVec3 vert;
-		
-		if (! parser.parseFloat( vert[0], "vertex.x") )
+	{ 
+		double vx, vy, vz;
+		if (! parser.parseDouble( vx, "vertex.x") )
 	    return FALSE;
-		if (! parser.parseFloat( vert[1], "vertex.y") )
+		if (! parser.parseDouble( vy, "vertex.y") )
 	    return FALSE;
-		if (! parser.parseFloat( vert[2], "vertex.z") )
+		if (! parser.parseDouble( vz, "vertex.z") )
 	    return FALSE;
+		if (first)
+		{	first = FALSE;
+			
+#ifndef ABS
+#define ABS(x) (((x)>0)?(x):-(x))
+#endif
+		// Mega-kludge:
+			reduce_numbers = (ABS(vx)>50000);
+		}
+		if (reduce_numbers)
+		{ assert( _ssg_gbs_x != 0.0); // kludge
+			vx += _ssg_gbs_x;
+			vy += _ssg_gbs_y;
+			vz += _ssg_gbs_z;
+		}
+		sgVec3 vert;
+		sgSetVec3( vert, (float) vx, (float) vy, (float) vz);
 		_theMesh.addVertex(vert); // add to mesh
 		_ssgNoVertices++;
 		token = parser_getLine();
@@ -328,7 +377,34 @@ static int parse()
 		_ssgNoFaces++;
 ////////////////////
 		// use array aiVertices
-		
+// Wk: Its is not clear to me, whether DOTRIANGLES always has to be on.
+#define DOTRIANGLES 1
+#ifdef DOTRIANGLES
+		unsigned int j, k, l;
+		k = nNoOfVerticesForThisFace / 3;
+		assert( 3*k==nNoOfVerticesForThisFace);
+		for(l=0;l<k;l++)
+		{	ssgTexCoordArray * sca = new ssgTexCoordArray (3);
+			sca->ref();
+			for(j=0;j<3;j++)
+			{
+				if ( ! linearListTCPFAV->get(aiTCs[l*3+j]) )
+				{	parser.error("Internal error while reading *.atg-file: aiTCs[j] == NULL \n");
+					return FALSE;
+				}
+				sca->add(linearListTCPFAV->get(aiTCs[l*3+j]));
+			}
+
+			// ****** add face to mesh *****
+			_theMesh.addPerFaceAndVertexTextureCoordinate2( &sca ) ;
+			int carray[3];
+			carray[0]=aiVertices[3*l+0];
+			carray[1]=aiVertices[3*l+1];
+			carray[2]=aiVertices[3*l+2];
+			_theMesh.addFaceFromIntegerArray(3, carray); 
+			_theMesh.addMaterialIndex ( _current_material_index ) ;
+		}
+#else		
 		unsigned int j;
 		ssgTexCoordArray * sca = new ssgTexCoordArray (nNoOfVerticesForThisFace);
 		sca->ref();
@@ -342,11 +418,11 @@ static int parse()
 		}
 
 		// ****** add face to mesh *****
-		_theMesh.addTCPFAV ( &sca ) ;
-		_theMesh.AddFaceFromCArray(nNoOfVerticesForThisFace, aiVertices); 
+		_theMesh.addPerFaceAndVertexTextureCoordinate2 ( &sca ) ;
+		_theMesh.addFaceFromIntegerArray(nNoOfVerticesForThisFace, aiVertices); 
 		_theMesh.addMaterialIndex ( _current_material_index ) ;
 		
-
+#endif
 
 		token = parser_getLine();
 		if ( token == NULL )
@@ -384,7 +460,7 @@ static int parse()
 
 	ss -> disable( GL_TEXTURE_2D );
   _theMesh.checkMe(); //lint !e534 // For debug
-	_theMesh.add2SSG(
+	_theMesh.addToSSG(
 		ss, // super kludge. NIV135
 		current_options,
 		top_branch);

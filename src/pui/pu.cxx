@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: pu.cxx,v 1.20 2001/06/19 02:42:18 sjbaker Exp $
+     $Id: pu.cxx,v 1.21 2001/07/07 04:45:32 sjbaker Exp $
 */
 
 #include "puLocal.h"
@@ -394,6 +394,9 @@ int puMouse ( int button, int updown, int x, int y )
   
   puCleanUpJunk () ;
   
+  if ( last_buttons == 0 )
+    puSetActiveWidget ( NULL, 0, 0 ) ;
+
   return return_value ;
 }
 

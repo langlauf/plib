@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssgLocal.h,v 1.16 2001/04/12 03:38:15 deca Exp $
+     $Id: ssgLocal.h,v 1.17 2001/07/13 21:11:44 sjbaker Exp $
 */
 
 
@@ -103,6 +103,8 @@ void _ssgWriteMat4   ( FILE *fd, const sgMat4 var ) ;
 int _ssgReadError    ( void ) ;
 int _ssgWriteError   ( void ) ;
 
+float _ssgGetCurrentTweenState () ;
+void  _ssgSetCurrentTweenState ( float tweenstate ) ;
 
 /*
   Routines for storing arbitrary ssgBase derived objects within SSG files. 

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.cxx,v 1.13 2001/06/16 21:03:27 sjbaker Exp $
+     $Id: netSocket.cxx,v 1.15 2001/07/21 13:22:28 sjbaker Exp $
 */
 
 #include "netSocket.h"
@@ -44,6 +44,12 @@
 #define socklen_t int
 #endif
 
+/* Paul Wiltsey says we need this for Solaris 2.8 */
+ 
+#ifndef INADDR_NONE
+#define INADDR_NONE ((unsigned long)-1)
+#endif
+                                                                                               
 netAddress::netAddress ( cchar* host, int port )
 {
   set ( host, port ) ;
@@ -207,7 +213,7 @@ int
 netSocket::accept ( netAddress* addr )
 {
   assert ( handle != -1 ) ;
-  socklen_t addr_len = sizeof(netAddress) ;
+  socklen_t addr_len = (socklen_t) sizeof(netAddress) ;
   return ::accept(handle,(sockaddr*)addr,&addr_len);
 }
 
@@ -244,7 +250,7 @@ int
 netSocket::recvfrom ( void * buffer, int size, int flags, netAddress* from )
 {
   assert ( handle != -1 ) ;
-  socklen_t fromlen = sizeof(netAddress) ;
+  socklen_t fromlen = (socklen_t) sizeof(netAddress) ;
   return ::recvfrom(handle,(char*)buffer,size,flags,(sockaddr*)from,&fromlen);
 }
 
