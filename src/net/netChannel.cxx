@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netChannel.cxx,v 1.8 2004/03/21 17:41:07 sjbaker Exp $
+     $Id: netChannel.cxx,v 1.9 2004/03/22 19:44:50 sjbaker Exp $
 */
 
 // TODO:
@@ -48,8 +48,9 @@ netChannel::~netChannel ()
   close();
 
   netChannel* prev = NULL ;
+
   for ( netChannel* ch = channels; ch != NULL;
-    ch = ch -> next_channel )
+                    ch = ch -> next_channel )
   {
     if (ch == this)
     {
@@ -275,3 +276,4 @@ netChannel::loop (unsigned int timeout)
 {
   while ( poll (timeout) ) ;
 }
+

@@ -18,13 +18,16 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: jsWindows.cxx,v 1.1 2002/11/29 19:39:48 sjbaker Exp $
+     $Id: jsWindows.cxx,v 1.2 2004/03/24 15:57:09 wolfram_kuss Exp $
 */
 
 #include "js.h"
 
 #ifdef UL_WIN32
 
+// Since we use  joyGetPosEx to request the joystick values, 
+// we have never more than 8 axes to worry about:
+#undef _JS_MAX_AXES
 #define _JS_MAX_AXES 8  /* X,Y,Z,R,U,V,POV_X,POV_Y */
 
 

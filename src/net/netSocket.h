@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.h,v 1.18 2004/03/21 17:41:07 sjbaker Exp $
+     $Id: netSocket.h,v 1.19 2004/03/22 19:44:50 sjbaker Exp $
 */
 
 /****
@@ -89,9 +89,9 @@ public:
   int   listen	    ( int backlog ) ;
   int   accept      ( netAddress* addr ) ;
   int   connect     ( const char* host, int port ) ;
-  int   send		    ( const void * buffer, int size, int flags = 0 ) ;
+  int   send	    ( const void * buffer, int size, int flags = 0 ) ;
   int   sendto      ( const void * buffer, int size, int flags, const netAddress* to ) ;
-  int   recv		    ( void * buffer, int size, int flags = 0 ) ;
+  int   recv	    ( void * buffer, int size, int flags = 0 ) ;
   int   recvfrom    ( void * buffer, int size, int flags, netAddress* from ) ;
 
   void setBlocking ( bool blocking ) ;
@@ -111,3 +111,4 @@ const char* netFormat ( const char* fmt, ... ) ;
 
 
 #endif // NET_SOCKET_H
+

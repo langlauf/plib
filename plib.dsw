@@ -77,11 +77,29 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name net
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name pw
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name puAux
+    End Project Dependency
 }}}
 
 ###############################################################################
 
 Project: "psl"=".\src\psl\psl.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "puAux"=".\src\puAux\puAux.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

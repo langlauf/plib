@@ -1,3 +1,26 @@
+/*
+     PLIB - A Suite of Portable Game Libraries
+     Copyright (C) 1998,2002  Steve Baker
+
+     This library is free software; you can redistribute it and/or
+     modify it under the terms of the GNU Library General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later version.
+
+     This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     Library General Public License for more details.
+
+     You should have received a copy of the GNU Library General Public
+     License along with this library; if not, write to the Free Software
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+
+     For further information visit http://plib.sourceforge.net
+
+     $Id: pwWindows.cxx,v 1.9 2004/03/26 17:45:40 wolfram_kuss Exp $
+*/
+
 
 #include "ul.h"
 
@@ -12,7 +35,7 @@
 #include "pw.h"
 
 static int             initialised  = 0 ;
-
+static int             modifiers    = 0 ;
 static int             origin [2]   = {   0,   0 } ;
 static int             size   [2]   = { 640, 480 } ;
 
@@ -35,6 +58,16 @@ void defaultExitFunc ()
 }
 
 
+static void refreshModifiers ()
+{
+  modifiers = 0 ;
+
+  if( ( GetKeyState ( VK_SHIFT )   & 0x8000 ) != 0 ) modifiers |= PW_SHIFT ;
+  if( ( GetKeyState ( VK_CONTROL ) & 0x8000 ) != 0 ) modifiers |= PW_CTRL  ;
+  if( ( GetKeyState ( VK_MENU )    & 0x8000 ) != 0 ) modifiers |= PW_ALT   ;
+}
+
+
 LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
   int key = -1 ;
@@ -43,6 +76,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
   static int mb = 0 ;
   static int lastx = 0 ;
   static int lasty = 0 ;
+
+  refreshModifiers () ;
 
   switch (uMsg)
   {
@@ -111,6 +146,19 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
         case VK_HOME:   key = PW_KEY_HOME;      break;
         case VK_END:    key = PW_KEY_END;       break;
         case VK_INSERT: key = PW_KEY_INSERT;    break;
+				default:
+					// don't do this for WinCE
+          BYTE state[ 256 ];
+          WORD code[ 2 ];
+
+          BOOL b = GetKeyboardState( state );
+					assert(b);
+
+					code [ 0 ] = 0; // WK: I need to do this, or on my Win2k box, the upper bits remain unchanged.
+          if( ToAscii( key, 0, state, code, 0 ) == 1 )
+						if((0xFF00 & code[0]) == 0) // setting a high bit in key causes crashes later on (out of range array access)
+							key=code[ 0 ];
+
       }
       if ( key != -1 && kbCB )
         (*kbCB) ( key, updown, lastx, lasty ) ;
@@ -336,6 +384,12 @@ void pwSetOrigin ( int x, int y )
 void pwSetSizeOrigin ( int x, int y, int w, int h )
 {
   SetWindowPos ( currWnd, HWND_TOP, x, y, w, h, 0 ) ;
+}
+
+
+int pwGetModifiers ()
+{
+  return modifiers ;
 }
 
 

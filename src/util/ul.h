@@ -18,7 +18,7 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: ul.h,v 1.65 2004/03/14 18:27:05 sjbaker Exp $
+     $Id: ul.h,v 1.66 2004/03/22 21:14:30 sjbaker Exp $
 */
 
 //
@@ -151,8 +151,8 @@
 /* PLIB version macros */
 
 #define PLIB_MAJOR_VERSION 1
-#define PLIB_MINOR_VERSION 7
-#define PLIB_TINY_VERSION 0
+#define PLIB_MINOR_VERSION 8
+#define PLIB_TINY_VERSION  2
 
 #define PLIB_VERSION (PLIB_MAJOR_VERSION*100 \
                      +PLIB_MINOR_VERSION*10 \
