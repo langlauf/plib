@@ -1,11 +1,7 @@
 
 #include "ssgLocal.h"
 
-#define MAX_TEXTURES 1000    /* This *ought* to be enough! */
-
 static FILE *loader_fd ;
-
-static char *texture_fnames [ MAX_TEXTURES ] ;
 
 struct _ssgMaterial
 {
@@ -16,22 +12,19 @@ struct _ssgMaterial
 } ;
 
 static int num_materials = 0 ;
-static int num_states    = 0 ;
-static int num_textures  = 0 ;
 static sgVec3 *vtab = NULL ;
 
 static ssgHookFunc      current_hookFunc = NULL ;
+static ssgCreateFunc    current_createFunc = NULL ;
 static _ssgMaterial    *current_material = NULL ;
 static sgVec4          *current_colour   = NULL ;
-static ssgTexture      *current_texture  = NULL ;
 static ssgBranch       *current_branch   = NULL ;
 static char            *current_tfname   = NULL ;
 static char            *current_data     = NULL ;
 
-static _ssgMaterial   *mlist    [ MAX_TEXTURES ] ;
-static ssgSimpleState *slist    [ MAX_TEXTURES ] ;
-static sgVec4         *clist    [ MAX_TEXTURES ] ;
-static ssgTexture     *tex_list [ MAX_TEXTURES ] ;
+#define MAX_MATERIALS 1000    /* This *ought* to be enough! */
+static _ssgMaterial   *mlist    [ MAX_MATERIALS ] ;
+static sgVec4         *clist    [ MAX_MATERIALS ] ;
 
 static sgMat4 current_matrix ;
 static sgVec2 texrep ;
@@ -90,12 +83,12 @@ void skip_quotes ( char **s )
       t++ ;
 
     if ( *t != '\"' )
-      fprintf ( stderr, "ac_to_gl: Mismatched double-quote ('\"') in '%s'\n", *s ) ;
+      ulSetError ( UL_WARNING, "ac_to_gl: Mismatched double-quote ('\"') in '%s'", *s ) ;
 
     *t = '\0' ;
   }
   else
-    fprintf ( stderr, "ac_to_gl: Expected double-quote ('\"') in '%s'\n", *s ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: Expected double-quote ('\"') in '%s'", *s ) ;
 }
 
 
@@ -114,8 +107,7 @@ int search ( Tag *tags, char *s )
       return (*(tags[i].func))( s ) ;
     }
 
-  fprintf ( stderr, "ac_to_gl: Unrecognised token '%s'\n", s ) ;
-  exit ( 1 ) ;
+  ulSetError ( UL_FATAL, "ac_to_gl: Unrecognised token '%s'", s ) ;
 
   return 0 ;  /* Should never get here */
 }
@@ -179,42 +171,9 @@ int do_obj_light ( char * ) { return OBJ_LIGHT ; }
 int last_num_kids    = -1 ;
 int current_flags    = -1 ;
 
-static ssgSimpleState *find_state ( _ssgMaterial *mat,
-                                     ssgTexture *tex, char * /*tfname*/ )
+static ssgSimpleState *get_state ( _ssgMaterial *mat )
 {
-  for ( int i = 0 ; i < num_states ; i++ )
-  {
-    ssgSimpleState *st2 = slist [ i ] ;
-
-    if ( tex == NULL && st2->isEnabled ( GL_TEXTURE_2D ) )
-      continue ;
-
-    if ( tex != NULL && ! st2->isEnabled ( GL_TEXTURE_2D ) )
-      continue ;
-
-    if ( tex != NULL && tex -> getHandle() != st2 -> getTextureHandle () )
-      continue ;
-
-    if ( ! sgEqualVec4 ( mat->emis, st2->getMaterial ( GL_EMISSION ) ) ||
-         ! sgEqualVec4 ( mat->spec, st2->getMaterial ( GL_SPECULAR ) ) ||
-         (int)( mat->rgb[3] < 0.99 ) != st2 -> isTranslucent () ||
-         mat -> shi != st2->getShininess () )
-      continue ;
-
-    return st2 ;
-  }
-
   ssgSimpleState *st = new ssgSimpleState () ;
-
-  slist [ num_states++ ] = st ;
-
-  if ( tex != NULL )
-  {
-    st -> setTexture ( tex ) ;
-    st -> enable     ( GL_TEXTURE_2D ) ;
-  }
-  else
-    st -> disable    ( GL_TEXTURE_2D ) ;
 
   st -> setMaterial ( GL_SPECULAR, mat -> spec ) ;
   st -> setMaterial ( GL_EMISSION, mat -> emis ) ;
@@ -223,7 +182,7 @@ static ssgSimpleState *find_state ( _ssgMaterial *mat,
   st -> enable ( GL_COLOR_MATERIAL ) ;
   st -> setColourMaterial ( GL_AMBIENT_AND_DIFFUSE ) ;
 
-  st -> enable  ( GL_LIGHTING       ) ;
+  st -> enable  ( GL_LIGHTING ) ;
   st -> setShadeModel ( GL_SMOOTH ) ;
 
   if ( mat -> rgb[3] < 0.99 )
@@ -262,8 +221,8 @@ int do_material ( char *s )
     &shi,
     &trans ) != 15 )
   {
-    fprintf ( stderr, "ac_to_gl: Can't parse this MATERIAL:\n" ) ;
-    fprintf ( stderr, "ac_to_gl: MATERIAL %s\n", s ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: Can't parse this MATERIAL:" ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: MATERIAL %s", s ) ;
   }
   else
   {
@@ -283,7 +242,7 @@ int do_material ( char *s )
     sgCopyVec4 ( current_material -> spec, spec ) ;
     sgCopyVec4 ( current_material -> emis, emis ) ;
     sgCopyVec4 ( current_material -> rgb , rgb  ) ;
-    current_material -> shi = shi ;
+    current_material -> shi = (float) shi ;
   }
 
   num_materials++ ;
@@ -296,6 +255,9 @@ int do_object   ( char *  /* s */ )
 /*
   int obj_type = search ( obj_type_tags, s ) ;  
 */
+
+  delete current_tfname ;
+  current_tfname = NULL ;
 
   char buffer [ 1024 ] ;
 
@@ -370,47 +332,19 @@ int do_data     ( char *s )
 }
 
 
-int get_texture ( char *s )
-{
-  char filename [ 1024 ] ;
-
-  if ( s [ 0 ] != '/' && _ssgTexturePath != NULL &&
-                         _ssgTexturePath[0] != '\0' )
-  {
-    strcpy ( filename, _ssgTexturePath ) ;
-    strcat ( filename, "/" ) ;
-    strcat ( filename, s ) ;
-  }
-  else
-    strcpy ( filename, s ) ;
-
-  for ( int i = 0 ; i < num_textures ; i++ )
-    if ( strcmp ( filename, texture_fnames [ i ] ) == 0 )
-    {
-      current_tfname = texture_fnames [ i ] ;
-      return i ;
-    }
-
-  texture_fnames [ num_textures ] = new char [ strlen ( filename ) + 1 ] ;
-  strcpy ( texture_fnames [ num_textures ], filename ) ;
-  current_tfname = texture_fnames [ num_textures ] ;
-
-/*
-  if ( _ssgGetAppState == NULL )
-    tex_list [ num_textures ] = NULL ;
-  else
-*/
-    tex_list [ num_textures ] = new ssgTexture ( filename ) ;
-
-  return num_textures++ ;
-}
-
-
 int do_texture  ( char *s )
 {
   skip_quotes ( &s ) ;
 
-  current_texture = tex_list [ get_texture ( s ) ] ;
+  delete current_tfname ;
+
+  if ( s == NULL || s[0] == '\0' )
+    current_tfname = NULL ;
+  else
+  {
+    current_tfname = new char [ strlen(s)+1 ] ;
+    strcpy ( current_tfname, s ) ;
+  }
 
   return PARSE_CONT ;
 }
@@ -419,7 +353,7 @@ int do_texture  ( char *s )
 int do_texrep ( char *s )
 {
   if ( sscanf ( s, "%f %f", & texrep [ 0 ], & texrep [ 1 ] ) != 2 )
-    fprintf ( stderr, "ac_to_gl: Illegal texrep record.\n" ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: Illegal texrep record." ) ;
 
   return PARSE_CONT ;
 }
@@ -428,7 +362,7 @@ int do_texrep ( char *s )
 int do_texoff ( char *s )
 {
   if ( sscanf ( s, "%f %f", & texoff [ 0 ], & texoff [ 1 ] ) != 2 )
-    fprintf ( stderr, "ac_to_gl: Illegal texoff record.\n" ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: Illegal texoff record." ) ;
 
   return PARSE_CONT ;
 }
@@ -443,7 +377,7 @@ int do_rot ( char *s )
         & current_matrix [ 0 ] [ 0 ], & current_matrix [ 0 ] [ 1 ], & current_matrix [ 0 ] [ 2 ],
         & current_matrix [ 1 ] [ 0 ], & current_matrix [ 1 ] [ 1 ], & current_matrix [ 1 ] [ 2 ],
         & current_matrix [ 2 ] [ 0 ], & current_matrix [ 2 ] [ 1 ], & current_matrix [ 2 ] [ 2 ] ) != 9 )
-    fprintf ( stderr, "ac_to_gl: Illegal rot record.\n" ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: Illegal rot record." ) ;
 
   ((ssgTransform *)current_branch) -> setTransform ( current_matrix ) ;
   return PARSE_CONT ;
@@ -452,7 +386,7 @@ int do_rot ( char *s )
 int do_loc      ( char *s )
 {
   if ( sscanf ( s, "%f %f %f", & current_matrix [ 3 ][ 0 ], & current_matrix [ 3 ][ 2 ], & current_matrix [ 3 ][ 1 ] ) != 3 )
-    fprintf ( stderr, "ac_to_gl: Illegal loc record.\n" ) ;
+    ulSetError ( UL_WARNING, "ac_to_gl: Illegal loc record." ) ;
 
   current_matrix [ 3 ][ 1 ] = - current_matrix [ 3 ][ 1 ] ;
   current_matrix [ 3 ][ 3 ] = 1.0f ;
@@ -489,8 +423,7 @@ int do_numvert  ( char *s )
     if ( sscanf ( buffer, "%f %f %f",
                           &vtab[i][0], &vtab[i][1], &vtab[i][2] ) != 3 )
     {
-      fprintf ( stderr, "ac_to_gl: Illegal vertex record.\n" ) ;
-      exit ( 1 ) ;
+      ulSetError ( UL_FATAL, "ac_to_gl: Illegal vertex record." ) ;
     }
 
     float tmp  =  vtab[i][1] ;
@@ -563,8 +496,7 @@ int do_refs     ( char *s )
                                       &tc[0],
                                       &tc[1] ) != 3 )
     {
-      fprintf ( stderr, "ac_to_gl: Illegal ref record.\n" ) ;
-      exit ( 1 ) ;
+      ulSetError ( UL_FATAL, "ac_to_gl: Illegal ref record." ) ;
     }
 
     tc[0] *= texrep[0] ;
@@ -593,36 +525,44 @@ int do_refs     ( char *s )
 
   nrm -> add ( nm ) ;
 
-  ssgVtxTable *vl ;
-
-  switch ( current_flags & 0x0F )
+  int type = ( current_flags & 0x0F ) ;
+  if ( type >= 0 && type <= 2 )
   {
-    case 0 : vl = new ssgVtxTable ( GL_TRIANGLE_FAN,
-                   vlist, nrm, tlist, col ) ; 
-             break ;
-    case 1 : vl = new ssgVtxTable ( GL_LINE_LOOP,
-                   vlist, nrm, tlist, col ) ; 
-             break ;
-    case 2 : vl = new ssgVtxTable ( GL_LINE_STRIP,
-                   vlist, nrm, tlist, col ) ; 
-             break ;
-    default : vl = NULL ; break ;
+    GLenum gltype = GL_TRIANGLES ;
+    switch ( type )
+    {
+      case 0 : gltype = GL_TRIANGLE_FAN ;
+               break ;
+      case 1 : gltype = GL_LINE_LOOP ;
+               break ;
+      case 2 : gltype = GL_LINE_STRIP ;
+               break ;
+    }
+
+    ssgCreateData *data = new ssgCreateData ;
+    data->gltype = gltype ;
+    data->vl = vlist ;
+    data->nl = nrm ;
+    data->tl = tlist ;
+    data->cl = col ;
+    data->st = get_state ( current_material ) ;
+
+    if ( current_tfname != NULL )
+    {
+      data->tfname = new char [ strlen ( current_tfname ) + 1 ] ;
+      strcpy ( data->tfname, current_tfname ) ;
+    }
+    else
+      data->tfname = NULL ;
+
+    data->cull_face = ! ( (current_flags>>4) & 0x02 ) ;
+   
+    ssgLeaf* vtab = (*current_createFunc) ( data ) ;
+
+    if ( vtab )
+       current_branch -> addKid ( vtab ) ;
   }
 
-  vl -> setCullFace ( ! ( (current_flags>>4) & 0x02 ) ) ;
-
-  ssgState *st = NULL ;
-
-  if ( _ssgGetAppState != NULL && current_tfname != NULL )
-    st =_ssgGetAppState ( current_tfname ) ;
-
-  if ( st != NULL )
-    vl -> setState ( st ) ;
-  else
-    vl -> setState ( find_state ( current_material,
-                 current_texture, current_tfname ) ) ;
-
-  current_branch -> addKid ( vl ) ;
   return PARSE_POP ;
 }
 
@@ -634,10 +574,31 @@ int do_kids ( char *s )
 }
 
 
+ssgEntity *ssgLoadAC3D ( char *fname, ssgHookFunc hookfunc, ssgCreateFunc createfunc )
+{
+  ssgEntity *obj = ssgLoadAC ( fname, hookfunc, createfunc ) ;
 
-ssgEntity *ssgLoadAC ( char *fname, ssgHookFunc hookfunc )
+  if ( obj == NULL )
+    return NULL ;
+
+  /* Do some simple optimisations */
+
+  ssgBranch *model = new ssgBranch () ;
+  model -> addKid ( obj ) ;
+  ssgFlatten      ( obj ) ;
+  ssgStripify   ( model ) ;
+  return model ;
+}
+
+/*
+  Original function for backwards compatibility...
+*/
+
+ssgEntity *ssgLoadAC ( char *fname, ssgHookFunc hookfunc, ssgCreateFunc createfunc )
 {
   current_hookFunc = hookfunc ;
+  current_createFunc = ( createfunc != NULL )? createfunc: _ssgCreateFunc ;
+  (*current_createFunc) ( 0 ) ;  //reset
 
   char filename [ 1024 ] ;
 
@@ -652,14 +613,11 @@ ssgEntity *ssgLoadAC ( char *fname, ssgHookFunc hookfunc )
   else
     strcpy ( filename, fname ) ;
 
-  num_textures  = 0 ;
   num_materials = 0 ;
-  num_states    = 0 ;
   vtab = NULL ;
 
   current_material = NULL ;
   current_colour   = NULL ;
-  current_texture  = NULL ;
   current_tfname   = NULL ;
   current_branch   = NULL ;
 
@@ -670,8 +628,7 @@ ssgEntity *ssgLoadAC ( char *fname, ssgHookFunc hookfunc )
 
   if ( loader_fd == NULL )
   {
-    perror ( filename ) ;
-    fprintf ( stderr, "ssgLoadAC: Failed to open '%s' for reading\n", filename ) ;
+    ulSetError ( UL_WARNING, "ssgLoadAC: Failed to open '%s' for reading", filename ) ;
     return NULL ;
   }
 
@@ -700,7 +657,7 @@ ssgEntity *ssgLoadAC ( char *fname, ssgHookFunc hookfunc )
       if ( ! _ssgStrNEqual ( s, "AC3D", 4 ) )
       {
         fclose ( loader_fd ) ;
-        fprintf ( stderr, "ssgLoadAC: '%s' is not in AC3D format.\n", filename ) ;
+        ulSetError ( UL_WARNING, "ssgLoadAC: '%s' is not in AC3D format.", filename ) ;
         return NULL ;
       }
     }
@@ -708,12 +665,11 @@ ssgEntity *ssgLoadAC ( char *fname, ssgHookFunc hookfunc )
       search ( top_tags, s ) ;
   }
 
-  for ( int i = 0 ; i < num_textures ; i++ )
-    delete texture_fnames [ i ] ;
-
+  (*current_createFunc) ( 0 ) ;  //reset
+  delete current_tfname ;
+  current_tfname = NULL ;
   delete [] vtab ;
   fclose ( loader_fd ) ;
 
   return current_branch ;
 }
-

@@ -2,6 +2,57 @@
 PLIB Change Log.
 ================
 
+PLIB v1.1.12 (June 24th 2000)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Fixed some compilation problems for Macintosh/Codewarrior
+    which treats 'xor' and 'or' as reserved words!! Yikes!
+    Thanks to Darrell Walisser for that piece of nasty news.
+
+  * Fixed some problems in slMODinst.cxx that were causing
+    compilation warnings under windoze (thanks to Bram Stolk)
+
+  * Changed SL to open audio devices with O_NONBLOCK -
+    thanks to Trent Gamblin for spotting this one.
+
+  * Added configure.in check for libdl to cover bug in ld.so
+    under Linux.  Application programs under Linux need to
+    link to libdl.so in order to work around this.
+    Ben Woodhead <zander@isn.net> added this.
+
+  * Added Borland project files, thanks to Dave Heil for
+    contributing these.
+
+  * Swapped order of multiplication in sgMultMat4. Thanks to
+    Lucas Ackerman for spotting this one.
+
+  * Added a unique ID field to every node in the scene graph.
+    This helps out some picking algorithms in PPE.
+
+  * Added some more ifdefs to make PLIB Audio/JS components
+    to make them work under NetBSD. (They already work with
+    FreeBSD and OpenBSD).  Many thanks to Rene Hexel!
+
+  * Fixed a ref() problem with ssgVtxTable::clone - thanks
+    to Will Weisser for catching that one!
+
+  * Added checks to ensure that a valid OpenGL rendering
+    context exists before ssgInit/puiInit/fnt-loaders are
+    called.
+
+  * Added Dave McClurg's ASE loader and matching writer.
+    If you use the new 'ssgLoad()/ssgSave()' functions,
+    it'll "just work" - if you prefer you can call
+    ssgLoadASE/ssgSaveASE analogously to all the other
+    loaders.
+
+  * Several fixes to the quaternion code in SG were
+    contributed by "Negative0" <negative0@earthlink.net>
+    (Who was that masked man?)
+
+PLIB v1.1.11 (Feb 9th 2000)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Fixed a tiny problem with double-sided polygons.
+
 PLIB v1.1.10 (Feb 9th 2000)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * Added ssgLoad and ssgSave that look at the

@@ -2,16 +2,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifdef WIN32
-#include <windows.h>
+#  include <windows.h>
+#  include <GL/gl.h>
+#else
+#  include <GL/gl.h>
+#  ifndef macintosh
+#    include <GL/glx.h>
+#  endif
 #endif
 
-#include <GL/gl.h>
 
 #define _SSG_PUBLIC  public
 
 #include "ssg.h"
+#include "ul.h"
 
 extern void (*__ssgEnableTable[64])() ;
 extern void (*__ssgDisableTable[64])() ;
@@ -96,6 +103,4 @@ int _ssgStrNEqual ( char *s1, char *s2, int len ) ;
 ssgBase *_ssgGetFromList ( int key ) ;
 void     _ssgAddToList   ( int key, ssgBase *b ) ;
 int      _ssgGetNextInstanceKey  () ;
-
-
 

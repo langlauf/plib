@@ -139,7 +139,7 @@ static void hirevLoop80 ( unsigned int n )
   ihi.wAcc = ihiWAcc ;
 }
 
-#define hirevLoop(x)  { if ( ihi.xor )  hirevLoop80(x) ; else hirevLoop0(x) ; }
+#define hirevLoop(x)  { if ( ihi.x_or )  hirevLoop80(x) ; else hirevLoop0(x) ; }
 
   
 void _MOD_instHirevLoop ( InstHirevInfo *ihip ) 
@@ -204,21 +204,23 @@ void _MOD_instHirevLoop ( InstHirevInfo *ihip )
     { /* sample is longer than frame */
 
       hirevLoop ( restF ) ;
-      lastD = ( signed char ) ( * ( ihi.ptr - ( ihi.wAcc >> 16 ) )  ^ ihi.xor ) ;
+      lastD = ( signed char ) ( * ( ihi.ptr - ( ihi.wAcc >> 16 ) )  ^ ihi.x_or ) ;
 
       break ;
     }
 
     /* restF >= restS */
     hirevLoop ( restS ) ;
-    lastD = ( signed char ) ( * ( ihi.ptr - ( ihi.wAcc >> 16 ) )  ^ ihi.xor ) ;
+    lastD = ( signed char ) ( * ( ihi.ptr - ( ihi.wAcc >> 16 ) )  ^ ihi.x_or ) ;
 
     if ( ihi.ptr < ihi.end || ihi.end <= ihi.ptr - ( ihi.wAcc >> 16 ) ) 
     {
-      fprintf ( stderr, "bug: restS = %u restF=%u end-ptr = %d, ptr=%u\n",
-          restS, restF, ihi.end-ihi.ptr, ( unsigned int ) ihi.ptr ) ;
-      fprintf ( stderr, "last ptr=%u\n",
-          ( unsigned int ) ( ihi.ptr - ( ihi.wAcc >> 16 ) ) ) ;
+      fprintf ( stderr, "SL: Internal Error in _MOD_instHirevLoop.\n" ) ;
+/*
+      fprintf ( stderr, "bug: restS = %u restF=%u end-ptr = %d, ptr=%p\n",
+          restS, restF, ihi.end-ihi.ptr, ihi.ptr ) ;
+      fprintf ( stderr, "last ptr=%p\n", ( ihi.ptr - ( ihi.wAcc >> 16 ) ) ) ;
+*/
       exit ( 1 ) ;
     }
 
@@ -509,7 +511,7 @@ static void setPeriod(void)
     instp->smp.sip       = instp->smp.newSip       ;
     instp->hirev.end     = instp->smp.sip->end     ;
     instp->hirev.loopBeg = instp->smp.sip->loopBeg ;
-    instp->hirev.xor     = instp->smp.sip->xor     ;
+    instp->hirev.x_or    = instp->smp.sip->x_or    ;
   }
 
   instp->per.note = instp->per.delay.newNote;

@@ -7,6 +7,7 @@
 
 /* the next lines are to define BSD */
 /* see http://www.freebsd.org/handbook/porting.html for why we do this */
+
 #if (defined(__unix__) || defined(unix)) && !defined(USG)
 #include <sys/param.h>
 #endif
@@ -21,14 +22,22 @@
 #include <float.h>
 #endif
 
+#define sgFloat float
 #define SGfloat float
 
 #define SG_ZERO  0.0f
+#define SG_HALF  0.5f
 #define SG_ONE   1.0f
 #define SG_TWO   2.0f
+#define SG_THREE 3.0f
+#define SG_45    45.0f
 #define SG_180   180.0f
 #define SG_MAX   FLT_MAX
 
+#define SG_X	0
+#define SG_Y	1
+#define SG_Z	2
+#define SG_W	3
 
 #ifndef M_PI
 #define SG_PI  3.1415926535f
@@ -64,6 +73,8 @@ typedef SGfloat sgVec2 [ 2 ] ;
 typedef SGfloat sgVec3 [ 3 ] ;
 typedef SGfloat sgVec4 [ 4 ] ;
 
+typedef sgVec4 sgQuat ;
+
 typedef SGfloat sgMat3  [3][3] ;
 typedef SGfloat sgMat4  [4][4] ;
 
@@ -97,6 +108,7 @@ inline SGfloat sgHeightOfPlaneVec2 ( const sgVec4 plane, const sgVec2 pnt )
   Convert a direction vector into a set of euler angles,
   (with zero roll)
 */
+
 extern void sgHPRfromVec3 ( sgVec3 hpr, const sgVec3 src ) ;
 
 extern void sgMakeCoordMat4 ( sgMat4 dst, const SGfloat x, const SGfloat y, const SGfloat z,
@@ -164,6 +176,8 @@ inline void sgFullXformPnt4 ( sgVec4 dst, const sgMat4 mat ) { sgFullXformPnt4 (
   Add       - add vectors element by element.
   Sub       - subtract vectors element by element.
   Scale     - multiply each element of a vector by a variable.
+  AddScaled - multiply second vector by a constant and add the
+              result to the first vector.
   Negate    - negate each element of a vector.
   Compare   - compare vectors element by element with optional tolerance.
               (return TRUE if vectors are equal - within tolerances)
@@ -567,10 +581,27 @@ inline SGfloat sgLengthVec4 ( const sgVec4 src )
   return sgSqrt ( sgScalarProductVec4 ( src, src ) ) ;
 }
 
+inline SGfloat sgLengthSquaredVec2 ( sgVec2 const src )
+{
+  return sgScalarProductVec2 ( src, src ) ;
+}
+
+inline SGfloat sgLengthSquaredVec3 ( sgVec3 const src )
+{
+  return sgScalarProductVec3 ( src, src ) ;
+}
+
+inline SGfloat sgLengthSquaredVec4 ( sgVec4 const src )
+{
+  return sgScalarProductVec4 ( src, src ) ;
+}
+
+
 /* Anglo-US spelling issues.  <sigh> */
 #define sgNormalizeVec2 sgNormaliseVec2
 #define sgNormalizeVec3 sgNormaliseVec3
 #define sgNormalizeVec4 sgNormaliseVec4
+#define sgNormalizeQuat sgNormaliseQuat
 
 inline void sgNormaliseVec2 ( sgVec2 dst )
 {
@@ -663,6 +694,11 @@ extern void sgMakeCoordMat4 ( sgMat4 m, const SGfloat x, const SGfloat y, const 
                                         const SGfloat h, const SGfloat p, const SGfloat r ) ;
 extern void sgMakeCoordMat4 ( sgMat4 m, const sgCoord *c ) ;
 
+inline SGfloat sgDistToLineVec2 ( const sgVec3 line, const sgVec2 pnt )
+{
+  return sgScalarProductVec2 ( line, pnt ) + line[2] ;
+}
+ 
 inline SGfloat sgDistToPlaneVec3 ( const sgVec4 plane, const sgVec3 pnt )
 {
   return sgScalarProductVec3 ( plane, pnt ) + plane[3] ;
@@ -673,7 +709,23 @@ inline SGfloat sgHeightAbovePlaneVec3 ( const sgVec4 plane, const sgVec3 pnt )
   return pnt[3] - sgHeightOfPlaneVec2 ( plane, pnt ) ;
 }
 
+extern void sgReflectInPlaneVec3 ( sgVec3 dst, const sgVec3 src, const sgVec4 plane ) ;
+
+inline void sgReflectInPlaneVec3 ( sgVec3 dst, const sgVec4 plane ) 
+{
+  sgReflectInPlaneVec3 ( dst, dst, plane ) ;
+}
+
 extern void sgMakeNormal    ( sgVec3 dst, const sgVec3 a, const sgVec3 b, const sgVec3 c ) ;
+
+
+inline void sgMake2DLine ( sgVec3 dst, const sgVec2 a, const sgVec2 b )
+{
+  dst[0] =   b[1]-a[1]  ;
+  dst[1] = -(b[0]-a[0]) ;
+  sgNormalizeVec2 ( dst ) ;
+  dst[2] = - ( dst[0]*a[0] + dst[1]*a[1] ) ;
+}
 
 inline void sgMakePlane ( sgVec4 dst, const sgVec3 normal, const sgVec3 pnt )
 {
@@ -842,8 +894,8 @@ public:
   {
     nnear = SG_ONE ;
     ffar  = 1000000.0f ;
-    hfov  = 45.0f ;
-    vfov  = 45.0f ;
+    hfov  = SG_45 ;
+    vfov  = SG_45 ;
     update () ;
   }
 
@@ -875,8 +927,8 @@ public:
 
   void setFOV ( const SGfloat h, const SGfloat v )
   {
-    hfov = ( h <= 0 ) ? ( v * 3.0f / 2.0f ) : h ;
-    vfov = ( v <= 0 ) ? ( h * 2.0f / 3.0f ) : v ;
+    hfov = ( h <= 0 ) ? ( v * SG_THREE / SG_TWO ) : h ;
+    vfov = ( v <= 0 ) ? ( h * SG_TWO / SG_THREE ) : v ;
     update () ;
   }
 
@@ -902,138 +954,157 @@ public:
   Quaternion routines are Copyright (C) 1999
   Kevin B. Thompson <kevinbthompson@yahoo.com>
   Modified by Sylvan W. Clebsch <sylvan@stanford.edu>
+  Largely rewritten by "Negative0" <negative0@earthlink.net>
 */
 
-/* Quaternion structure  w = real, (x, y, z) = vector */
+/*
+  Quaternion structure  w = real, (x, y, z) = vector
+  CHANGED sqQuat to float array so that syntax matches 
+  vector and matrix routines
+*/
 
-struct sgQuat
+
+inline void sgMakeIdentQuat ( sgQuat dst )
 {
-  SGfloat w, x, y, z ;
-} ;
-
-
-inline void sgMakeIdentityQuat ( sgQuat *dst )
-{
-  dst -> x =
-    dst -> y =
-      dst -> z = SG_ZERO ;
-
-  dst -> w = SG_ONE ;
+  sgSetVec4 ( dst, SG_ZERO, SG_ZERO, SG_ZERO, SG_ONE ) ;
 }
 
 
-inline void sgSetQuat ( sgQuat *dst,
-                        const SGfloat w, const SGfloat x, const SGfloat y, const SGfloat z )
+inline void sgSetQuat ( sgQuat dst,
+                        const SGfloat w, const SGfloat x,
+                        const SGfloat y, const SGfloat z )
 {
-  dst->w = w ;
-  dst->x = x ;
-  dst->y = y ;
-  dst->z = z ;
+  sgSetVec4 ( dst, x, y, z, w ) ;
 }
 
-inline void sgCopyQuat ( sgQuat *dst, const sgQuat *src )
+inline void sgCopyQuat ( sgQuat dst, const sgQuat src )
 {
-  dst->w = src->w ;
-  dst->x = src->x ;
-  dst->y = src->y ;
-  dst->z = src->z ;
+  sgCopyVec4 ( dst, src ) ;
 }
 
 
 /* Construct a unit quaternion (length==1) */
 
-inline void sgNormalizeQuat ( sgQuat *dst, const sgQuat *src )
+inline void sgNormaliseQuat ( sgQuat dst, const sgQuat src )
 {
-  SGfloat d = src->w * src->w +
-              src->x * src->y +
-              src->y * src->y +
-              src->z * src->z ;
-  
+  SGfloat d = sgScalarProductVec4 ( src, src ) ;
+
   d = (d > SG_ZERO) ? (SG_ONE / sgSqrt ( d )) : SG_ONE ;
 
-  dst->w = src->w * d ;
-  dst->x = src->x * d ;
-  dst->y = src->y * d ;
-  dst->z = src->z * d ;
+  sgScaleVec4 ( dst, src, d ) ;
 }
 
 
 
-inline void sgNormalizeQuat ( sgQuat *dst ) { sgNormalizeQuat ( dst, dst ) ; }
+inline void sgNormaliseQuat ( sgQuat dst ) { sgNormaliseQuat ( dst, dst ) ; }
 
 
-inline void sgInvertQuat ( sgQuat *dst, const sgQuat *src )
+inline void sgInvertQuat ( sgQuat dst, const sgQuat src )
 {
-  SGfloat d = src->w * src->w +
-              src->x * src->y +
-              src->y * src->y +
-              src->z * src->z ;
-  
+  SGfloat d = sgScalarProductVec4 ( src, src ) ;
+
   d = ( d == SG_ZERO ) ? SG_ONE : ( SG_ONE / d ) ;
 
-  dst->w =  src->w * d ;
-  dst->x = -src->x * d ;
-  dst->y = -src->y * d ;
-  dst->z = -src->z * d ;
+  dst[SG_W] =  src[SG_W] * d ;
+  dst[SG_X] = -src[SG_X] * d ;
+  dst[SG_Y] = -src[SG_Y] * d ;
+  dst[SG_Z] = -src[SG_Z] * d ;
 }
 
-inline void sgInvertQuat ( sgQuat *dst ) { sgInvertQuat ( dst, dst ) ; }
+inline void sgInvertQuat ( sgQuat dst ) { sgInvertQuat ( dst, dst ) ; }
 
 
 /* Make an angle and axis of rotation from a Quaternion. */
 
-void sgQuatToAngleAxis ( SGfloat *angle, sgVec3 axis, const sgQuat *src ) ;
-void sgQuatToAngleAxis ( SGfloat *angle, SGfloat *x, SGfloat *y, SGfloat *z,
-                                                      const sgQuat *src ) ;
+void sgQuatToAngleAxis ( SGfloat *angle, sgVec3 axis, const sgQuat src ) ;
+void sgQuatToAngleAxis ( SGfloat *angle,
+                         SGfloat *x, SGfloat *y, SGfloat *z,
+                         const sgQuat src ) ;
 
 /* Make a quaternion from a given angle and axis of rotation */
 
-void sgMakeQuat ( sgQuat *dst, const sgVec3  hpr ) ;
-void sgMakeQuat ( sgQuat *dst, const SGfloat angle, const sgVec3 axis ) ;
-void sgMakeQuat ( sgQuat *dst, const SGfloat angle, const SGfloat x, const SGfloat y, const SGfloat z ) ;
+void sgAngleAxisToQuat ( sgQuat dst, const SGfloat angle, const sgVec3 axis ) ;
+void sgAngleAxisToQuat ( sgQuat dst,
+                         const SGfloat angle,
+                         const SGfloat x, const SGfloat y, const SGfloat z ) ;
+
+/* Convert a matrix to/from a quat */
+
+void sgMatrixToQuat ( sgQuat quat, sgMat4 m ) ;
+void sgQuatToMatrix ( sgMat4 m, sgQuat quat ) ;
+
+/* Convert a set of eulers to/from a quat */
+
+void sgQuatToEuler( SGfloat h, SGfloat p, SGfloat r, sgQuat quat ) ;
+void sgEulerToQuat( sgQuat quat, sgVec3 hpr ) ;
+
+inline void sgEulerToQuat( sgQuat dst,
+                           SGfloat h, SGfloat p, SGfloat r )
+{
+  sgVec3 hpr ;
+
+  sgSetVec3 ( hpr, h, p, r ) ;
+
+  sgEulerToQuat( dst, hpr ) ;
+}
+
+inline void sgHPRToQuat ( sgQuat dst, SGfloat h, SGfloat p, SGfloat r )
+{
+  sgVec3 hpr;
+
+  hpr[0] = h * SG_DEGREES_TO_RADIANS ;
+  hpr[1] = p * SG_DEGREES_TO_RADIANS ;
+  hpr[2] = r * SG_DEGREES_TO_RADIANS ;
+
+  sgEulerToQuat( dst, hpr ) ;
+}
+
+inline void sgHPRToQuat ( sgQuat dst, const sgVec3 hpr )
+{
+  sgVec3 tmp ;
+
+  sgScaleVec3 ( tmp, hpr, SG_DEGREES_TO_RADIANS ) ;
+
+  sgEulerToQuat ( dst, tmp ) ;
+};
 
 /* Multiply quaternions together (concatenate rotations) */
 
-void sgMultQuat ( sgQuat *dst, const sgQuat *a, const sgQuat *b ) ;
+void sgMultQuat ( sgQuat dst, const sgQuat a, const sgQuat b ) ;
 
-/* Construct a 4x4 rotation matrix equivelant to a given quaternion */
-
-void sgMakeRotMat4 ( sgMat4 dst, const sgQuat *q ) ;
-
-
-inline void sgPostMultQuat ( sgQuat *dst, const sgQuat *q )
+inline void sgPostMultQuat ( sgQuat dst, const sgQuat q )
 {
   sgQuat r ;
 
-  sgCopyQuat ( &r, dst ) ;
-  sgMultQuat ( dst, &r, q ) ;
+  sgCopyQuat ( r, dst ) ;
+  sgMultQuat ( dst, r, q ) ;
 }
 
-
-inline void sgPreMultQuat ( sgQuat *dst, const sgQuat *q )
+inline void sgPreMultQuat ( sgQuat dst, const sgQuat q )
 {
   sgQuat r ;
 
-  sgCopyQuat ( &r, dst ) ;
-  sgMultQuat ( dst, q, &r ) ;
+  sgCopyQuat ( r, dst ) ;
+  sgMultQuat ( dst, q, r ) ;
 }
 
 
 /* Rotate a quaternion by a given angle and axis (convenience function) */
 
 
-inline void sgRotQuat ( sgQuat *dst, const SGfloat angle, const sgVec3 axis )
+inline void sgRotQuat ( sgQuat dst, const SGfloat angle, const sgVec3 axis )
 {
   sgQuat q ;
 
-  sgMakeQuat ( &q, angle, axis ) ;
-  sgPostMultQuat ( dst, &q ) ;
-  sgNormalizeQuat ( dst ) ;
+  sgAngleAxisToQuat ( q, angle, axis ) ;
+  sgPostMultQuat ( dst, q ) ;
+  sgNormaliseQuat ( dst ) ;
 }
 
 
-inline void sgRotQuat ( sgQuat *dst, const SGfloat angle,
-                                     const SGfloat x, const SGfloat y, const SGfloat z )
+inline void sgRotQuat ( sgQuat dst,
+                        const SGfloat angle,
+                        const SGfloat x, const SGfloat y, const SGfloat z )
 {
   sgVec3 axis ;
 
@@ -1042,7 +1113,12 @@ inline void sgRotQuat ( sgQuat *dst, const SGfloat angle,
 }
 
 /* SWC - Interpolate between to quaternions */
-void sgSlerpQuat( sgQuat *dst, const sgQuat *from, const sgQuat *to, const SGfloat t );
+
+extern void sgSlerpQuat ( sgQuat dst,
+                          const sgQuat from, const sgQuat to,
+                          const SGfloat t ) ;
+
+
 
 /*
   Intersection testing.
@@ -1067,13 +1143,22 @@ SGfloat sgIsectLinesegPlane ( sgVec3 dst,
 
 /**********************************************************************/
 
+#define sgdFloat double
 #define SGDfloat double
 
 #define SGD_ZERO  0.0
+#define SGD_HALF  0.5
 #define SGD_ONE   1.0
 #define SGD_TWO   2.0
+#define SGD_THREE 3.0
+#define SGD_45    45.0
 #define SGD_180   180.0
 #define SGD_MAX   DBL_MAX
+
+#define SGD_X	0
+#define SGD_Y	1
+#define SGD_Z	2
+#define SGD_W	3
 
 #ifndef M_PI
 #define SGD_PI 3.14159265358979323846   /* From M_PI under Linux/X86 */
@@ -1109,6 +1194,8 @@ typedef SGDfloat sgdVec2 [ 2 ] ;
 typedef SGDfloat sgdVec3 [ 3 ] ;
 typedef SGDfloat sgdVec4 [ 4 ] ;
 
+typedef sgdVec4 sgdQuat ;
+
 typedef SGDfloat sgdMat3  [3][3] ;
 typedef SGDfloat sgdMat4  [4][4] ;
 
@@ -1142,6 +1229,7 @@ inline SGDfloat sgdHeightOfPlaneVec2 ( const sgdVec4 plane, const sgdVec2 pnt )
   Convert a direction vector into a set of euler angles,
   (with zero roll)
 */
+
 extern void sgdHPRfromVec3 ( sgdVec3 hpr, const sgdVec3 src ) ;
 
 extern void sgdMakeCoordMat4 ( sgdMat4 dst, const SGDfloat x, const SGDfloat y, const SGDfloat z,
@@ -1216,6 +1304,8 @@ inline void sgdFullXformPnt4 ( sgdVec4 dst, const sgdMat4 mat ) { sgdFullXformPn
   Equal     - return TRUE if vectors are exactly equal.
   Length    - compute length of a vector.
   Distance  - compute distance between two points.
+  LengthSquared   - compute the square of the length of a vector.
+  DistanceSquared - compute the square of the distance between two points.
   ScalarProduct - scalar (dot) product.
   VectorProduct - vector (cross) product (3-element vectors ONLY!).
   Normalise/Normalize - make vector be one unit long.
@@ -1614,10 +1704,26 @@ inline SGDfloat sgdLengthVec4 ( sgdVec4 const src )
   return sgdSqrt ( sgdScalarProductVec4 ( src, src ) ) ;
 }
 
+inline SGDfloat sgdLengthSquaredVec2 ( sgdVec2 const src )
+{
+  return sgdScalarProductVec2 ( src, src ) ;
+}
+
+inline SGDfloat sgdLengthSquaredVec3 ( sgdVec3 const src )
+{
+  return sgdScalarProductVec3 ( src, src ) ;
+}
+
+inline SGDfloat sgdLengthSquaredVec4 ( sgdVec4 const src )
+{
+  return sgdScalarProductVec4 ( src, src ) ;
+}
+
 /* Anglo-US spelling issues.  <sigh> */
 #define sgdNormalizeVec2 sgdNormaliseVec2
 #define sgdNormalizeVec3 sgdNormaliseVec3
 #define sgdNormalizeVec4 sgdNormaliseVec4
+#define sgdNormalizeQuat sgdNormaliseQuat
 
 inline void sgdNormaliseVec2 ( sgdVec2 dst )
 {
@@ -1710,6 +1816,11 @@ extern void sgdMakeCoordMat4 ( sgdMat4 m, const SGDfloat x, const SGDfloat y, co
                                           const SGDfloat h, const SGDfloat p, const SGDfloat r ) ;
 extern void sgdMakeCoordMat4 ( sgdMat4 m, const sgdCoord *c ) ;
 
+inline SGDfloat sgdDistToLineVec2 ( const sgdVec3 line, const sgdVec2 pnt )
+{
+  return sgdScalarProductVec2 ( line, pnt ) + line[2] ;
+}
+ 
 inline SGDfloat sgdDistToPlaneVec3 ( const sgdVec4 plane, const sgdVec3 pnt )
 {
   return sgdScalarProductVec3 ( plane, pnt ) + plane[3] ;
@@ -1720,7 +1831,22 @@ inline SGDfloat sgdHeightAbovePlaneVec3 ( const sgdVec4 plane, const sgdVec3 pnt
   return pnt[3] - sgdHeightOfPlaneVec2 ( plane, pnt ) ;
 }
 
+extern void sgdReflectInPlaneVec3 ( sgdVec3 dst, const sgdVec3 src, const sgdVec4 plane ) ;
+ 
+inline void sgdReflectInPlaneVec3 ( sgdVec3 dst, const sgdVec4 plane ) 
+{
+  sgdReflectInPlaneVec3 ( dst, dst, plane ) ;
+}
+
 extern void sgdMakeNormal    ( sgdVec3 dst, const sgdVec3 a, const sgdVec3 b, const sgdVec3 c ) ;
+
+inline void sgdMake2DLine ( sgdVec3 dst, const sgdVec2 a, const sgdVec2 b )
+{
+  dst[0] =  b[1]-a[1] ;
+  dst[1] = -b[0]-a[0] ;
+  sgdNormalizeVec2 ( dst ) ;
+  dst[2] = - ( dst[0]*a[0] + dst[1]*a[1] ) ;
+}
 
 inline void sgdMakePlane ( sgdVec4 dst, const sgdVec3 normal, const sgdVec3 pnt )
 {
@@ -1887,8 +2013,8 @@ public:
   {
     nnear = SGD_ONE ;
     ffar  = 1000000.0f ;
-    hfov  = 45.0f ;
-    vfov  = 45.0f ;
+    hfov  = SGD_45 ;
+    vfov  = SGD_45 ;
     update () ;
   }
 
@@ -1918,8 +2044,8 @@ public:
 
   void setFOV ( const SGDfloat h, const SGDfloat v )
   {
-    hfov = ( h <= 0 ) ? ( v * 3.0f / 2.0f ) : h ;
-    vfov = ( v <= 0 ) ? ( h * 2.0f / 3.0f ) : v ;
+    hfov = ( h <= 0 ) ? ( v * SGD_THREE / SGD_TWO ) : h ;
+    vfov = ( v <= 0 ) ? ( h * SGD_TWO / SGD_THREE ) : v ;
     update () ;
   }
 
@@ -1944,137 +2070,159 @@ public:
 /*
   Quaternion routines are Copyright (C) 1999
   Kevin B. Thompson <kevinbthompson@yahoo.com>
+  Modified by Sylvan W. Clebsch <sylvan@stanford.edu>
+  Largely rewritten by "Negative0" <negative0@earthlink.net>
 */
 
-/* Quaternion structure  w = real, (x, y, z) = vector */
+/*
+  Quaternion structure  w = real, (x, y, z) = vector
+  CHANGED sqQuat to float array so that syntax matches 
+  vector and matrix routines
+*/
 
-struct sgdQuat
+
+inline void sgdMakeIdentQuat ( sgdQuat dst )
 {
-  SGDfloat w, x, y, z ;
-} ;
-
-
-inline void sgdMakeIdentityQuat ( sgdQuat *dst )
-{
-  dst -> x =
-    dst -> y =
-      dst -> z = SGD_ZERO ;
-
-  dst -> w = SGD_ONE ;
+  sgdSetVec4 ( dst, SGD_ZERO, SGD_ZERO, SGD_ZERO, SGD_ONE ) ;
 }
 
 
-inline void sgdSetQuat ( sgdQuat *dst,
-                         const SGDfloat w, const SGDfloat x, const SGDfloat y, const SGDfloat z )
+inline void sgdSetQuat ( sgdQuat dst,
+                        const SGDfloat w, const SGDfloat x,
+                        const SGDfloat y, const SGDfloat z )
 {
-  dst->w = w ;
-  dst->x = x ;
-  dst->y = y ;
-  dst->z = z ;
+  sgdSetVec4 ( dst, x, y, z, w ) ;
 }
 
-inline void sgdCopyQuat ( sgdQuat *dst, const sgdQuat *src )
+inline void sgdCopyQuat ( sgdQuat dst, const sgdQuat src )
 {
-  dst->w = src->w ;
-  dst->x = src->x ;
-  dst->y = src->y ;
-  dst->z = src->z ;
+  sgdCopyVec4 ( dst, src ) ;
 }
 
 
 /* Construct a unit quaternion (length==1) */
 
-inline void sgdNormalizeQuat ( sgdQuat *dst, const sgdQuat *src )
+inline void sgdNormaliseQuat ( sgdQuat dst, const sgdQuat src )
 {
-  SGDfloat d = src->w * src->w +
-               src->x * src->y +
-               src->y * src->y +
-               src->z * src->z ;
-  
+  SGDfloat d = sgdScalarProductVec4 ( src, src ) ;
+
   d = (d > SGD_ZERO) ? (SGD_ONE / sgdSqrt ( d )) : SGD_ONE ;
 
-  dst->w = src->w * d ;
-  dst->x = src->x * d ;
-  dst->y = src->y * d ;
-  dst->z = src->z * d ;
+  sgdScaleVec4 ( dst, src, d ) ;
 }
 
 
 
-inline void sgdNormalizeQuat ( sgdQuat *dst ) { sgdNormalizeQuat ( dst, dst ) ; }
+inline void sgdNormaliseQuat ( sgdQuat dst ) { sgdNormaliseQuat ( dst, dst ) ; }
 
 
-inline void sgdInvertQuat ( sgdQuat *dst, const sgdQuat *src )
+inline void sgdInvertQuat ( sgdQuat dst, const sgdQuat src )
 {
-  SGDfloat d = src->w * src->w +
-               src->x * src->y +
-               src->y * src->y +
-               src->z * src->z ;
-  
+  SGDfloat d = sgdScalarProductVec4 ( src, src ) ;
+
   d = ( d == SGD_ZERO ) ? SGD_ONE : ( SGD_ONE / d ) ;
 
-  dst->w =  src->w * d ;
-  dst->x = -src->x * d ;
-  dst->y = -src->y * d ;
-  dst->z = -src->z * d ;
+  dst[SG_W] =  src[SG_W] * d ;
+  dst[SG_X] = -src[SG_X] * d ;
+  dst[SG_Y] = -src[SG_Y] * d ;
+  dst[SG_Z] = -src[SG_Z] * d ;
 }
 
-inline void sgdInvertQuat ( sgdQuat *dst ) { sgdInvertQuat ( dst, dst ) ; }
+inline void sgdInvertQuat ( sgdQuat dst ) { sgdInvertQuat ( dst, dst ) ; }
 
 
 /* Make an angle and axis of rotation from a Quaternion. */
 
-void sgdQuatToAngleAxis ( SGDfloat *angle, sgdVec3 axis, const sgdQuat *src ) ;
-void sgdQuatToAngleAxis ( SGDfloat *angle, SGDfloat *x, SGDfloat *y, SGDfloat *z,
-                                                         const sgdQuat *src ) ;
+void sgdQuatToAngleAxis ( SGDfloat *angle, sgdVec3 axis, const sgdQuat src ) ;
+void sgdQuatToAngleAxis ( SGDfloat *angle,
+                         SGDfloat *x, SGDfloat *y, SGDfloat *z,
+                         const sgdQuat src ) ;
 
 /* Make a quaternion from a given angle and axis of rotation */
 
-void sgdMakeQuat ( sgdQuat *dst, const SGDfloat angle, const sgdVec3 axis ) ;
-void sgdMakeQuat ( sgdQuat *dst, const SGDfloat angle, const SGDfloat x, const SGDfloat y, const SGDfloat z ) ;
+void sgdAngleAxisToQuat ( sgdQuat dst,
+                          const SGDfloat angle, const sgdVec3 axis ) ;
+void sgdAngleAxisToQuat ( sgdQuat dst,
+                         const SGDfloat angle,
+                         const SGDfloat x, const SGDfloat y, const SGDfloat z );
+
+/* Convert a matrix to/from a quat */
+
+void sgdMatrixToQuat ( sgdQuat quat, sgdMat4 m ) ;
+void sgdQuatToMatrix ( sgdMat4 m, sgdQuat quat ) ;
+
+/* Convert a set of eulers to/from a quat */
+
+void sgdQuatToEuler( SGDfloat h, SGDfloat p, SGDfloat r, sgdQuat quat ) ;
+void sgdEulerToQuat( sgdQuat quat, sgdVec3 hpr ) ;
+
+inline void sgdEulerToQuat( sgdQuat dst,
+                            SGDfloat h, SGDfloat p, SGDfloat r )
+{
+  sgdVec3 hpr ;
+
+  sgdSetVec3 ( hpr, h, p, r ) ;
+
+  sgdEulerToQuat( dst, hpr ) ;
+}
+
+inline void sgdHPRToQuat ( sgdQuat dst, SGDfloat h, SGDfloat p, SGDfloat r )
+{
+  sgdVec3 hpr;
+
+  hpr[0] = h * SGD_DEGREES_TO_RADIANS ;
+  hpr[1] = p * SGD_DEGREES_TO_RADIANS ;
+  hpr[2] = r * SGD_DEGREES_TO_RADIANS ;
+
+  sgdEulerToQuat( dst, hpr ) ;
+}
+
+inline void sgdHPRToQuat ( sgdQuat dst, const sgdVec3 hpr )
+{
+  sgdVec3 tmp ;
+
+  sgdScaleVec3 ( tmp, hpr, SGD_DEGREES_TO_RADIANS ) ;
+
+  sgdEulerToQuat ( dst, tmp ) ;
+};
 
 /* Multiply quaternions together (concatenate rotations) */
 
-void sgdMultQuat ( sgdQuat *dst, const sgdQuat *a, const sgdQuat *b ) ;
+void sgdMultQuat ( sgdQuat dst, const sgdQuat a, const sgdQuat b ) ;
 
-/* Construct a 4x4 rotation matrix equivelant to a given quaternion */
-
-void sgdMakeRotMat4 ( sgdMat4 dst, const sgdQuat *q ) ;
-
-
-inline void sgdPostMultQuat ( sgdQuat *dst, const sgdQuat *q )
+inline void sgdPostMultQuat ( sgdQuat dst, const sgdQuat q )
 {
   sgdQuat r ;
 
-  sgdCopyQuat ( &r, dst ) ;
-  sgdMultQuat ( dst, &r, q ) ;
+  sgdCopyQuat ( r, dst ) ;
+  sgdMultQuat ( dst, r, q ) ;
 }
 
-
-inline void sgdPreMultQuat ( sgdQuat *dst, const sgdQuat *q )
+inline void sgdPreMultQuat ( sgdQuat dst, const sgdQuat q )
 {
   sgdQuat r ;
 
-  sgdCopyQuat ( &r, dst ) ;
-  sgdMultQuat ( dst, q, &r ) ;
+  sgdCopyQuat ( r, dst ) ;
+  sgdMultQuat ( dst, q, r ) ;
 }
 
 
 /* Rotate a quaternion by a given angle and axis (convenience function) */
 
 
-inline void sgdRotQuat ( sgdQuat *dst, const SGDfloat angle, const sgdVec3 axis )
+inline void sgdRotQuat ( sgdQuat dst, const SGDfloat angle, const sgdVec3 axis )
 {
   sgdQuat q ;
 
-  sgdMakeQuat ( &q, angle, axis ) ;
-  sgdPostMultQuat ( dst, &q ) ;
-  sgdNormalizeQuat ( dst ) ;
+  sgdAngleAxisToQuat ( q, angle, axis ) ;
+  sgdPostMultQuat ( dst, q ) ;
+  sgdNormaliseQuat ( dst ) ;
 }
 
 
-inline void sgdRotQuat ( sgdQuat *dst, const SGDfloat angle,
-                                       const SGDfloat x, const SGDfloat y, const SGDfloat z )
+inline void sgdRotQuat ( sgdQuat dst,
+                        const SGDfloat angle,
+                        const SGDfloat x, const SGDfloat y, const SGDfloat z )
 {
   sgdVec3 axis ;
 
@@ -2082,9 +2230,12 @@ inline void sgdRotQuat ( sgdQuat *dst, const SGDfloat angle,
   sgdRotQuat ( dst, angle, axis ) ;
 }
 
-
 /* SWC - Interpolate between to quaternions */
-void sgdSlerpQuat( sgdQuat *dst, const sgdQuat *from, const sgdQuat *to, const SGDfloat t );
+
+extern void sgdSlerpQuat ( sgdQuat dst,
+                          const sgdQuat from, const sgdQuat to,
+                          const SGDfloat t ) ;
+
 
 /* Conversions between sg and sgd types. */
 
@@ -2160,6 +2311,18 @@ inline void sgdSetCoord ( sgdCoord *dst, sgCoord *src )
 {
   sgdSetVec3 ( dst->xyz, src->xyz ) ;
   sgdSetVec3 ( dst->hpr, src->hpr ) ;
+}
+
+inline void sgSetQuat ( sgQuat dst, sgdQuat src )
+{
+  sgSetVec4 ( dst, src ) ;
+}
+
+
+
+inline void sgdSetQuat ( sgdQuat dst, sgQuat src )
+{
+  sgdSetVec4 ( dst, src ) ;
 }
 
 

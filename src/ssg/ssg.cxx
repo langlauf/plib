@@ -1,4 +1,5 @@
 
+#define _UL_GENERATE_CODE_
 #include "ssgLocal.h"
 
 sgMat4 _ssgOpenGLAxisSwapMatrix =
@@ -13,6 +14,7 @@ sgVec3 _ssgVertex000   = { 0.0f, 0.0f, 0.0f } ;
 sgVec4 _ssgColourWhite = { 1.0f, 1.0f, 1.0f, 1.0f } ;
 sgVec3 _ssgNormalUp    = { 0.0f, 0.0f, 1.0f } ;
 sgVec2 _ssgTexCoord00  = { 0.0f, 0.0f } ;
+int    _ssgIndex0      = 0;
 
 char *_ssgModelPath   = NULL ;
 char *_ssgTexturePath = NULL ;
@@ -58,6 +60,19 @@ ssgLight *ssgGetLight ( int i )
 
 void ssgInit ()
 {
+#ifdef WIN32
+  if ( wglGetCurrentContext () == NULL )
+#else
+#if defined(macintosh)
+  if ( aglGetCurrentContext () == NULL )
+#else
+  if ( glXGetCurrentContext () == NULL )
+#endif
+#endif
+  {
+    ulSetError ( UL_FATAL, "ssgInit called without a valid OpenGL context.");
+  }
+
   ssgTexturePath ( "." ) ;
   ssgModelPath   ( "." ) ;
 
@@ -78,9 +93,7 @@ void ssgCullAndPick ( ssgRoot *r, sgVec2 botleft, sgVec2 topright )
 {
   if ( _ssgCurrentContext == NULL )
   {
-    fprintf ( stderr,
-             "ssg: No Current Context: Did you forgot to call ssgInit()?\n" ) ;
-    exit ( 1 ) ;
+    ulSetError ( UL_FATAL, "ssg: No Current Context: Did you forgot to call ssgInit()?" ) ;
   }
 
   ssgForceBasicState () ;
@@ -125,9 +138,7 @@ void ssgCullAndDraw ( ssgRoot *r )
 {
   if ( _ssgCurrentContext == NULL )
   {
-    fprintf ( stderr,
-             "ssg: No Current Context: Did you forgot to call ssgInit()?\n" ) ;
-    exit ( 1 ) ;
+    ulSetError ( UL_FATAL, "ssg: No Current Context: Did you forgot to call ssgInit()?" ) ;
   }
 
   _ssgFrameCounter++ ;
@@ -159,20 +170,6 @@ void ssgCullAndDraw ( ssgRoot *r )
   glLoadIdentity () ;
 }
 
-void ssgModelPath ( char *s )
-{
-  delete _ssgModelPath ;
-  _ssgModelPath = new char [ strlen ( s ) + 1 ] ;
-  strcpy ( _ssgModelPath, s ) ;
-}
-
-void ssgTexturePath ( char *s )
-{
-  delete _ssgTexturePath ;
-  _ssgTexturePath = new char [ strlen ( s ) + 1 ] ;
-  strcpy ( _ssgTexturePath, s ) ;
-}
-
 
 char *ssgBase         ::getTypeName (void) { return "ssgBase"          ; }
 char *ssgTexture      ::getTypeName (void) { return "ssgTexture"       ; }
@@ -183,6 +180,7 @@ char *ssgEntity       ::getTypeName (void) { return "ssgEntity"        ; }
 char *ssgLeaf         ::getTypeName (void) { return "ssgLeaf"          ; }
 char *ssgVTable       ::getTypeName (void) { return "ssgVTable"        ; }
 char *ssgVtxTable     ::getTypeName (void) { return "ssgVtxTable"      ; }
+char *ssgVtxArray     ::getTypeName (void) { return "ssgVtxArray"      ; }
 char *ssgBranch       ::getTypeName (void) { return "ssgBranch"        ; }
 char *ssgSelector     ::getTypeName (void) { return "ssgSelector"      ; }
 char *ssgRangeSelector::getTypeName (void) { return "ssgRangeSelector" ; }
@@ -192,75 +190,3 @@ char *ssgTransform    ::getTypeName (void) { return "ssgTransform"     ; }
 char *ssgTexTrans     ::getTypeName (void) { return "ssgTexTrans"      ; }
 char *ssgCutout       ::getTypeName (void) { return "ssgCutout"        ; }
 char *ssgRoot         ::getTypeName (void) { return "ssgRoot"          ; }
-
-
-static char *file_extension ( char *fname )
-{
-  char *p = & ( fname [ strlen(fname) ] ) ;
-
-  while ( p != fname && *p != '/' && *p != '.' )
-    p-- ;
-
-  return p ;
-}
-
-
-ssgEntity *ssgLoad ( char *fname, ssgHookFunc hookfunc )
-{
-  if ( fname == NULL || *fname == '\0' )
-    return NULL ;
-
-  char *extn = file_extension ( fname ) ;
-
-  if ( *extn != '.' )
-    return NULL ;
-
-  if ( _ssgStrNEqual ( extn, ".ac", 3 ) )
-  { 
-    ssgEntity *obj = ssgLoadAC ( fname, hookfunc ) ;
-
-    if ( obj == NULL )
-      return NULL ;
-
-    /* Do some simple optimisations */
-
-    ssgBranch *model = new ssgBranch () ;
-    model -> addKid ( obj ) ;
-    ssgFlatten      ( obj ) ;
-    ssgStripify   ( model ) ;
-    return model ;
-  }
-
-  if ( _ssgStrNEqual ( extn, ".wrl", 4 ) )
-    return ssgLoadVRML ( fname, hookfunc ) ;
-
-  if ( _ssgStrNEqual ( extn, ".3ds", 4 ) )
-    return ssgLoad3ds  ( fname, hookfunc ) ;
-
-  if ( _ssgStrNEqual ( extn, ".ssg", 4 ) )
-    return ssgLoadSSG  ( fname, hookfunc ) ;
-
-  return NULL ;
-}
-
-
-int ssgSave ( char *fname, ssgEntity *ent )
-{
-  if ( fname == NULL || ent == NULL || *fname == '\0' )
-    return FALSE ;
-
-  char *extn = file_extension ( fname ) ;
-
-  if ( *extn != '.' )
-    return FALSE ;
-
-  if ( _ssgStrNEqual ( extn, ".ac", 3 ) )
-    return ssgSaveAC ( fname, ent ) ;
-
-  if ( _ssgStrNEqual ( extn, ".ssg", 4 ) )
-    return ssgSaveSSG ( fname, ent ) ;
-
-  return FALSE ;
-}
-
-

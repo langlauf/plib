@@ -8,6 +8,8 @@
   FreeBSD port - courtesy of Stephen Montgomery-Smith
   <stephen@math.missouri.edu>
 
+  NetBSD mods - courtesy Rene Hexel.
+
   The next lines are to define BSD
   see http://www.freebsd.org/handbook/porting.html for why we do this
 */
@@ -29,7 +31,7 @@
 #  include <unistd.h>
 #  include <fcntl.h>
 
-#  ifdef __FreeBSD__
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
 #    include <machine/joystick.h>
 #    define JS_DATA_TYPE joystick
 #    define JS_RETURN (sizeof(struct JS_DATA_TYPE))
@@ -76,16 +78,16 @@
 #ifdef WIN32
 #  define _JS_MAX_AXES 6
 #else
-#  ifdef __FreeBSD__
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
 #  define _JS_MAX_AXES 2
 #  else
-#  define _JS_MAX_AXES 6
+#  define _JS_MAX_AXES 9
 #  endif
 #endif
 
 class jsJoystick
 {
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__NetBSD__)
   int          id ;
 #endif
 #ifdef WIN32
@@ -153,7 +155,7 @@ class jsJoystick
     }
 
 #else
-#  ifdef __FreeBSD__
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
     FILE *joyfile;
     char joyfname[1024];
     int noargs, in_no_axes;
@@ -171,14 +173,14 @@ class jsJoystick
     tmp_buttons = 0 ;
 #  endif
 
-    fd = ::open ( fname, O_RDONLY ) ;
+    fd = ::open ( fname, O_RDONLY | O_NONBLOCK ) ;
 
     error = ( fd < 0 ) ;
 
     if ( error )
       return ;
 
-#  ifdef __FreeBSD__
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
 
     float axes[_JS_MAX_AXES];
     int buttons[_JS_MAX_AXES];
@@ -217,6 +219,9 @@ class jsJoystick
     ioctl ( fd, JSIOCGAXES   , & num_axes    ) ;
     ioctl ( fd, JSIOCGBUTTONS, & num_buttons ) ;
     fcntl ( fd, F_SETFL, O_NONBLOCK ) ;
+
+    if ( num_axes > _JS_MAX_AXES )
+      num_axes = _JS_MAX_AXES ;
 #   endif
 
     /*
@@ -316,7 +321,7 @@ public:
       default :    num_axes = 0 ; setError () ; break ;
     }
 #else
-#  ifdef __FreeBSD__
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
     id = ident;
     sprintf ( fname, "/dev/joy%d", ident ) ;
 #  else
@@ -420,14 +425,13 @@ public:
 
       if ( status != sizeof(js_event) )
       {
-	if ( errno == EAGAIN )
-	{
-	  /* use the old values */
+        /* use the old values */
 
-	  if ( buttons ) *buttons = tmp_buttons ;
-	  if ( axes    ) memcpy ( axes, tmp_axes, sizeof(float) * num_axes ) ;
+	if ( buttons ) *buttons = tmp_buttons ;
+	if ( axes    ) memcpy ( axes, tmp_axes, sizeof(float) * num_axes ) ;
+
+	if ( errno == EAGAIN )
 	  return ;
-	}
 
 	perror( fname ) ;
 	setError () ;
@@ -444,11 +448,24 @@ public:
 	  break ;
 
 	case JS_EVENT_AXIS:
-	  tmp_axes [ js.number ] = (float) js.value ;
+          if ( js.number < num_axes )
+          {
+	    tmp_axes [ js.number ] = (float) js.value ;
 
-	  if ( axes )
-	    memcpy ( axes, tmp_axes, sizeof(float) * num_axes ) ;
+	    if ( axes )
+	      memcpy ( axes, tmp_axes, sizeof(float) * num_axes ) ;
+          }
 	  break ;
+
+	default:
+          fprintf ( stderr, "PLIB_JS: Unrecognised /dev/js return!?!\n" ) ;
+
+	  /* use the old values */
+
+	  if ( buttons ) *buttons = tmp_buttons ;
+	  if ( axes    ) memcpy ( axes, tmp_axes, sizeof(float) * num_axes ) ;
+
+          return ;
       }
 
       if ( buttons )
@@ -467,7 +484,7 @@ public:
     }
 
     if ( buttons )
-#  ifdef __FreeBSD__
+#  if defined(__FreeBSD__) || defined(__NetBSD__)
       *buttons = ( js.b1 ? 1 : 0 ) | ( js.b2 ? 2 : 0 ) ;
 #  else
       *buttons = js.buttons ;

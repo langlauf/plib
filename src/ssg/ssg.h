@@ -2,6 +2,7 @@
 #ifndef _INCLUDED_SSG_H_
 #define _INCLUDED_SSG_H_
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +79,7 @@ void  ssgDeRefDelete ( ssgBase *br ) ;
 #define SSG_TYPE_RANGESELECTOR 0x00001000
 #define SSG_TYPE_INVISIBLE     0x00002000
 #define SSG_TYPE_VTXTABLE      0x00004000
+#define SSG_TYPE_VTXARRAY      0x00008000
 
 /* ssgStates */
 #define SSG_TYPE_STATE         0x00000004
@@ -198,7 +200,8 @@ public:
 
 class ssgBase 
 {
-  int   refc ;
+  int   refc   ;  /* The number of references to this node */
+  int   unique ;  /* A unique number for this node */
 
 protected :
 
@@ -220,6 +223,8 @@ public:
   virtual void incSpare  ()         ;
   virtual void setSpare  ( int ss ) ;
   virtual int  getSpare  ()         ;
+
+  int  getUnique () { return unique ; }
 
   ssgBase (void) ;
   virtual ~ssgBase (void) ;
@@ -368,6 +373,36 @@ public:
   ssgColourArray ( int init = 3 ) : ssgSimpleList ( sizeof(sgVec4), init ) {} 
   float *get ( unsigned int n ) { return (float *) raw_get ( n ) ; }
   void   add ( sgVec4   thing ) { raw_add ( (char *) thing ) ; } ;
+} ;
+
+
+class ssgIndexArray : public ssgSimpleList
+{
+public:
+
+  ssgIndexArray ( int init = 3 ) : ssgSimpleList ( sizeof(int), init ) {} 
+  int   *get ( unsigned int n ) { return (int *) raw_get ( n ) ; }
+  void   add ( int      thing ) { raw_add ( (char *) &thing ) ; } ;
+} ;
+
+
+struct ssgInterleavedArrayElement
+{
+	sgVec2 texCoord ;
+	sgVec4 colour ;
+	sgVec3 normal ;
+	sgVec3 vertex ;
+} ;
+
+
+class ssgInterleavedArray : public ssgSimpleList
+{
+public:
+
+  ssgInterleavedArray ( int init = 3 ) : ssgSimpleList ( sizeof(ssgInterleavedArrayElement), init ) {} 
+  ssgInterleavedArrayElement *get ( unsigned int n ) { return (ssgInterleavedArrayElement *) raw_get ( n ) ; }
+  void add ( ssgInterleavedArrayElement  thing ) { raw_add ( (char *) &thing ) ; } ;
+  void add ( ssgInterleavedArrayElement *thing ) { raw_add ( (char *)  thing ) ; } ;
 } ;
 
 
@@ -520,6 +555,7 @@ public:
 
   virtual void      care_about ( int mode ) { dont_care &= ~(1<<mode) ; }
   virtual void dont_care_about ( int mode ) { dont_care |=  (1<<mode) ; }
+  virtual int     getCareAbout ( int mode ) { return dont_care & (1<<mode) ; }
 
   virtual int  isEnabled ( GLenum mode ) ;
   virtual void disable   ( GLenum mode ) ;
@@ -881,6 +917,7 @@ extern sgVec3 _ssgVertex000   ;
 extern sgVec4 _ssgColourWhite ;
 extern sgVec3 _ssgNormalUp    ;
 extern sgVec2 _ssgTexCoord00  ;
+extern int    _ssgIndex0      ;
 
 
 class ssgVTable : public ssgLeaf
@@ -1024,7 +1061,7 @@ public:
   int getNumColours   () { return colours   -> getNum () ; }
   int getNumTexCoords () { return texcoords -> getNum () ; }
 
-  int getNumTriangles () ;
+  virtual int getNumTriangles () ;
   void getTriangle ( int n, short *v1, short *v2, short *v3 ) ;
 
   void getVertexList   ( void **list ) { *list = vertices  -> get ( 0 ) ; }
@@ -1059,6 +1096,56 @@ public:
   virtual int load ( FILE *fd ) ;
   virtual int save ( FILE *fd ) ;
 } ;
+
+
+class ssgVtxArray : public ssgVtxTable
+{
+protected:
+  ssgIndexArray *indices;
+
+  virtual void draw_geometry () ;
+
+public:
+  ssgVtxArray () ;
+
+  ssgVtxArray ( GLenum ty, ssgVertexArray   *vl,
+                           ssgNormalArray   *nl,
+                           ssgTexCoordArray *tl,
+                           ssgColourArray   *cl,
+						   ssgIndexArray    *il ) ;
+
+  virtual void drawHighlight ( sgVec4 colour ) ;
+  virtual void drawHighlight ( sgVec4 colour, int i ) ;
+  virtual void pick ( int baseName ) ;
+  virtual void transform ( sgMat4 m ) ;
+
+  void setIndices ( ssgIndexArray *il ) ;
+
+  int getNumIndices () { return indices -> getNum () ; }
+
+  int getNumTriangles () ;
+
+  void getIndexList ( void **list ) { *list = indices  -> get ( 0 ) ; }
+
+  int *getIndex  (int i){ if(i>=getNumIndices())i=getNumIndices()-1;
+                             return (getNumIndices()<=0) ?
+				      &_ssgIndex0 : indices->get(i);}
+
+  virtual ~ssgVtxArray (void) ;
+
+  virtual char *getTypeName(void) ;
+  virtual void recalcBSphere () ;
+  virtual void draw () ;
+
+  virtual void isect_triangles ( sgSphere  *s, sgMat4 m, int test_needed ) ;
+  virtual void hot_triangles   ( sgVec3     s, sgMat4 m, int test_needed ) ;
+  virtual void print ( FILE *fd = stderr, char *indent = "" ) ;
+  virtual int load ( FILE *fd ) ;
+  virtual int save ( FILE *fd ) ;
+} ;
+
+
+// class ssgVtxInterleavedArray
 
 
 class ssgBranch : public ssgEntity
@@ -1753,17 +1840,60 @@ int  ssgIsect       ( ssgRoot *root, sgSphere *s, sgMat4 m, ssgHit **results ) ;
 int  ssgHOT         ( ssgRoot *root, sgVec3    s, sgMat4 m, ssgHit **results ) ;
 int  ssgLOS         ( ssgRoot *root, sgVec3    s, sgMat4 m, ssgHit **results ) ;
 
-typedef ssgBranch *(*ssgHookFunc)(char *) ;
+/* Weird private stuff */
 
-ssgEntity *ssgLoad     ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-ssgEntity *ssgLoadVRML ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-ssgEntity *ssgLoad3ds  ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-ssgEntity *ssgLoadAC   ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-ssgEntity *ssgLoadSSG  ( char *fname, ssgHookFunc hookfunc = NULL ) ;
+int _ssgStrEqual ( char *s1, char *s2 ) ;
+char* _ssgMakePath( char* path, const char* dir, const char* fname ) ;
+
+void _ssgShareReset () ;
+GLuint _ssgShareTexture ( char* tfname ) ;
+ssgSimpleState* _ssgShareState ( ssgSimpleState* st ) ;
+
+/* Load/Save functions */
+
+class ssgCreateData
+{ 
+public: 
+  ssgCreateData () ;
+  ~ssgCreateData () ;
+
+  char* parentName ; 
+  GLenum gltype ; 
+  ssgVertexArray *vl ; 
+  ssgNormalArray *nl ; 
+  ssgTexCoordArray *tl ; 
+  ssgColourArray *cl ; 
+  ssgSimpleState *st ;     //setTexture() not yet called 
+  char* tfname ;           //nonzero if has texture 
+  int cull_face ;
+} ; 
+
+ssgLeaf* _ssgCreateFunc ( ssgCreateData* data ) ;
+
+typedef ssgLeaf *(*ssgCreateFunc)(ssgCreateData *data) ;
+typedef ssgBranch *(*ssgHookFunc)(char *) ;
 
 int        ssgSave     ( char *fname, ssgEntity *ent ) ;
 int        ssgSaveAC   ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveASE  ( char *fname, ssgEntity *ent ) ;
 int        ssgSaveSSG  ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveDXF  ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveTRI  ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveOBJ  ( char *fname, ssgEntity *ent ) ;
+
+ssgEntity *ssgLoad     ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadVRML ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoad3ds  ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadAC3D ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadSSG  ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadASE  ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadDXF  ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadTRI  ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+ssgEntity *ssgLoadOBJ  ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
+
+/* For backwards compatibility */
+
+ssgEntity *ssgLoadAC   ( char *fname, ssgHookFunc hookfunc = NULL, ssgCreateFunc createfunc = NULL ) ;
 
 void ssgFlatten  ( ssgEntity *ent ) ;
 void ssgStripify ( ssgEntity *ent ) ;
@@ -1775,6 +1905,7 @@ ssgLight *ssgGetLight ( int i ) ;
 
 int   ssgGetNumTexelsLoaded () ;
 void  ssgSetAppStateCallback ( ssgState *(*cb)(char *) ) ;
+
 char *ssgShowStats () ;
 void  ssgDelete ( ssgBranch *br ) ;
 char *ssgGetVersion () ;

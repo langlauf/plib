@@ -75,7 +75,7 @@ libplibsl_a_SOURCES =  	slDSP.cxx slSample.cxx slEnvelope.cxx 	slPlayer.cxx slMO
 
 libplibsm_a_SOURCES = slPortability.h smMixer.cxx
 
-EXTRA_DIST = Makefile.msc README.freebsd README.linux 	README.openbsd README.sgi README.unix README.win         sl.dsp
+EXTRA_DIST = Makefile.msc README.freebsd README.linux 	README.openbsd README.sgi README.unix README.win         sl.dsp libsm.bpr libsl.bpr
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -112,7 +112,7 @@ DIST_COMMON =  Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
+TAR = tar
 GZIP_ENV = --best
 SOURCES = $(libplibsl_a_SOURCES) $(libplibsm_a_SOURCES)
 OBJECTS = $(libplibsl_a_OBJECTS) $(libplibsm_a_OBJECTS)

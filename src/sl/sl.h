@@ -14,6 +14,8 @@
 #define SLDSP_DEFAULT_DEVICE "dsp"		// dummy ...
 #elif defined(SOLARIS)
 #define SLDSP_DEFAULT_DEVICE "/dev/audio"
+#elif defined(macintosh)
+#define SLDSP_DEFAULT_DEVICE "dsp" // dummy
 #else
 #error "Port me !"
 #endif
@@ -46,7 +48,7 @@ private:
   int error ;
   int fd ;
 
-#ifdef __OpenBSD__
+#if defined (__NetBSD__) || defined(__OpenBSD__)
   audio_info_t    ainfo;        // ioctl structure
   audio_offset_t  audio_offset; // offset in audiostream
   long            counter;      // counter-written packets
@@ -90,7 +92,7 @@ private:
 #endif
 
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(macintosh)
   int ioctl ( int cmd, int param = 0 )
   {
     if ( error ) return param ;
