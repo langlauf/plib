@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netMonitor.h,v 1.9 2002/09/02 06:05:44 sjbaker Exp $
+     $Id: netMonitor.h,v 1.10 2004/03/21 17:41:07 sjbaker Exp $
 */
 
 /****
@@ -50,7 +50,7 @@ class netMonitorServer : private netChannel
   char* name ;
   char* password ;
   char* prompt ;
-  void (*cmdfunc)(cchar*) ;
+  void (*cmdfunc)(const char*) ;
   class netMonitorChannel* active ;
 
   friend class netMonitorChannel ;
@@ -60,7 +60,7 @@ class netMonitorServer : private netChannel
   
 public:
 
-  netMonitorServer( cchar* _name, int port )
+  netMonitorServer( const char* _name, int port )
   {
     name = ulStrDup(_name);
     password = ulStrDup("") ;
@@ -82,20 +82,20 @@ public:
     delete[] prompt ;
   }
 
-  cchar* getPassword () const { return password; }
-  void setPassword ( cchar* string )
+  const char* getPassword () const { return password; }
+  void setPassword ( const char* string )
   {
     delete[] password ;
     password = ulStrDup ( string?string:"" ) ;
   }
 
-  void setPrompt ( cchar* string )
+  void setPrompt ( const char* string )
   {
     delete[] prompt ;
     prompt = ulStrDup ( string?string:"" ) ;
   }
 
-  void setCommandFunc ( void (*func)(cchar*) )
+  void setCommandFunc ( void (*func)(const char*) )
   {
     cmdfunc = func ;
   }

@@ -94,7 +94,7 @@ install_sh = @install_sh@
 @BUILD_PUI_TRUE@        puSpinBox.cxx     puScrollBar.cxx puInputBase.cxx
 
 
-@BUILD_PUI_TRUE@AM_CPPFLAGS = -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt -I$(top_srcdir)/src/util -DPU_USE_NONE
+@BUILD_PUI_TRUE@AM_CPPFLAGS = -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt -I$(top_srcdir)/src/util
 
 EXTRA_DIST = pui.dsp
 subdir = src/pui

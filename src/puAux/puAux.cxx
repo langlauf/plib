@@ -19,11 +19,11 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puAux.cxx,v 1.1 2004/02/28 00:54:03 sjbaker Exp $
+     $Id: puAux.cxx,v 1.2 2004/03/21 19:03:23 sjbaker Exp $
 */
 
 
-#include "puAux.h"
+#include "puAuxLocal.h"
 
 void puaInit ()
 {

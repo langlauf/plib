@@ -80,7 +80,7 @@ install_sh = @install_sh@
 
 @BUILD_PUAUX_TRUE@lib_LIBRARIES = libplibpuaux.a
 
-@BUILD_PUAUX_TRUE@include_HEADERS = puAux.h
+@BUILD_PUAUX_TRUE@include_HEADERS = puAux.h puAuxLocal.h
 
 @BUILD_PUAUX_TRUE@libplibpuaux_a_SOURCES = puAux.cxx                  \
 @BUILD_PUAUX_TRUE@                         puAuxBiSlider.cxx          \

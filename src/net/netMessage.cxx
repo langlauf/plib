@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netMessage.cxx,v 1.6 2002/09/02 06:05:44 sjbaker Exp $
+     $Id: netMessage.cxx,v 1.7 2004/03/21 17:41:07 sjbaker Exp $
 */
 
 #include "netMessage.h"
@@ -30,7 +30,7 @@ netMessageChannel::handleBufferRead (netBuffer& in_buffer)
   int n = in_buffer.getLength () ;
   while ( n >= 2 )
   {
-    u16 msg_len = *( (u16*)in_buffer.getData() ) ;
+    unsigned short msg_len = *( (unsigned short*)in_buffer.getData() ) ;
     if ( n >= msg_len )
     {
       //we have a complete message; handle it

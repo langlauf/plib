@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netChannel.cxx,v 1.7 2002/09/02 06:05:44 sjbaker Exp $
+     $Id: netChannel.cxx,v 1.8 2004/03/21 17:41:07 sjbaker Exp $
 */
 
 // TODO:
@@ -95,7 +95,7 @@ netChannel::listen ( int backlog )
 }
 
 int
-netChannel::connect ( cchar* host, int port )
+netChannel::connect ( const char* host, int port )
 {
   int result = netSocket::connect ( host, port ) ;
   if (result == 0) {
@@ -201,7 +201,7 @@ netChannel::handleWriteEvent (void)
 }
 
 bool
-netChannel::poll (u32 timeout)
+netChannel::poll (unsigned int timeout)
 {
   if (!channels)
     return false ;
@@ -271,7 +271,7 @@ netChannel::poll (u32 timeout)
 }
 
 void
-netChannel::loop (u32 timeout)
+netChannel::loop (unsigned int timeout)
 {
   while ( poll (timeout) ) ;
 }

@@ -18,11 +18,11 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puAuxSelectBox.cxx,v 1.2 2004/03/18 17:20:52 sjbaker Exp $
+     $Id: puAuxSelectBox.cxx,v 1.3 2004/03/21 19:03:23 sjbaker Exp $
 */
 
 
-#include "puAux.h"
+#include "puAuxLocal.h"
 
 UL_RTTI_DEF1(puaSelectBox,puGroup)
 

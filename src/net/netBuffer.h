@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netBuffer.h,v 1.7 2002/09/02 06:05:44 sjbaker Exp $
+     $Id: netBuffer.h,v 1.9 2004/03/21 18:19:11 sjbaker Exp $
 */
 
 /****
@@ -87,7 +87,7 @@ enum { NET_MAX_NAME = 31 } ;
 //eg. char name [ NET_MAX_NAME+1 ] ;
 
 
-inline char* netCopyName ( char* dst, cchar* src )
+inline char* netCopyName ( char* dst, const char* src )
 {
   if ( src != NULL )
   {
@@ -199,7 +199,6 @@ class netBufferChannel : public netChannel
 
 public:
 
-  // constructor
   netBufferChannel (int in_buffer_size = 4096, int out_buffer_size = 16384) :
     in_buffer (in_buffer_size),
     out_buffer (out_buffer_size),

@@ -18,10 +18,11 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: puLocal.h,v 1.13 2004/02/16 13:49:03 stromberg Exp $
+     $Id: puLocal.h,v 1.14 2004/03/21 19:03:23 sjbaker Exp $
 */
 
 
+#define PU_USE_NONE 1
 #include "pu.h"
 
 

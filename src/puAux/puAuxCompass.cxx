@@ -19,11 +19,11 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: puAuxCompass.cxx,v 1.3 2004/03/18 19:14:43 sjbaker Exp $
+     $Id: puAuxCompass.cxx,v 1.4 2004/03/21 19:03:23 sjbaker Exp $
 */
 
 
-#include "puAux.h"
+#include "puAuxLocal.h"
 
 #ifdef UL_MAC_OSX
 #  include <OpenGL/gl.h>

@@ -81,7 +81,7 @@ install_sh = @install_sh@
 @BUILD_NET_TRUE@lib_LIBRARIES = libplibnet.a
 
 @BUILD_NET_TRUE@include_HEADERS = netBuffer.h netChannel.h netChat.h netMessage.h \
-@BUILD_NET_TRUE@	netMonitor.h netSocket.h
+@BUILD_NET_TRUE@	netMonitor.h netSocket.h net.h
 
 
 @BUILD_NET_TRUE@libplibnet_a_SOURCES = netBuffer.cxx netChannel.cxx netChat.cxx \
