@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.h,v 1.11 2001/06/23 02:30:18 sjbaker Exp $
+     $Id: netSocket.h,v 1.10 2001/04/12 03:35:05 deca Exp $
 */
 
 /****
@@ -49,6 +49,7 @@
 #define strcasecmp stricmp 
 #define strncasecmp strnicmp 
 #endif
+
 
 /*
  * Define Basic types

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ul.cxx,v 1.24 2001/07/09 15:00:49 nhv Exp $
+     $Id: ul.cxx,v 1.14 2001/04/12 03:39:07 deca Exp $
 */
 
 
@@ -29,15 +29,6 @@
 
 #if defined(__CYGWIN__) || !defined(WIN32)
 #include <dirent.h>
-#elif defined(_MSC_VER)
-#include <direct.h>
-#endif
-
-
-#if defined(WIN32) && !defined(__CYGWIN__)
-#define SLASH "\\"
-#else
-#define SLASH "/"
 #endif
 
 
@@ -90,12 +81,6 @@ ulDir* ulOpenDir ( const char* dirname )
     }
 #else
     dir->dirp = opendir(dirname) ;
-
-    if ( dir->dirp == NULL )
-    {
-      delete dir ;
-      dir = NULL ;
-    }
 #endif
   }
   return dir;
@@ -123,7 +108,7 @@ ulDirEnt* ulReadDir ( ulDir* dir )
   strcpy( dir->curr.d_name, direntp->d_name );
 #endif
 
-  char path[ 1000 + UL_NAME_MAX+1 ];
+  char path[ UL_NAME_MAX+1 ];
   sprintf( path, "%s/%s", dir->dirname, dir->curr.d_name );
 
   //determine if this entry is a directory
@@ -154,9 +139,9 @@ void ulCloseDir ( ulDir* dir )
 #if defined(WIN32) && !defined(__CYGWIN__)
     FindClose(dir->hFind);
 #else
-    closedir ( dir->dirp ) ;
+    closedir(dir->dirp);
 #endif
-    delete dir ;
+    delete dir;
   }
 }
 
@@ -184,11 +169,18 @@ char* ulMakePath( char* path, const char* dir, const char* fname )
        dir != NULL && dir[0] != '\0' )
     {
       strcpy ( path, dir ) ;
-      strcat ( path, SLASH ) ;
+      strcat ( path, "/" ) ;
       strcat ( path, fname ) ;
     }
     else
       strcpy ( path, fname ) ;
+
+    //convert backward slashes to forward slashes
+    for ( char* ptr = path ; *ptr ; ptr ++ )
+    {
+      if ( *ptr == '\\' )
+        *ptr = '/' ;
+    }
   }
   else
      path [0] = 0 ;
@@ -432,54 +424,3 @@ int ulStrEqual ( const char *s1, const char *s2 )
 
   return TRUE ;
 }
-
-
-int ulIsAbsolutePathName ( const char *pathname )
-{
-  /*
-    Is this an absolute pathname or a relative one?
-  */
- 
-	if ( (pathname == NULL) || (pathname [0] == 0) )
-		return FALSE;
-
-#if defined(WIN32) && !defined(__CYGWIN__)
- 
-  /*
-    Under WinDOS, it's an absolute path if it starts
-    with a slash *or* if it starts with a drive letter,
-    a colon and a slash.
-  */
-
-  return ( pathname[0] == SLASH[0] || pathname[0] == '/' ) ||
-         (
-           (
-             ( pathname[0] >= 'a' && pathname[0] <= 'z' ) ||
-             ( pathname[0] >= 'A' && pathname[0] <= 'Z' )
-           ) &&
-           pathname[1] == ':' &&
-           ( pathname[2] == SLASH[0] || pathname[2] == '/' )
-         ) ;
-#elif defined(macintosh)
-  return (pathname [0] != ':' && strchr( pathname, ':') != NULL );
-#else 
-  return pathname [0] == SLASH[0] ;
-#endif
-}
-
-
-char *ulGetCWD ( char *result, int maxlength )
-{
-  /*
-    Return the current working directory into 'result' - which
-    has enough space for 'maxlength-1' characters and a '\0'.
-  */
-
-#if defined(_MSC_VER)
-  return _getcwd ( result, maxlength ) ;
-#else
-  return getcwd ( result, maxlength ) ;
-#endif
-}
-
-

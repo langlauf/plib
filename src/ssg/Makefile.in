@@ -266,6 +266,8 @@ ssgBranch.o: ssgBranch.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgContext.o: ssgContext.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
+ssgConvex.o: ssgConvex.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
+	../../src/sg/sg.h ssgconf.h
 ssgCutout.o: ssgCutout.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgDList.o: ssgDList.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
@@ -274,6 +276,8 @@ ssgEntity.o: ssgEntity.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgIO.o: ssgIO.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
+ssgImageLoader.o: ssgImageLoader.cxx ssgLocal.h ssg.h \
+	../../src/util/ul.h ../../src/sg/sg.h ssgMSFSPalette.h
 ssgInvisible.o: ssgInvisible.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgIsect.o: ssgIsect.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
@@ -322,6 +326,8 @@ ssgLoadTRI.o: ssgLoadTRI.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgLoadTexture.o: ssgLoadTexture.cxx ssgLocal.h ssg.h \
 	../../src/util/ul.h ../../src/sg/sg.h ssgconf.h
+ssgLoadVRML.o: ssgLoadVRML.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
+	../../src/sg/sg.h ssgconf.h
 ssgLoadX.o: ssgLoadX.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h ssgLoaderWriterStuff.h ssgParser.h
 ssgLoaderWriterStuff.o: ssgLoaderWriterStuff.cxx ssgLocal.h ssg.h \
@@ -375,6 +381,8 @@ ssgTexTrans.o: ssgTexTrans.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgTexture.o: ssgTexture.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
+ssgTextureManager.o: ssgTextureManager.cxx ssgLocal.h ssg.h \
+	../../src/util/ul.h ../../src/sg/sg.h ssgconf.h
 ssgTransform.o: ssgTransform.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
 	../../src/sg/sg.h ssgconf.h
 ssgVTable.o: ssgVTable.cxx ssgLocal.h ssg.h ../../src/util/ul.h \
