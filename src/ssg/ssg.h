@@ -18,13 +18,14 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: ssg.h,v 1.169 2004/02/05 15:24:06 wolfram_kuss Exp $
+     $Id: ssg.h,v 1.170 2004/04/06 12:53:17 sjbaker Exp $
 */
 
 
 #ifndef _INCLUDED_SSG_H_
 #define _INCLUDED_SSG_H_
 
+#include <stdio.h>
 #include "sg.h"
 
 #ifdef UL_MAC_OSX

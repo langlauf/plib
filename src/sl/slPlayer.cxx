@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: slPlayer.cxx,v 1.4 2002/09/02 06:05:47 sjbaker Exp $
+     $Id: slPlayer.cxx,v 1.5 2004/04/06 13:32:26 sjbaker Exp $
 */
 
 
@@ -118,6 +118,8 @@ void slPlayer::read ( int nframes, Uchar *dst, int next_env )
     case SL_INVERSE_FILTER_ENVELOPE:
     case SL_FILTER_ENVELOPE :
       read ( nframes, dst, next_env+1 ) ;
+      env [ next_env ] -> applyToLPFilter ( dst, dst, nframes,
+                                            env_start_time [ next_env ] ) ;
       break ;
 
     case SL_INVERSE_PAN_ENVELOPE   :

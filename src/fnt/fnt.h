@@ -18,13 +18,14 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: fnt.h,v 1.15 2004/02/15 19:51:23 stromberg Exp $
+     $Id: fnt.h,v 1.16 2004/04/06 12:53:15 sjbaker Exp $
 */
 
 
 #ifndef _FNT_H_
 #define _FNT_H_  1
 
+#include <stdio.h>
 #include "sg.h"
 
 #ifdef UL_MAC_OSX

@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sgd.cxx,v 1.13 2004/03/18 19:14:43 sjbaker Exp $
+     $Id: sgd.cxx,v 1.14 2004/04/09 01:41:11 sjbaker Exp $
 */
 
 
@@ -861,7 +861,7 @@ SGDfloat sgdDistSquaredToLineSegmentVec3 ( const sgdLineSegment3 line,
 {
   sgdLine3 l ; sgdLineSegment3ToLine3 ( & l, line ) ;
  
-  sgdVec3 v ; sgdSubVec3 ( v, line.b, line.a ) ;
+  sgdVec3 v ; sgdSubVec3 ( v, line.b, line.a ) ; sgdNormalizeVec3 ( v ) ;
   sgdVec3 r1 ; sgdSubVec3 ( r1, pnt, line.a ) ;
  
   SGDfloat r1_dot_v = sgdScalarProductVec3 ( r1, v /*l.direction_vector*/ ) ;
@@ -878,7 +878,7 @@ SGDfloat sgdDistSquaredToLineSegmentVec3 ( const sgdLineSegment3 line,
 
   /* Closest point on line is on the line segment */
  
-  return sgdScalarProductVec3 ( r1, r1 ) - r1_dot_v ;
+  return sgdScalarProductVec3 ( r1, r1 ) - r1_dot_v * r1_dot_v ;
 }
 
 

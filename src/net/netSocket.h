@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: netSocket.h,v 1.19 2004/03/22 19:44:50 sjbaker Exp $
+     $Id: netSocket.h,v 1.20 2004/03/28 03:58:24 sjbaker Exp $
 */
 
 /****
@@ -49,6 +49,7 @@
  */
 class netAddress
 {
+  /* DANGER!!!  This MUST match 'struct sockaddr_in' exactly! */
   short          sin_family     ;
   unsigned short sin_port       ;
   unsigned int   sin_addr       ;

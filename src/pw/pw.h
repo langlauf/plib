@@ -18,12 +18,14 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: pw.h,v 1.5 2004/03/24 01:30:41 sjbaker Exp $
+     $Id: pw.h,v 1.7 2004/04/06 23:45:19 sjbaker Exp $
 */
 
 
 #ifndef _PW_H_
 #define _PW_H_ 1
+
+#include <stdio.h>
 
 #define PW_IS_PRESENT  1
 
@@ -51,6 +53,7 @@ void pwSetSize       ( int x, int y ) ;
 void pwSetOrigin     ( int w, int h ) ;
 void pwSetCursor     ( int c ) ;
 void pwCleanup       () ;
+void pwSetAutoRepeatKey ( bool enable ) ;
 
 #define PW_CURSOR_NONE    0
 #define PW_CURSOR_RIGHT   1

@@ -18,12 +18,13 @@
 
      For further information visit http://plib.sourceforge.net
 
-     $Id: psl.h,v 1.26 2004/02/02 01:35:15 sjbaker Exp $
+     $Id: psl.h,v 1.27 2004/04/06 12:53:15 sjbaker Exp $
 */
 
 #ifndef _PSL_H
 #define _PSL_H 1
 
+#include <stdio.h>
 #include "ul.h"
 
 enum pslResult

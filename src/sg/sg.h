@@ -18,13 +18,14 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sg.h,v 1.58 2004/03/18 19:14:43 sjbaker Exp $
+     $Id: sg.h,v 1.59 2004/04/06 12:53:16 sjbaker Exp $
 */
 
 
 #ifndef SG_H
 #define SG_H  1
 
+#include <stdio.h>
 #include "ul.h"
 
 #define sgFloat float

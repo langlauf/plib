@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sg.cxx,v 1.42 2004/03/18 19:14:43 sjbaker Exp $
+     $Id: sg.cxx,v 1.43 2004/04/09 01:41:11 sjbaker Exp $
 */
 
 
@@ -862,24 +862,24 @@ SGfloat sgDistSquaredToLineSegmentVec3 ( const sgLineSegment3 line,
 {
   sgLine3 l ; sgLineSegment3ToLine3 ( & l, line ) ;
  
-sgVec3 v ; sgSubVec3 ( v, line.b, line.a ) ;
-  sgVec3 r1 ; sgSubVec3 ( r1, pnt, line.a ) ;
+  sgVec3 v  ; sgSubVec3 ( v , line.b, line.a ) ; sgNormalizeVec3 ( v ) ;
+  sgVec3 r1 ; sgSubVec3 ( r1, pnt   , line.a ) ;
  
-  SGfloat r1_dot_v = sgScalarProductVec3 ( r1, v /*l.direction_vector*/ ) ;
+  SGfloat r1_dot_v = sgScalarProductVec3 ( r1, v ) ;
  
   if ( r1_dot_v <= 0 )  /* Off the "A" end  */
     return sgScalarProductVec3 ( r1, r1 ) ;
  
   sgVec3 r2 ; sgSubVec3 ( r2, pnt, line.b ) ;
 
-  SGfloat r2_dot_v = sgScalarProductVec3 ( r2, v /*l.direction_vector*/ ) ;
+  SGfloat r2_dot_v = sgScalarProductVec3 ( r2, v ) ;
  
   if ( r2_dot_v >= 0 )  /* Off the "B" end */
     return sgScalarProductVec3 ( r2, r2 ) ;
  
   /* Closest point on line is on the line segment */
  
-  return sgScalarProductVec3 ( r1, r1 ) - r1_dot_v ;
+  return sgScalarProductVec3 ( r1, r1 ) - r1_dot_v * r1_dot_v ;
 }
 
 
