@@ -18,7 +18,7 @@
  
      For further information visit http://plib.sourceforge.net
 
-     $Id: sl.h,v 1.6 2001/04/12 03:37:35 deca Exp $
+     $Id: sl.h,v 1.7 2001/06/20 19:51:24 sjbaker Exp $
 */
 
 
@@ -692,6 +692,9 @@ public:
 
   int   getTimeNow     () { return now ; }
   float getElapsedTime ( int then ) { return (float)(now-then)/(float)getRate() ; }
+
+  void setMaxConcurrent ( int mc ) { /* Stubbed out until PLIB 1.5.0 */ }
+  int  getMaxConcurrent () { return 3 ; /* Stubbed out until PLIB 1.5.0 */ }
 
   void flushCallBacks () ;
   void addCallBack    ( slCallBack c, slSample *s, slEvent e, int m ) ;
