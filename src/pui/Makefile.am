@@ -8,7 +8,7 @@ libplibpu_a_SOURCES = pu.cxx puBox.cxx puButton.cxx puButtonBox.cxx \
         puObject.cxx puOneShot.cxx puPopup.cxx puPopupMenu.cxx \
         puSlider.cxx puText.cxx puValue.cxx puFont.cxx
 
-INCLUDES += -I$(top_builddir)/src/sg -I$(top_builddir)/src/fnt
+INCLUDES += -I$(top_srcdir)/src/sg -I$(top_srcdir)/src/fnt
 
 EXTRA_DIST = pui.dsp
 

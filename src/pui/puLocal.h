@@ -11,7 +11,7 @@
 #include <math.h>
 
 #ifndef PU_NOT_USING_GLUT
-#include <GL/glut.h>
+#include <GL/freeglut.h>
 #endif
 #include "pu.h"
 

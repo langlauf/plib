@@ -348,6 +348,7 @@ public:
 
 class ssgTexture : public ssgBase
 {
+  char *filename ;
   GLuint handle ;
 
 public:
@@ -362,6 +363,9 @@ public:
     glGenTexturesEXT ( 1, & handle ) ;
     glBindTextureEXT ( GL_TEXTURE_2D, handle ) ;
 #endif
+
+    filename = new char [ strlen(fname)+1 ] ;
+    strcpy ( filename, fname ) ;
 
     ssgImageLoader loader ;
 
@@ -1459,10 +1463,10 @@ ssgEntity *ssgLoadVRML ( char *fname, ssgHookFunc hookfunc = NULL ) ;
 ssgEntity *ssgLoad3ds  ( char *fname, ssgHookFunc hookfunc = NULL ) ;
 
 ssgEntity *ssgLoadAC   ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-void       ssgSaveAC   ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveAC   ( char *fname, ssgEntity *ent ) ;
 
 ssgEntity *ssgLoadSSG  ( char *fname, ssgHookFunc hookfunc = NULL ) ;
-void       ssgSaveSSG  ( char *fname, ssgEntity *ent ) ;
+int        ssgSaveSSG  ( char *fname, ssgEntity *ent ) ;
 
 void ssgFlatten  ( ssgEntity *ent ) ;
 void ssgStripify ( ssgEntity *ent ) ;

@@ -2,7 +2,26 @@
 PLIB Change Log.
 ================
 
-PLIB v1.1.5  (Dec ??rd 1999)
+PLIB v1.1.6  (Dec ??th 1999)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  * Changed ssgSaveSSG and ssgSaveAC to return
+    TRUE on success, FALSE otherwise. Neither
+    function is really working well enough for
+    'primetime' use.
+
+  * Added an optimisation to sgInvertMat4 (thanks
+    to Norman Vine).
+
+  * Changed all Makefile.am's to refer to top_srcdir
+    rather than top_builddir - I have no idea why that
+    matters - but Steve Lamont <spl@szechuan.ucsd.edu>
+    says it matters - so I fixed it!
+
+  * Fixed a bug in PUI's default colour scheme picker
+    that caused text on dark coloured backgrounds to
+    be black instead of white.
+
+PLIB v1.1.5  (Dec 20th 1999)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   * Optimised sgMakeNormal (thanks to Klaus Hartmann!)
   * Added 'Orthographic' rendering modes to SSG...this

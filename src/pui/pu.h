@@ -13,7 +13,7 @@
 #ifdef WIN32
 #include <windows.h>
 #endif
-#include <GL/glut.h>
+#include <GL/freeglut.h>
 #endif
 
 #include "sg.h"
@@ -65,9 +65,11 @@ typedef void *puFont ;
 
 #else
 
+typedef void *GlutFont ;
+
 class puFont 
 {
-  void       *glut_font_handle ;
+  GlutFont     glut_font_handle ;
   fntTexFont * fnt_font_handle ; float pointsize ; float slant ;
 
 public:
@@ -78,7 +80,7 @@ public:
     fnt_font_handle  = NULL ;
   }
 
-  puFont ( void       *gfh )
+  puFont ( GlutFont gfh )
   {
     glut_font_handle = gfh  ;
     fnt_font_handle  = NULL ;
@@ -86,7 +88,7 @@ public:
 
   puFont ( fntTexFont *tfh, float ps, float sl = 0 )
   {
-    glut_font_handle = NULL ;
+    glut_font_handle = (GlutFont) 0 ;
     fnt_font_handle  = tfh  ;
     pointsize = ps ;
     slant = sl ;

@@ -12,7 +12,7 @@ libplibssg_a_SOURCES = ssg.cxx ssgAnimation.cxx ssgBase.cxx \
         ssgInvisible.cxx ssgLoadSSG.cxx ssgLoadVRML.cxx ssgVTable.cxx \
         ssgSimpleList.cxx ssgVtxTable.cxx ssgIO.cxx ssgLoad3ds.cxx
 
-INCLUDES += -I$(top_builddir)/src/sg
+INCLUDES += -I$(top_srcdir)/src/sg
 
 EXTRA_DIST = ssg.dsp
 

@@ -107,7 +107,7 @@ ssgEntity *ssgLoadSSG ( char *fname, ssgHookFunc hookfunc )
 }
 
 
-void ssgSaveSSG ( char *fname, ssgEntity *ent )
+int ssgSaveSSG ( char *fname, ssgEntity *ent )
 {
   /* Uses the spare field in every entity to make sure
     we don't save the same thing twice */
@@ -135,7 +135,7 @@ void ssgSaveSSG ( char *fname, ssgEntity *ent )
     perror ( filename ) ;
     fprintf ( stderr,
       "ssgSaveSSG: Failed to open '%s' for writing\n", filename ) ;
-    return ;
+    return FALSE ;
   }
 
   _ssgWriteInt ( fd, ent->getType() ) ;
@@ -144,10 +144,11 @@ void ssgSaveSSG ( char *fname, ssgEntity *ent )
   {
     fprintf ( stderr,
       "ssgSaveSSG: Failed to write child object.\n" ) ;
-    return ;
+    return FALSE ;
   }
 
   fclose ( fd ) ;
+  return TRUE ;
 }
 
 

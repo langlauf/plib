@@ -812,17 +812,23 @@ void sgInvertMat4 ( sgMat4 dst, const sgMat4 src )
       }
     }
 
-    if ( val == SG_ZERO)
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1.19209290e-07f
+#endif
+    // if ( val == SG_ZERO)
+    if ( fabs(val) <= FLT_EPSILON )
     {
       fprintf ( stderr, "sg: ERROR - Singular matrix, no inverse!\n" ) ;
       sgMakeIdentMat4 ( dst ) ;  /* Do *something* */
       return;
     }
 
+    SGfloat ival = SG_ONE / val ;
+
     for ( j = 0 ; j != 4 ; j++ )
     {
-      tmp[j][i] /= val ;
-      dst[j][i] /= val ;
+      tmp[j][i] *= ival ;
+      dst[j][i] *= ival ;
     }
 
     for (j = 0; j != 4; j++)

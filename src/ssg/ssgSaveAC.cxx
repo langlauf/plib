@@ -102,7 +102,7 @@ static int countVertices ( ssgEntity *e )
 }
 
 
-void ssgSaveAC ( char *filename, ssgEntity *ent )
+int ssgSaveAC ( char *filename, ssgEntity *ent )
 {
   save_fd = fopen ( filename, "wa" ) ;
 
@@ -110,7 +110,7 @@ void ssgSaveAC ( char *filename, ssgEntity *ent )
   {
     perror ( filename ) ;
     fprintf ( stderr, "ssgSaveAC: Failed to open '%s' for writing\n", filename ) ;
-    return ;
+    return FALSE ;
   }
 
   int num_verts = countVertices  ( ent ) ;
@@ -148,6 +148,8 @@ void ssgSaveAC ( char *filename, ssgEntity *ent )
   fclose ( save_fd ) ;
   delete[] vlist ;
   delete tlist ;
+
+  return TRUE ;
 }
 
 
